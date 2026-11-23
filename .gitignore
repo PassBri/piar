@@ -1,0 +1,27 @@
+# Dependencias
+node_modules/
+*/node_modules/
+
+# Variables de entorno
+.env
+*/.env
+!.env.example
+
+# Compilados del frontend
+client/dist/
+client/.vite/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Subidas de soportes (local)
+server/uploads/
+
+# Editores
+.vscode/
+.idea/

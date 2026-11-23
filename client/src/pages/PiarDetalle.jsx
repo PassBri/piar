@@ -1,0 +1,151 @@
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { api } from '../api/client.js';
+import { useAuth } from '../context/AuthContext.jsx';
+
+const TIPOS = [
+  ['actividades', 'Actividades'], ['materiales', 'Materiales'], ['espacios', 'Espacios'],
+  ['comunicacion', 'Comunicación'], ['apoyos_humanos', 'Apoyos humanos'], ['tecnologias', 'Tecnologías'],
+];
+const INTENSIDADES = ['generalizado', 'extenso', 'limitado', 'intermitente'];
+
+export default function PiarDetalle() {
+  const { id } = useParams();
+  const { usuario } = useAuth();
+  const editable = ['docente', 'psicoorientador', 'administrador'].includes(usuario.rol);
+  const [piar, setPiar] = useState(null);
+  const [areas, setAreas] = useState([]);
+  const [catalogo, setCatalogo] = useState([]);
+  const [error, setError] = useState('');
+  const [nuevo, setNuevo] = useState({ area_id: '', barrera: '', tipo: 'actividades', descripcion: '', apoyo: '', intensidad: 'intermitente' });
+
+  async function cargar() {
+    try {
+      const p = await api.get(`/piar/${id}`);
+      setPiar(p);
+    } catch (e) { setError(e.message); }
+  }
+  useEffect(() => {
+    cargar();
+    api.get('/areas').then(setAreas).catch(() => {});
+  }, [id]);
+
+  useEffect(() => {
+    api.get(`/catalogo?tipo=${nuevo.tipo}`).then(setCatalogo).catch(() => {});
+  }, [nuevo.tipo]);
+
+  async function guardarCabecera(e) {
+    e.preventDefault();
+    await api.put(`/piar/${id}`, {
+      periodo: piar.periodo, valoracion: piar.valoracion,
+      aspectos_generales: piar.aspectos_generales, estado: piar.estado,
+    });
+    cargar();
+  }
+
+  async function agregarAjuste(e) {
+    e.preventDefault();
+    try {
+      await api.post('/ajustes', { piar_id: Number(id), ...nuevo, area_id: nuevo.area_id || null });
+      setNuevo({ area_id: '', barrera: '', tipo: 'actividades', descripcion: '', apoyo: '', intensidad: 'intermitente' });
+      cargar();
+    } catch (err) { setError(err.message); }
+  }
+
+  async function eliminarAjuste(aid) {
+    await api.del(`/ajustes/${aid}`);
+    cargar();
+  }
+
+  if (!piar) return <div>{error || 'Cargando…'}</div>;
+
+  return (
+    <div>
+      <Link to={`/estudiantes/${piar.estudiante_id}`} className="btn sec sm">← Volver al estudiante</Link>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '12px 0' }}>
+        <h2 style={{ color: 'var(--gris-700)', margin: 0 }}>
+          PIAR — {piar.estudiante_nombre} ({piar.periodo})
+        </h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/piar/${id}/pdf`)}>Imprimir Anexo 2</button>
+          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/seguimiento/${id}/pdf`)}>Imprimir seguimiento</button>
+        </div>
+      </div>
+      {error && <div className="mensaje-error">{error}</div>}
+
+      <form className="card" onSubmit={guardarCabecera}>
+        <h2>Valoración pedagógica (Anexo 2)</h2>
+        <div className="campo"><label>Síntesis de la valoración</label>
+          <textarea value={piar.valoracion || ''} onChange={(e) => setPiar({ ...piar, valoracion: e.target.value })} disabled={!editable} /></div>
+        <div className="campo"><label>Aspectos generales (gustos, habilidades, apoyos que requiere)</label>
+          <textarea value={piar.aspectos_generales || ''} onChange={(e) => setPiar({ ...piar, aspectos_generales: e.target.value })} disabled={!editable} /></div>
+        <div className="fila">
+          <div className="campo"><label>Estado</label>
+            <select value={piar.estado} onChange={(e) => setPiar({ ...piar, estado: e.target.value })} disabled={!editable}>
+              <option value="borrador">Borrador</option><option value="vigente">Vigente</option><option value="cerrado">Cerrado</option>
+            </select></div>
+        </div>
+        {editable && <button className="btn">Guardar valoración</button>}
+      </form>
+
+      <div className="card">
+        <h2>Barreras y ajustes razonables</h2>
+        <table>
+          <thead><tr><th>Área</th><th>Barrera</th><th>Tipo</th><th>Ajuste</th><th>Intensidad</th>{editable && <th></th>}</tr></thead>
+          <tbody>
+            {piar.ajustes.map((a) => (
+              <tr key={a.id} style={a.retirado ? { opacity: 0.5 } : null}>
+                <td>{a.area_nombre || '—'}</td>
+                <td>{a.barrera}</td>
+                <td>{a.tipo}</td>
+                <td>{a.descripcion}</td>
+                <td>{a.intensidad}</td>
+                {editable && <td><button className="btn sec sm" onClick={() => eliminarAjuste(a.id)}>Eliminar</button></td>}
+              </tr>
+            ))}
+            {piar.ajustes.length === 0 && <tr><td colSpan="6" style={{ color: 'var(--gris-500)' }}>Sin ajustes. Agrega al menos uno por barrera.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      {editable && (
+        <form className="card" onSubmit={agregarAjuste}>
+          <h2>Agregar ajuste razonable</h2>
+          <div className="fila">
+            <div className="campo"><label>Área</label>
+              <select value={nuevo.area_id} onChange={(e) => setNuevo({ ...nuevo, area_id: e.target.value })}>
+                <option value="">— Área —</option>
+                {areas.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
+              </select></div>
+            <div className="campo"><label>Tipo de ajuste</label>
+              <select value={nuevo.tipo} onChange={(e) => setNuevo({ ...nuevo, tipo: e.target.value })}>
+                {TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select></div>
+            <div className="campo"><label>Intensidad del apoyo</label>
+              <select value={nuevo.intensidad} onChange={(e) => setNuevo({ ...nuevo, intensidad: e.target.value })}>
+                {INTENSIDADES.map((i) => <option key={i} value={i}>{i}</option>)}
+              </select></div>
+          </div>
+          <div className="campo"><label>Barrera para el aprendizaje, el desarrollo o la participación</label>
+            <textarea value={nuevo.barrera} onChange={(e) => setNuevo({ ...nuevo, barrera: e.target.value })} required /></div>
+          <div className="campo"><label>Ajuste razonable</label>
+            <textarea value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} required /></div>
+          {catalogo.length > 0 && (
+            <div className="campo">
+              <label>Sugerencias del catálogo (MEN) — clic para usar</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {catalogo.map((c) => (
+                  <button type="button" key={c.id} className="btn sec sm"
+                    onClick={() => setNuevo({ ...nuevo, descripcion: c.descripcion })}>{c.descripcion}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="campo"><label>Apoyo requerido</label>
+            <input value={nuevo.apoyo} onChange={(e) => setNuevo({ ...nuevo, apoyo: e.target.value })} /></div>
+          <button className="btn">Agregar ajuste</button>
+        </form>
+      )}
+    </div>
+  );
+}

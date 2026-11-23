@@ -1,0 +1,16 @@
+{
+  "name": "sigpiar",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SIGPIAR — Sistema de Información y Gestión del Plan Individual de Ajustes Razonables (Decreto 1421 de 2017)",
+  "author": "Brian Gonzalo Suárez Acevedo",
+  "license": "MIT",
+  "scripts": {
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build:client": "npm --prefix client run build"
+  }
+}
