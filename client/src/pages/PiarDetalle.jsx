@@ -126,7 +126,13 @@ export default function PiarDetalle() {
       </div>
       {error && <div className="mensaje-error">{error}</div>}
 
-      <form className="card" onSubmit={guardarCabecera}>
+      <div className="anexos-tabs">
+        <Link to={`/estudiantes/${piar.estudiante_id}`}>Anexo 1 · Información</Link>
+        <button type="button" className="activo" onClick={() => document.getElementById('anexo2')?.scrollIntoView({ behavior: 'smooth' })}>Anexo 2 · Valoración y ajustes</button>
+        <button type="button" onClick={() => document.getElementById('anexo3')?.scrollIntoView({ behavior: 'smooth' })}>Anexo 3 · Acta de acuerdo</button>
+      </div>
+
+      <form className="card" id="anexo2" onSubmit={guardarCabecera}>
         <h2>Valoración pedagógica (Anexo 2)</h2>
         <div className="campo"><label>Síntesis de la valoración</label>
           <textarea value={piar.valoracion || ''} onChange={(e) => setPiar({ ...piar, valoracion: e.target.value })} disabled={!editable} /></div>
@@ -254,7 +260,7 @@ export default function PiarDetalle() {
         </form>
       )}
 
-      <form className="card" onSubmit={guardarActa}>
+      <form className="card" id="anexo3" onSubmit={guardarActa}>
         <h2>Acta de acuerdo con la familia (Anexo 3)</h2>
         <div className="campo"><label>Compromisos de la familia</label>
           <textarea value={acta.compromisos_familia || ''} disabled={esPadre}

@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 // Campos oficiales del Anexo 1 (Formato PIAR - Decreto 1421). t: 'area' = textarea.
 const CAMPOS = {
   identificacion: {
-    titulo: '1. Información general',
+    titulo: '1) Información general del estudiante',
     campos: [
       ['sede', 'Sede'], ['jornada', 'Jornada'], ['grado_ingreso', 'Grado al que aspira ingresar'],
       ['lugar_nacimiento', 'Lugar de nacimiento'], ['sexo', 'Sexo'],
@@ -15,29 +15,27 @@ const CAMPOS = {
       ['telefono', 'Teléfono'], ['correo', 'Correo electrónico'],
       ['centro_proteccion', '¿Está en centro de protección? ¿Dónde?'],
       ['grupo_etnico', '¿Pertenece a un grupo étnico? ¿Cuál?'],
-      ['victima_conflicto', '¿Víctima del conflicto armado? (¿registro?)'],
+      ['victima_conflicto', '¿Víctima del conflicto armado? (¿registro?)', 'area'],
     ],
   },
   entorno_salud: {
-    titulo: '2. Entorno salud',
+    titulo: '2) Entorno salud',
     campos: [
       ['afiliacion', 'Afiliación al sistema de salud (Sí/No)'], ['eps', 'EPS'],
-      ['regimen', 'Régimen (Contributivo/Subsidiado)'],
-      ['lugar_atencion', 'Lugar de atención en emergencia'],
-      ['atendido_salud', '¿Atendido por el sector salud? Frecuencia'],
-      ['diagnostico', 'Diagnóstico médico (¿cuál?)'],
-      ['discapacidad', 'Tipo de discapacidad (si aplica)'],
-      ['terapias', '¿Asiste a terapias? ¿Cuáles? Frecuencia'],
+      ['regimen', 'Régimen (Contributivo/Subsidiado)'], ['lugar_atencion', 'Lugar de atención en emergencia'],
+      ['atendido_salud', '¿Atendido por el sector salud? Frecuencia'], ['diagnostico', 'Diagnóstico médico (¿cuál?)'],
+      ['discapacidad', 'Tipo de discapacidad (si aplica)'], ['terapias', '¿Asiste a terapias? ¿Cuáles? Frecuencia'],
       ['tratamiento', '¿Recibe tratamiento médico? (¿cuál?)'],
       ['medicamentos', '¿Consume medicamentos? Nombre, frecuencia y horario', 'area'],
       ['productos_apoyo', '¿Productos de apoyo? ¿Cuáles? (silla, bastón, audífonos…)', 'area'],
     ],
   },
   entorno_hogar: {
-    titulo: '3. Entorno hogar',
+    titulo: '3) Entorno hogar',
     campos: [
-      ['nombre_madre', 'Nombre de la madre'], ['ocupacion_madre', 'Ocupación de la madre'], ['nivel_madre', 'Nivel educativo de la madre'],
-      ['nombre_padre', 'Nombre del padre'], ['ocupacion_padre', 'Ocupación del padre'], ['nivel_padre', 'Nivel educativo del padre'],
+      ['nombre_madre', 'Nombre de la madre'], ['ocupacion_madre', 'Ocupación de la madre'],
+      ['nivel_madre', 'Nivel educativo de la madre'], ['nombre_padre', 'Nombre del padre'],
+      ['ocupacion_padre', 'Ocupación del padre'], ['nivel_padre', 'Nivel educativo del padre'],
       ['nombre_cuidador', 'Nombre del cuidador'], ['parentesco_cuidador', 'Parentesco con el estudiante'],
       ['nivel_cuidador', 'Nivel educativo del cuidador'], ['telefono_cuidador', 'Teléfono / correo del cuidador'],
       ['num_hermanos', 'N.º de hermanos'], ['lugar_ocupa', 'Lugar que ocupa'],
@@ -46,16 +44,15 @@ const CAMPOS = {
     ],
   },
   entorno_educativo: {
-    titulo: '4. Entorno educativo (trayectoria)',
+    titulo: '4) Entorno educativo (trayectoria)',
     campos: [
       ['vinculado_otra_ie', '¿Vinculado antes a otra IE / fundación? ¿Cuáles?'],
       ['ultimo_grado', 'Último grado cursado'], ['aprobo', '¿Aprobó? (Sí/No)'],
-      ['observaciones', 'Observaciones (motivos de cambio de IE o modalidad)', 'area'],
       ['recibe_informe', '¿Recibe informe pedagógico? ¿De qué institución?'],
-      ['programas_complementarios', '¿Asiste a programas complementarios? ¿Cuáles? (deporte, danza, música…)'],
+      ['observaciones', 'Observaciones (motivos de cambio de IE o modalidad)', 'area'],
+      ['programas_complementarios', '¿Asiste a programas complementarios? ¿Cuáles?', 'area'],
       ['ie_matricula', 'IE en la que se matricula'], ['sede_matricula', 'Sede'],
-      ['transporte', 'Medio de transporte a la institución'],
-      ['distancia', 'Distancia IE–hogar (tiempo)'],
+      ['transporte', 'Medio de transporte a la institución'], ['distancia', 'Distancia IE–hogar (tiempo)'],
     ],
   },
 };
@@ -105,23 +102,34 @@ export default function EstudianteForm() {
     navigate(`/piar/${p.id}`);
   }
 
-  function Grupo({ grupo }) {
+  const campoInput = (grupo, k, tipo) => tipo === 'area'
+    ? <textarea value={form[grupo][k] || ''} onChange={(e) => setG(grupo, k, e.target.value)} disabled={!editable} />
+    : <input value={form[grupo][k] || ''} onChange={(e) => setG(grupo, k, e.target.value)} disabled={!editable} />;
+
+  function filasSeccion(grupo) {
     const def = CAMPOS[grupo];
-    return (
-      <div className="card">
-        <h2>{def.titulo}</h2>
-        <div className="fila" style={{ flexWrap: 'wrap' }}>
-          {def.campos.map(([k, label, tipo]) => (
-            <div className="campo" key={k} style={tipo === 'area' ? { flexBasis: '100%' } : { flexBasis: '31%' }}>
-              <label>{label}</label>
-              {tipo === 'area'
-                ? <textarea value={form[grupo][k] || ''} onChange={(e) => setG(grupo, k, e.target.value)} disabled={!editable} />
-                : <input value={form[grupo][k] || ''} onChange={(e) => setG(grupo, k, e.target.value)} disabled={!editable} />}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    const rows = [<tr key={`b-${grupo}`}><td className="banda" colSpan={4}>{def.titulo}</td></tr>];
+    let i = 0;
+    while (i < def.campos.length) {
+      const [k, label, tipo] = def.campos[i];
+      if (tipo === 'area') {
+        rows.push(<tr key={k}><td className="lbl">{label}</td><td className="val" colSpan={3}>{campoInput(grupo, k, tipo)}</td></tr>);
+        i += 1;
+      } else {
+        const next = def.campos[i + 1];
+        if (next && next[2] !== 'area') {
+          rows.push(<tr key={k}>
+            <td className="lbl">{label}</td><td className="val">{campoInput(grupo, k)}</td>
+            <td className="lbl">{next[1]}</td><td className="val">{campoInput(grupo, next[0])}</td>
+          </tr>);
+          i += 2;
+        } else {
+          rows.push(<tr key={k}><td className="lbl">{label}</td><td className="val" colSpan={3}>{campoInput(grupo, k)}</td></tr>);
+          i += 1;
+        }
+      }
+    }
+    return rows;
   }
 
   return (
@@ -135,35 +143,54 @@ export default function EstudianteForm() {
           </div>
         )}
       </div>
-      <h2 style={{ color: 'var(--gris-700)', marginTop: 12 }}>
-        {id ? form.nombres : 'Nuevo estudiante'} — Anexo 1 (Información general del estudiante)
-      </h2>
+      <h2 style={{ color: 'var(--gris-700)', marginTop: 12 }}>{id ? form.nombres : 'Nuevo estudiante'}</h2>
+      {id && (
+        <div className="anexos-tabs">
+          <span className="activo">Anexo 1 · Información</span>
+          {piars[0] ? <Link to={`/piar/${piars[0].id}`}>Anexo 2 · Valoración y ajustes</Link> : <span className="deshab">Anexo 2 · Valoración y ajustes</span>}
+          {piars[0] ? <Link to={`/piar/${piars[0].id}`}>Anexo 3 · Acta de acuerdo</Link> : <span className="deshab">Anexo 3 · Acta de acuerdo</span>}
+        </div>
+      )}
       {error && <div className="mensaje-error">{error}</div>}
-      {ok && <div style={{ color: 'var(--ok)', fontSize: 14 }}>{ok}</div>}
+      {ok && <div style={{ color: 'var(--ok)', fontSize: 14, margin: '6px 0' }}>{ok}</div>}
 
       <form onSubmit={guardar}>
-        <div className="card">
-          <h2>Datos básicos</h2>
-          <div className="fila">
-            <div className="campo" style={{ flexBasis: '100%' }}><label>Nombres y apellidos</label>
-              <input value={form.nombres} onChange={(e) => set('nombres', e.target.value)} disabled={!editable} required /></div>
+        <div className="formato">
+          <div className="formato-cab">
+            <div>
+              <h3>Información general del estudiante</h3>
+              <div className="sub">Información para la matrícula – Anexo 1 PIAR</div>
+            </div>
+            <div className="formato-sello"><b>PIAR</b><span>Decreto 1421/2017</span></div>
           </div>
-          <div className="fila">
-            <div className="campo"><label>Tipo de documento</label>
-              <select value={form.documento_tipo} onChange={(e) => set('documento_tipo', e.target.value)} disabled={!editable}>
-                <option>RC</option><option>TI</option><option>CC</option><option>PEP</option><option>PPT</option><option>Otro</option>
-              </select></div>
-            <div className="campo"><label>N.º de identificación</label>
-              <input value={form.documento_numero || ''} onChange={(e) => set('documento_numero', e.target.value)} disabled={!editable} /></div>
-            <div className="campo"><label>Grado actual</label>
-              <input value={form.grado || ''} onChange={(e) => set('grado', e.target.value)} disabled={!editable} /></div>
-            <div className="campo"><label>Fecha de nacimiento</label>
-              <input type="date" value={form.fecha_nacimiento || ''} onChange={(e) => set('fecha_nacimiento', e.target.value)} disabled={!editable} /></div>
-          </div>
+          <table className="ftabla">
+            <tbody>
+              <tr><td className="banda" colSpan={4}>Datos del estudiante</td></tr>
+              <tr>
+                <td className="lbl">Nombres y apellidos</td>
+                <td className="val" colSpan={3}><input value={form.nombres} onChange={(e) => set('nombres', e.target.value)} disabled={!editable} required /></td>
+              </tr>
+              <tr>
+                <td className="lbl">Tipo de documento</td>
+                <td className="val">
+                  <select value={form.documento_tipo} onChange={(e) => set('documento_tipo', e.target.value)} disabled={!editable}>
+                    <option>RC</option><option>TI</option><option>CC</option><option>PEP</option><option>PPT</option><option>Otro</option>
+                  </select>
+                </td>
+                <td className="lbl">N.º de identificación</td>
+                <td className="val"><input value={form.documento_numero || ''} onChange={(e) => set('documento_numero', e.target.value)} disabled={!editable} /></td>
+              </tr>
+              <tr>
+                <td className="lbl">Grado actual</td>
+                <td className="val"><input value={form.grado || ''} onChange={(e) => set('grado', e.target.value)} disabled={!editable} /></td>
+                <td className="lbl">Fecha de nacimiento</td>
+                <td className="val"><input type="date" value={form.fecha_nacimiento || ''} onChange={(e) => set('fecha_nacimiento', e.target.value)} disabled={!editable} /></td>
+              </tr>
+              {GRUPOS.map((g) => filasSeccion(g))}
+            </tbody>
+          </table>
+          <div className="formato-pie">Ministerio de Educación Nacional – Viceministerio de Educación Preescolar, Básica y Media – Decreto 1421 de 2017</div>
         </div>
-
-        {GRUPOS.map((g) => <Grupo key={g} grupo={g} />)}
-
         {editable && <button className="btn">Guardar Anexo 1</button>}
       </form>
 
