@@ -30,7 +30,16 @@ Organizada por **departamento → municipio → institución educativa**, permit
 
 Jerarquía territorial: `departamento` → `municipio` → `institucion` → (`usuario`, `estudiante` → `piar` → `ajuste_razonable` → `seguimiento`, `acta_acuerdo`).
 
-## Puesta en marcha
+## Inicio rápido (Windows)
+
+Con Docker Desktop abierto, haz doble clic en **`iniciar.bat`**: levanta la base de
+datos, abre el backend y el frontend en ventanas separadas y abre PIAR en el
+navegador. Para apagarlo todo, usa **`detener.bat`**.
+
+La primera vez, instala las dependencias una sola vez:
+`npm install` dentro de `server` y dentro de `client`.
+
+## Puesta en marcha (manual)
 
 ### 1. Base de datos (con Docker)
 
