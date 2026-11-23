@@ -93,9 +93,13 @@ th { background: var(--blanco); color: var(--gris-900); font-weight: 700; }
 /* Login */
 .login-wrap {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  background:
+  background-color: #2A2E33;
+  background-image:
     linear-gradient(rgba(42, 46, 51, 0.88), rgba(42, 46, 51, 0.88)),
-    url('/fondo-login.jpg') center / cover no-repeat fixed;
+    url('/fondo-login.jpg');
+  background-size: auto, 460px auto;
+  background-repeat: repeat, repeat;
+  background-position: center, center;
 }
 .login-card { background: var(--blanco); padding: 36px; border-radius: 12px; width: 360px; box-shadow: 0 10px 40px rgba(0,0,0,0.25); }
 .login-card .logo { text-align: center; margin-bottom: 18px; }
