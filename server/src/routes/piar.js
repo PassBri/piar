@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { autenticar, autorizar } from '../middleware/auth.js';
+import { avancePiar } from '../lib/avance.js';
 
 const router = Router();
 router.use(autenticar);
@@ -22,12 +23,46 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/piar/avance/listado  (control: % de avance de cada PIAR, para supervisión)
+router.get('/avance/listado', autorizar('superadmin', 'rector', 'psicoorientador', 'administrador'), async (req, res, next) => {
+  try {
+    const esSuper = req.usuario.rol === 'superadmin';
+    const { rows } = await query(
+      `SELECT p.id AS piar_id, p.periodo, p.estado, p.valoracion, p.aspectos_generales, e.*,
+              i.nombre AS institucion_nombre,
+              (SELECT count(*) FROM ajuste_razonable a WHERE a.piar_id = p.id)::int AS num_ajustes,
+              (SELECT count(DISTINCT area_id) FROM valoracion_area v WHERE v.piar_id = p.id)::int AS areas_val,
+              row_to_json(ac.*) AS acta
+       FROM piar p
+       JOIN estudiante e ON e.id = p.estudiante_id
+       LEFT JOIN institucion i ON i.id = e.institucion_id
+       LEFT JOIN acta_acuerdo ac ON ac.piar_id = p.id
+       WHERE ($1::boolean OR e.institucion_id = $2)
+       ORDER BY e.nombres`,
+      [esSuper, req.usuario.institucion_id]
+    );
+    const lista = rows.map((r) => ({
+      piar_id: r.piar_id, estudiante_id: r.id, estudiante_nombre: r.nombres,
+      grado: r.grado, periodo: r.periodo, estado: r.estado,
+      institucion_nombre: r.institucion_nombre,
+      avance: avancePiar({
+        estudiante: r, piar: { valoracion: r.valoracion, aspectos_generales: r.aspectos_generales },
+        numAjustes: r.num_ajustes, numAreasValoradas: r.areas_val, acta: r.acta,
+      }),
+    }));
+    res.json(lista);
+  } catch (err) { next(err); }
+});
+
 // GET /api/piar/:id  (detalle con ajustes y acta)
 router.get('/:id', async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT p.*, e.nombres AS estudiante_nombre, e.grado, e.documento_numero
-       FROM piar p JOIN estudiante e ON e.id = p.estudiante_id WHERE p.id = $1`,
+      `SELECT p.*, e.nombres AS estudiante_nombre, e.grado, e.documento_numero,
+              e.institucion_id, COALESCE(i.num_periodos, 4) AS num_periodos,
+              COALESCE(i.usa_promocion, true) AS usa_promocion
+       FROM piar p JOIN estudiante e ON e.id = p.estudiante_id
+       LEFT JOIN institucion i ON i.id = e.institucion_id WHERE p.id = $1`,
       [req.params.id]
     );
     const piar = rows[0];
@@ -38,7 +73,18 @@ router.get('/:id', async (req, res, next) => {
       [req.params.id]
     );
     const acta = await query('SELECT * FROM acta_acuerdo WHERE piar_id = $1', [req.params.id]);
-    res.json({ ...piar, ajustes: ajustes.rows, acta: acta.rows[0] || null });
+    // Avance de diligenciamiento por anexo (mecanismo de control)
+    const est = await query(
+      `SELECT nombres, documento_numero, grado, fecha_nacimiento,
+              identificacion, entorno_salud, entorno_hogar, entorno_educativo
+       FROM estudiante WHERE id = $1`, [piar.estudiante_id]);
+    const areasVal = await query(
+      'SELECT COUNT(DISTINCT area_id)::int AS n FROM valoracion_area WHERE piar_id = $1', [req.params.id]);
+    const avance = avancePiar({
+      estudiante: est.rows[0], piar, numAjustes: ajustes.rows.length,
+      numAreasValoradas: areasVal.rows[0].n, acta: acta.rows[0],
+    });
+    res.json({ ...piar, ajustes: ajustes.rows, acta: acta.rows[0] || null, avance });
   } catch (err) { next(err); }
 });
 

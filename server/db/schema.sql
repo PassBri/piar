@@ -54,6 +54,8 @@ CREATE TABLE institucion (
     nombre       VARCHAR(200) NOT NULL,
     sede         VARCHAR(200),
     codigo_dane  VARCHAR(20),
+    num_periodos SMALLINT NOT NULL DEFAULT 4 CHECK (num_periodos BETWEEN 1 AND 4),
+    usa_promocion BOOLEAN NOT NULL DEFAULT TRUE,   -- consolidado anual (promoción)
     creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_municipio_departamento ON municipio(departamento_id);
@@ -121,7 +123,7 @@ CREATE TABLE ajuste_razonable (
     id          SERIAL PRIMARY KEY,
     piar_id     INTEGER NOT NULL REFERENCES piar(id) ON DELETE CASCADE,
     area_id     INTEGER REFERENCES area(id) ON DELETE SET NULL,
-    periodo     SMALLINT NOT NULL DEFAULT 1 CHECK (periodo BETWEEN 1 AND 4),  -- trimestre
+    periodo     SMALLINT NOT NULL DEFAULT 1 CHECK (periodo BETWEEN 1 AND 5),  -- 1-4 periodos, 5 = promoción (consolidado anual)
     objetivo    TEXT,                     -- objetivos/propósitos (EBC y DBA)
     barrera     TEXT NOT NULL,            -- barreras evidenciadas en el contexto
     tipo        tipo_ajuste NOT NULL,
@@ -165,7 +167,7 @@ CREATE TABLE valoracion_area (
     id          SERIAL PRIMARY KEY,
     piar_id     INTEGER NOT NULL REFERENCES piar(id) ON DELETE CASCADE,
     area_id     INTEGER NOT NULL REFERENCES area(id) ON DELETE CASCADE,
-    periodo     SMALLINT NOT NULL CHECK (periodo BETWEEN 1 AND 4),
+    periodo     SMALLINT NOT NULL CHECK (periodo BETWEEN 1 AND 5),  -- 5 = promoción (consolidado anual)
     desempeno   VARCHAR(20),   -- superior, alto, básico, bajo
     observacion TEXT,
     UNIQUE (piar_id, area_id, periodo)

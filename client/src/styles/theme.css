@@ -107,7 +107,18 @@ table.ftabla td.val input, table.ftabla td.val textarea, table.ftabla td.val sel
 table.ftabla td.val textarea { resize: vertical; min-height: 32px; display: block; }
 table.ftabla td.val input:focus, table.ftabla td.val textarea:focus { outline: 2px solid var(--gris-400); outline-offset: -2px; }
 table.ftabla td.banda { background: var(--gris-700); color: #fff; font-weight: 700; font-size: 12px; padding: 5px 8px; }
+table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; font-weight: 700; padding: 5px 7px; border: 1px solid #aab; text-align: left; vertical-align: middle; }
 .formato-pie { font-size: 9px; color: var(--gris-500); text-align: center; padding: 6px; border-top: 1px solid #ccc; }
+
+/* Pestañas de periodo deslizables (scroll horizontal) */
+.periodos-scroll { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 10px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+.periodos-scroll::-webkit-scrollbar { height: 6px; }
+.periodos-scroll::-webkit-scrollbar-thumb { background: var(--gris-300); border-radius: 3px; }
+.periodo-tab { flex: 0 0 auto; padding: 8px 16px; border: 1px solid var(--gris-300); background: var(--blanco); border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--gris-600); white-space: nowrap; }
+.periodo-tab:hover { border-color: var(--gris-500); }
+.periodo-tab.activo { background: var(--gris-700); color: #fff; border-color: var(--gris-700); }
+.periodo-tab.promo { border-style: dashed; }
+.config-periodos { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; background: var(--gris-100); border: 1px solid var(--gris-200); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; }
 
 /* Navegación por anexos */
 .anexos-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 14px 0 6px; }

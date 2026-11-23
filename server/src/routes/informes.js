@@ -241,19 +241,28 @@ router.get('/piar/:id/pdf', async (req, res, next) => {
     campos(doc, [['Valoración pedagógica', piar.valoracion || '—']]);
     campos(doc, [['Aspectos generales (gustos, habilidades, apoyos)', piar.aspectos_generales || '—']]);
 
-    banda(doc, '2. Ajustes razonables (por periodo)');
-    const PERIODOS = ['PRIMER PERIODO', 'SEGUNDO PERIODO', 'TERCER PERIODO', 'CUARTO PERIODO'];
-    [1, 2, 3, 4].forEach((p) => {
+    // ?periodo=1..5 imprime un solo periodo (5 = promoción); 'all'/vacío imprime todos
+    const NOMBRE_PERIODO = ['PRIMER PERIODO', 'SEGUNDO PERIODO', 'TERCER PERIODO', 'CUARTO PERIODO', 'PROMOCIÓN (CONSOLIDADO ANUAL)'];
+    const q = String(req.query.periodo || 'all').toLowerCase();
+    const soloP = /^[1-5]$/.test(q) ? Number(q) : null;
+    const periodosImprimir = soloP ? [soloP] : [1, 2, 3, 4, 5];
+    const tituloSeccion = soloP
+      ? (soloP === 5 ? '2. Ajustes razonables — Promoción (consolidado anual)' : `2. Ajustes razonables — Periodo ${soloP}`)
+      : '2. Ajustes razonables (por periodo)';
+    banda(doc, tituloSeccion);
+    let impresos = 0;
+    periodosImprimir.forEach((p) => {
       const delP = ajustes.filter((a) => a.periodo === p);
       if (delP.length === 0) return;
+      impresos += delP.length;
       doc.moveDown(0.3);
       saltoSi(doc, 44);
-      doc.font('Helvetica-Bold').fontSize(9).fillColor(GRIS).text(PERIODOS[p - 1], X0, doc.y);
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(GRIS).text(NOMBRE_PERIODO[p - 1], X0, doc.y);
       doc.fillColor('#000'); doc.moveDown(0.2);
       cabeceraAjustes(doc);
       delP.forEach((a) => filaAjuste(doc, a));
     });
-    if (ajustes.length === 0) doc.font('Helvetica-Oblique').fontSize(9).text('No se han registrado ajustes razonables.');
+    if (impresos === 0) doc.font('Helvetica-Oblique').fontSize(9).text('No se han registrado ajustes razonables para esta selección.');
     finalizar(doc);
   } catch (err) { next(err); }
 });

@@ -69,12 +69,32 @@ router.get('/instituciones', async (req, res, next) => {
 
 router.post('/instituciones', autorizar('superadmin', 'administrador'), async (req, res, next) => {
   try {
-    const { municipio_id, nombre, sede, codigo_dane } = req.body;
+    const { municipio_id, nombre, sede, codigo_dane, num_periodos, usa_promocion } = req.body;
     const { rows } = await query(
-      'INSERT INTO institucion (municipio_id, nombre, sede, codigo_dane) VALUES ($1,$2,$3,$4) RETURNING *',
-      [municipio_id || null, nombre, sede || null, codigo_dane || null]
+      `INSERT INTO institucion (municipio_id, nombre, sede, codigo_dane, num_periodos, usa_promocion)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [municipio_id || null, nombre, sede || null, codigo_dane || null,
+        Math.min(4, Math.max(1, Number(num_periodos) || 4)), usa_promocion !== false]
     );
     res.status(201).json(rows[0]);
+  } catch (err) { next(err); }
+});
+
+// Configuración de periodos del colegio (cuántos periodos maneja y si usa promoción)
+router.put('/instituciones/:id/periodos', autorizar('superadmin', 'administrador', 'rector'), async (req, res, next) => {
+  try {
+    const { num_periodos, usa_promocion } = req.body;
+    // El rector solo puede configurar su propia institución
+    if (req.usuario.rol === 'rector' && Number(req.params.id) !== req.usuario.institucion_id) {
+      return res.status(403).json({ error: 'Solo puede configurar su propia institución.' });
+    }
+    const n = Math.min(4, Math.max(1, Number(num_periodos) || 4));
+    const { rows } = await query(
+      'UPDATE institucion SET num_periodos=$1, usa_promocion=$2 WHERE id=$3 RETURNING *',
+      [n, usa_promocion !== false, req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Institución no encontrada.' });
+    res.json(rows[0]);
   } catch (err) { next(err); }
 });
 
