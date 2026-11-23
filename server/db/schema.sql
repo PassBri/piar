@@ -94,6 +94,7 @@ CREATE TABLE estudiante (
     entorno_personal JSONB NOT NULL DEFAULT '{}'::jsonb,
     entorno_salud    JSONB NOT NULL DEFAULT '{}'::jsonb,
     entorno_hogar    JSONB NOT NULL DEFAULT '{}'::jsonb,
+    entorno_educativo JSONB NOT NULL DEFAULT '{}'::jsonb,  -- trayectoria educativa (Anexo 1)
     -- Acceso de la familia: usuario padre vinculado (solo lectura de su hijo)
     acudiente_id     INTEGER REFERENCES usuario(id) ON DELETE SET NULL,
     creado_por       INTEGER REFERENCES usuario(id) ON DELETE SET NULL,
@@ -120,12 +121,14 @@ CREATE TABLE ajuste_razonable (
     id          SERIAL PRIMARY KEY,
     piar_id     INTEGER NOT NULL REFERENCES piar(id) ON DELETE CASCADE,
     area_id     INTEGER REFERENCES area(id) ON DELETE SET NULL,
-    objetivo    VARCHAR(300),
-    barrera     TEXT NOT NULL,
+    periodo     SMALLINT NOT NULL DEFAULT 1 CHECK (periodo BETWEEN 1 AND 4),  -- trimestre
+    objetivo    TEXT,                     -- objetivos/propósitos (EBC y DBA)
+    barrera     TEXT NOT NULL,            -- barreras evidenciadas en el contexto
     tipo        tipo_ajuste NOT NULL,
-    descripcion TEXT NOT NULL,            -- el ajuste en sí
+    descripcion TEXT NOT NULL,            -- ajuste razonable (apoyos/estrategias)
     apoyo       TEXT,                     -- apoyo requerido
     intensidad  intensidad_apoyo DEFAULT 'intermitente',
+    evaluacion  TEXT,                     -- evaluación de los ajustes (observaciones)
     retirado    BOOLEAN NOT NULL DEFAULT FALSE,
     justificacion_retiro TEXT,
     creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()

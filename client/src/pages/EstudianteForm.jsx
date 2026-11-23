@@ -3,48 +3,73 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
+// Campos oficiales del Anexo 1 (Formato PIAR - Decreto 1421). t: 'area' = textarea.
+const CAMPOS = {
+  identificacion: {
+    titulo: '1. Información general',
+    campos: [
+      ['sede', 'Sede'], ['jornada', 'Jornada'], ['grado_ingreso', 'Grado al que aspira ingresar'],
+      ['lugar_nacimiento', 'Lugar de nacimiento'], ['sexo', 'Sexo'],
+      ['departamento_vive', 'Departamento donde vive'], ['municipio_vive', 'Municipio'],
+      ['direccion', 'Dirección de vivienda'], ['barrio', 'Barrio / vereda'],
+      ['telefono', 'Teléfono'], ['correo', 'Correo electrónico'],
+      ['centro_proteccion', '¿Está en centro de protección? ¿Dónde?'],
+      ['grupo_etnico', '¿Pertenece a un grupo étnico? ¿Cuál?'],
+      ['victima_conflicto', '¿Víctima del conflicto armado? (¿registro?)'],
+    ],
+  },
+  entorno_salud: {
+    titulo: '2. Entorno salud',
+    campos: [
+      ['afiliacion', 'Afiliación al sistema de salud (Sí/No)'], ['eps', 'EPS'],
+      ['regimen', 'Régimen (Contributivo/Subsidiado)'],
+      ['lugar_atencion', 'Lugar de atención en emergencia'],
+      ['atendido_salud', '¿Atendido por el sector salud? Frecuencia'],
+      ['diagnostico', 'Diagnóstico médico (¿cuál?)'],
+      ['discapacidad', 'Tipo de discapacidad (si aplica)'],
+      ['terapias', '¿Asiste a terapias? ¿Cuáles? Frecuencia'],
+      ['tratamiento', '¿Recibe tratamiento médico? (¿cuál?)'],
+      ['medicamentos', '¿Consume medicamentos? Nombre, frecuencia y horario', 'area'],
+      ['productos_apoyo', '¿Productos de apoyo? ¿Cuáles? (silla, bastón, audífonos…)', 'area'],
+    ],
+  },
+  entorno_hogar: {
+    titulo: '3. Entorno hogar',
+    campos: [
+      ['nombre_madre', 'Nombre de la madre'], ['ocupacion_madre', 'Ocupación de la madre'], ['nivel_madre', 'Nivel educativo de la madre'],
+      ['nombre_padre', 'Nombre del padre'], ['ocupacion_padre', 'Ocupación del padre'], ['nivel_padre', 'Nivel educativo del padre'],
+      ['nombre_cuidador', 'Nombre del cuidador'], ['parentesco_cuidador', 'Parentesco con el estudiante'],
+      ['nivel_cuidador', 'Nivel educativo del cuidador'], ['telefono_cuidador', 'Teléfono / correo del cuidador'],
+      ['num_hermanos', 'N.º de hermanos'], ['lugar_ocupa', 'Lugar que ocupa'],
+      ['personas_vive', 'Personas con quien vive'], ['apoyan_crianza', '¿Quiénes apoyan la crianza?'],
+      ['bajo_proteccion', '¿Está bajo protección? (Sí/No)'], ['subsidio', '¿Recibe algún subsidio? ¿Cuál?'],
+    ],
+  },
+  entorno_educativo: {
+    titulo: '4. Entorno educativo (trayectoria)',
+    campos: [
+      ['vinculado_otra_ie', '¿Vinculado antes a otra IE / fundación? ¿Cuáles?'],
+      ['ultimo_grado', 'Último grado cursado'], ['aprobo', '¿Aprobó? (Sí/No)'],
+      ['observaciones', 'Observaciones (motivos de cambio de IE o modalidad)', 'area'],
+      ['recibe_informe', '¿Recibe informe pedagógico? ¿De qué institución?'],
+      ['programas_complementarios', '¿Asiste a programas complementarios? ¿Cuáles? (deporte, danza, música…)'],
+      ['ie_matricula', 'IE en la que se matricula'], ['sede_matricula', 'Sede'],
+      ['transporte', 'Medio de transporte a la institución'],
+      ['distancia', 'Distancia IE–hogar (tiempo)'],
+    ],
+  },
+};
+const GRUPOS = Object.keys(CAMPOS);
 const vacio = {
   nombres: '', documento_tipo: 'TI', documento_numero: '', grado: '', fecha_nacimiento: '',
-  identificacion: { sede: '', jornada: '', lugar_nacimiento: '', sexo: '', grupo_etnico: '', estrato: '', direccion: '', telefono: '', grado_ingreso: '' },
-  entorno_personal: { descripcion: '', comunicacion: '', movilidad: '', autonomia: '', productos_apoyo: '' },
-  entorno_salud: { eps: '', regimen: '', discapacidad: '', diagnostico_soporte: '', medicamentos: '', terapias: '' },
-  entorno_hogar: { con_quien_vive: '', nombre_madre: '', nombre_padre: '', nivel_educativo_cuidador: '', transporte: '', servicios: '' },
-};
-
-// Definición de los campos de cada grupo (Anexo 1 del MEN)
-const CAMPOS = {
-  identificacion: [
-    ['sede', 'Sede'], ['jornada', 'Jornada'], ['grado_ingreso', 'Grado al que ingresa'],
-    ['lugar_nacimiento', 'Lugar de nacimiento'], ['sexo', 'Sexo'], ['grupo_etnico', 'Grupo étnico'],
-    ['estrato', 'Estrato'], ['direccion', 'Dirección'], ['telefono', 'Teléfono'],
-  ],
-  entorno_personal: [
-    ['descripcion', 'Descripción (gustos, intereses, características)', true],
-    ['comunicacion', '¿Cómo se comunica?'], ['movilidad', '¿Cómo se moviliza?'],
-    ['autonomia', 'Nivel de autonomía'], ['productos_apoyo', 'Productos de apoyo que usa'],
-  ],
-  entorno_salud: [
-    ['eps', 'EPS / afiliación'], ['regimen', 'Régimen (contributivo/subsidiado)'],
-    ['discapacidad', 'Tipo de discapacidad (si aplica)'],
-    ['diagnostico_soporte', 'Soporte de diagnóstico (opcional, no obligatorio)'],
-    ['medicamentos', 'Medicamentos (nombre y horario)'], ['terapias', '¿Asiste a terapias? ¿Cuáles?'],
-  ],
-  entorno_hogar: [
-    ['con_quien_vive', '¿Con quién vive?'], ['nombre_madre', 'Nombre de la madre'],
-    ['nombre_padre', 'Nombre del padre'], ['nivel_educativo_cuidador', 'Nivel educativo del cuidador'],
-    ['transporte', 'Medio de transporte a la institución'], ['servicios', 'Servicios públicos del hogar'],
-  ],
-};
-const TITULOS = {
-  identificacion: 'Identificación', entorno_personal: 'Entorno personal',
-  entorno_salud: 'Entorno de salud', entorno_hogar: 'Entorno de hogar',
+  identificacion: {}, entorno_personal: {}, entorno_salud: {}, entorno_hogar: {}, entorno_educativo: {},
 };
 
 export default function EstudianteForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { usuario } = useAuth();
-  const editable = ['docente', 'psicoorientador', 'administrador'].includes(usuario.rol);
+  const editable = ['docente', 'psicoorientador', 'administrador', 'superadmin'].includes(usuario.rol);
   const [form, setForm] = useState(vacio);
   const [piars, setPiars] = useState([]);
   const [error, setError] = useState('');
@@ -55,10 +80,9 @@ export default function EstudianteForm() {
       api.get(`/estudiantes/${id}`).then((e) => setForm({
         ...vacio, ...e,
         fecha_nacimiento: e.fecha_nacimiento ? e.fecha_nacimiento.slice(0, 10) : '',
-        identificacion: { ...vacio.identificacion, ...(e.identificacion || {}) },
-        entorno_personal: { ...vacio.entorno_personal, ...(e.entorno_personal || {}) },
-        entorno_salud: { ...vacio.entorno_salud, ...(e.entorno_salud || {}) },
-        entorno_hogar: { ...vacio.entorno_hogar, ...(e.entorno_hogar || {}) },
+        identificacion: e.identificacion || {}, entorno_personal: e.entorno_personal || {},
+        entorno_salud: e.entorno_salud || {}, entorno_hogar: e.entorno_hogar || {},
+        entorno_educativo: e.entorno_educativo || {},
       })).catch((err) => setError(err.message));
       api.get(`/piar?estudiante_id=${id}`).then(setPiars).catch(() => {});
     }
@@ -76,22 +100,21 @@ export default function EstudianteForm() {
       if (!id) navigate(`/estudiantes/${saved.id}`);
     } catch (err) { setError(err.message); }
   }
-
   async function crearPiar() {
-    const periodo = String(new Date().getFullYear());
-    const p = await api.post('/piar', { estudiante_id: Number(id), periodo });
+    const p = await api.post('/piar', { estudiante_id: Number(id), periodo: String(new Date().getFullYear()) });
     navigate(`/piar/${p.id}`);
   }
 
   function Grupo({ grupo }) {
+    const def = CAMPOS[grupo];
     return (
       <div className="card">
-        <h2>{TITULOS[grupo]}</h2>
+        <h2>{def.titulo}</h2>
         <div className="fila" style={{ flexWrap: 'wrap' }}>
-          {CAMPOS[grupo].map(([k, label, textarea]) => (
-            <div className="campo" key={k} style={textarea ? { flexBasis: '100%' } : {}}>
+          {def.campos.map(([k, label, tipo]) => (
+            <div className="campo" key={k} style={tipo === 'area' ? { flexBasis: '100%' } : { flexBasis: '31%' }}>
               <label>{label}</label>
-              {textarea
+              {tipo === 'area'
                 ? <textarea value={form[grupo][k] || ''} onChange={(e) => setG(grupo, k, e.target.value)} disabled={!editable} />
                 : <input value={form[grupo][k] || ''} onChange={(e) => setG(grupo, k, e.target.value)} disabled={!editable} />}
             </div>
@@ -103,11 +126,8 @@ export default function EstudianteForm() {
 
   return (
     <div>
-      <Link to="/estudiantes" className="btn sec sm">← Volver</Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-        <h2 style={{ color: 'var(--gris-700)', margin: 0 }}>
-          {id ? form.nombres : 'Nuevo estudiante'} — Anexo 1 (Información general)
-        </h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Link to="/estudiantes" className="btn sec sm">← Volver</Link>
         {id && (
           <div style={{ display: 'flex', gap: 6 }}>
             <button type="button" className="btn sec sm" onClick={() => api.abrirPdf(`/informes/estudiante/${id}/pdf`)}>Imprimir Anexo 1</button>
@@ -115,6 +135,9 @@ export default function EstudianteForm() {
           </div>
         )}
       </div>
+      <h2 style={{ color: 'var(--gris-700)', marginTop: 12 }}>
+        {id ? form.nombres : 'Nuevo estudiante'} — Anexo 1 (Información general del estudiante)
+      </h2>
       {error && <div className="mensaje-error">{error}</div>}
       {ok && <div style={{ color: 'var(--ok)', fontSize: 14 }}>{ok}</div>}
 
@@ -128,9 +151,9 @@ export default function EstudianteForm() {
           <div className="fila">
             <div className="campo"><label>Tipo de documento</label>
               <select value={form.documento_tipo} onChange={(e) => set('documento_tipo', e.target.value)} disabled={!editable}>
-                <option>RC</option><option>TI</option><option>CC</option><option>PEP</option><option>PPT</option>
+                <option>RC</option><option>TI</option><option>CC</option><option>PEP</option><option>PPT</option><option>Otro</option>
               </select></div>
-            <div className="campo"><label>Número</label>
+            <div className="campo"><label>N.º de identificación</label>
               <input value={form.documento_numero || ''} onChange={(e) => set('documento_numero', e.target.value)} disabled={!editable} /></div>
             <div className="campo"><label>Grado actual</label>
               <input value={form.grado || ''} onChange={(e) => set('grado', e.target.value)} disabled={!editable} /></div>
@@ -139,10 +162,7 @@ export default function EstudianteForm() {
           </div>
         </div>
 
-        <Grupo grupo="identificacion" />
-        <Grupo grupo="entorno_personal" />
-        <Grupo grupo="entorno_salud" />
-        <Grupo grupo="entorno_hogar" />
+        {GRUPOS.map((g) => <Grupo key={g} grupo={g} />)}
 
         {editable && <button className="btn">Guardar Anexo 1</button>}
       </form>
@@ -150,7 +170,7 @@ export default function EstudianteForm() {
       {id && (
         <div className="card" style={{ marginTop: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>PIAR del estudiante (por periodo/año)</h2>
+            <h2>PIAR del estudiante (por año, con sus 4 periodos)</h2>
             {editable && <button className="btn sm" onClick={crearPiar}>+ Nuevo PIAR</button>}
           </div>
           <table>

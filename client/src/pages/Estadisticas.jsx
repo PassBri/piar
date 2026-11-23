@@ -5,6 +5,7 @@ import MapaColombia from '../components/MapaColombia.jsx';
 export default function Estadisticas() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [sel, setSel] = useState(null);
 
   useEffect(() => {
     api.get('/estadisticas/mapa').then(setData).catch((e) => setError(e.message));
@@ -29,14 +30,26 @@ export default function Estadisticas() {
         <h2>Mapa de atención por municipio</h2>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
           <div style={{ flex: '2 1 460px', minWidth: 320 }}>
-            <MapaColombia municipios={municipios} departamentos={departamentos} />
+            <MapaColombia municipios={municipios} departamentos={departamentos} onSelect={setSel} />
           </div>
           <div style={{ flex: '1 1 260px', fontSize: 13, color: 'var(--gris-600)' }}>
-            <p style={{ marginTop: 0 }}>
-              El color de cada departamento indica el número de estudiantes atendidos;
-              cada punto dorado es un municipio con colegios que aplican el PIAR (su tamaño
-              crece con el número de estudiantes). Pasa el cursor sobre un punto para ver el detalle.
-            </p>
+            {sel ? (
+              <div className="card" style={{ margin: 0, background: 'var(--gris-050)' }}>
+                <h2 style={{ marginBottom: 6 }}>{sel.nombre}</h2>
+                <div style={{ fontSize: 13 }}>
+                  {sel.tipo === 'municipio' && <div>Departamento: {sel.departamento}</div>}
+                  <div style={{ marginTop: 6 }}><span className="kpi" style={{ fontSize: 22 }}>{sel.colegios}</span> colegios</div>
+                  <div><span className="kpi" style={{ fontSize: 22 }}>{sel.estudiantes}</span> estudiantes atendidos</div>
+                </div>
+                <button className="btn sec sm" style={{ marginTop: 10 }} onClick={() => setSel(null)}>Cerrar</button>
+              </div>
+            ) : (
+              <p style={{ marginTop: 0 }}>
+                El color de cada departamento indica el número de estudiantes atendidos;
+                cada punto dorado es un municipio con colegios que aplican el PIAR. Pasa el
+                cursor para ver el detalle y <strong>haz clic</strong> para fijarlo aquí.
+              </p>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
               <span style={{ width: 14, height: 14, background: '#ECEFF1', display: 'inline-block', border: '1px solid #CFD8DC' }} />
               <span>Sin atención</span>

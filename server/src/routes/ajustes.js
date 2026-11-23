@@ -8,15 +8,15 @@ router.use(autenticar);
 // POST /api/ajustes  (añadir ajuste razonable a un PIAR)
 router.post('/', autorizar('docente', 'psicoorientador', 'administrador'), async (req, res, next) => {
   try {
-    const { piar_id, area_id, objetivo, barrera, tipo, descripcion, apoyo, intensidad } = req.body;
+    const { piar_id, area_id, periodo, objetivo, barrera, tipo, descripcion, apoyo, intensidad, evaluacion } = req.body;
     if (!piar_id || !barrera || !tipo || !descripcion) {
       return res.status(400).json({ error: 'PIAR, barrera, tipo y descripción son obligatorios.' });
     }
     const { rows } = await query(
       `INSERT INTO ajuste_razonable
-        (piar_id, area_id, objetivo, barrera, tipo, descripcion, apoyo, intensidad)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [piar_id, area_id || null, objetivo, barrera, tipo, descripcion, apoyo, intensidad || 'intermitente']
+        (piar_id, area_id, periodo, objetivo, barrera, tipo, descripcion, apoyo, intensidad, evaluacion)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [piar_id, area_id || null, periodo || 1, objetivo, barrera, tipo, descripcion, apoyo, intensidad || 'intermitente', evaluacion]
     );
     res.status(201).json(rows[0]);
   } catch (err) { next(err); }
@@ -25,13 +25,13 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador'), async
 // PUT /api/ajustes/:id
 router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador'), async (req, res, next) => {
   try {
-    const { area_id, objetivo, barrera, tipo, descripcion, apoyo, intensidad, retirado, justificacion_retiro } = req.body;
+    const { area_id, periodo, objetivo, barrera, tipo, descripcion, apoyo, intensidad, evaluacion, retirado, justificacion_retiro } = req.body;
     const { rows } = await query(
-      `UPDATE ajuste_razonable SET area_id=$1, objetivo=$2, barrera=$3, tipo=$4,
-         descripcion=$5, apoyo=$6, intensidad=$7, retirado=COALESCE($8,retirado),
-         justificacion_retiro=$9
-       WHERE id=$10 RETURNING *`,
-      [area_id || null, objetivo, barrera, tipo, descripcion, apoyo, intensidad,
+      `UPDATE ajuste_razonable SET area_id=$1, periodo=COALESCE($2,periodo), objetivo=$3, barrera=$4, tipo=$5,
+         descripcion=$6, apoyo=$7, intensidad=$8, evaluacion=$9, retirado=COALESCE($10,retirado),
+         justificacion_retiro=$11
+       WHERE id=$12 RETURNING *`,
+      [area_id || null, periodo, objetivo, barrera, tipo, descripcion, apoyo, intensidad, evaluacion,
        retirado, justificacion_retiro, req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Ajuste no encontrado.' });

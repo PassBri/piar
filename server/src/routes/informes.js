@@ -97,10 +97,10 @@ router.get('/estudiante/:id/pdf', async (req, res, next) => {
       if (entradas.length === 0) doc.font('Helvetica-Oblique').text('Sin información.');
       entradas.forEach(([k, v]) => linea(k.replace(/_/g, ' '), v));
     };
-    bloque('Identificación', e.identificacion);
-    bloque('Entorno personal', e.entorno_personal);
-    bloque('Entorno de salud', e.entorno_salud);
-    bloque('Entorno de hogar', e.entorno_hogar);
+    bloque('1. Información general', e.identificacion);
+    bloque('2. Entorno de salud', e.entorno_salud);
+    bloque('3. Entorno de hogar', e.entorno_hogar);
+    bloque('4. Entorno educativo', e.entorno_educativo);
     doc.end();
   } catch (err) { next(err); }
 });
@@ -135,10 +135,13 @@ router.get('/piar/:id/pdf', async (req, res, next) => {
       doc.font('Helvetica-Oblique').text('No se han registrado ajustes.');
     }
     ajustes.forEach((a, i) => {
-      doc.font('Helvetica-Bold').text(`${i + 1}. Área: ${a.area_nombre || 'N/D'}  ·  Tipo: ${a.tipo}`);
-      doc.font('Helvetica').text(`Barrera: ${a.barrera}`);
+      doc.font('Helvetica-Bold').text(`${i + 1}. Periodo ${a.periodo} · Área: ${a.area_nombre || 'N/D'} · Tipo: ${a.tipo}`);
+      doc.font('Helvetica');
+      if (a.objetivo) doc.text(`Objetivo: ${a.objetivo}`);
+      doc.text(`Barrera: ${a.barrera}`);
       doc.text(`Ajuste: ${a.descripcion}`);
       if (a.apoyo) doc.text(`Apoyo requerido: ${a.apoyo} (${a.intensidad})`);
+      if (a.evaluacion) doc.text(`Evaluación: ${a.evaluacion}`);
       if (a.retirado) doc.fillColor(GRIS_MEDIO).text(`Retirado: ${a.justificacion_retiro || ''}`).fillColor('#000');
       doc.moveDown(0.3);
     });

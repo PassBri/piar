@@ -16,13 +16,15 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /api/areas
-router.post('/', autorizar('administrador', 'rector'), async (req, res, next) => {
+// POST /api/areas  (agregar asignatura; disponible para el equipo pedagógico)
+router.post('/', autorizar('administrador', 'rector', 'docente', 'psicoorientador', 'superadmin'), async (req, res, next) => {
   try {
-    const { nombre } = req.body;
+    const { nombre, institucion_id } = req.body;
+    const inst = req.usuario.rol === 'superadmin' ? (institucion_id || null) : req.usuario.institucion_id;
+    if (!nombre || !inst) return res.status(400).json({ error: 'Nombre de la asignatura e institución son obligatorios.' });
     const { rows } = await query(
       'INSERT INTO area (institucion_id, nombre) VALUES ($1,$2) RETURNING *',
-      [req.usuario.institucion_id, nombre]
+      [inst, nombre]
     );
     res.status(201).json(rows[0]);
   } catch (err) { next(err); }

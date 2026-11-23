@@ -20,7 +20,10 @@ export default function PiarDetalle() {
   const [acta, setActa] = useState({ compromisos_familia: '', compromisos_institucion: '', firmada_familia: false, firmada_institucion: false });
   const esPadre = usuario.rol === 'padre';
   const [error, setError] = useState('');
-  const [nuevo, setNuevo] = useState({ area_id: '', barrera: '', tipo: 'actividades', descripcion: '', apoyo: '', intensidad: 'intermitente' });
+  const ajusteVacio = { area_id: '', periodo: 1, objetivo: '', barrera: '', tipo: 'actividades', descripcion: '', apoyo: '', intensidad: 'intermitente', evaluacion: '' };
+  const [nuevo, setNuevo] = useState(ajusteVacio);
+  const [nuevaArea, setNuevaArea] = useState('');
+  const [filtroPeriodo, setFiltroPeriodo] = useState(0); // 0 = todos
 
   const PERIODOS = [1, 2, 3, 4];
   const DESEMPENOS = ['', 'Superior', 'Alto', 'Básico', 'Bajo'];
@@ -82,8 +85,19 @@ export default function PiarDetalle() {
     e.preventDefault();
     try {
       await api.post('/ajustes', { piar_id: Number(id), ...nuevo, area_id: nuevo.area_id || null });
-      setNuevo({ area_id: '', barrera: '', tipo: 'actividades', descripcion: '', apoyo: '', intensidad: 'intermitente' });
+      setNuevo(ajusteVacio);
       cargar();
+    } catch (err) { setError(err.message); }
+  }
+
+  async function agregarArea(e) {
+    e.preventDefault();
+    if (!nuevaArea.trim()) return;
+    try {
+      const a = await api.post('/areas', { nombre: nuevaArea.trim() });
+      setNuevaArea('');
+      const lista = await api.get('/areas'); setAreas(lista);
+      setNuevo((n) => ({ ...n, area_id: a.id }));
     } catch (err) { setError(err.message); }
   }
 
@@ -156,21 +170,30 @@ export default function PiarDetalle() {
       </div>
 
       <div className="card">
-        <h2>Barreras y ajustes razonables</h2>
-        <table>
-          <thead><tr><th>Área</th><th>Barrera</th><th>Tipo</th><th>Ajuste</th><th>Intensidad</th>{editable && <th></th>}</tr></thead>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <h2 style={{ margin: 0 }}>Barreras y ajustes razonables (por periodo)</h2>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className={`btn sm ${filtroPeriodo === 0 ? '' : 'sec'}`} onClick={() => setFiltroPeriodo(0)}>Todos</button>
+            {PERIODOS.map((p) => (
+              <button key={p} className={`btn sm ${filtroPeriodo === p ? '' : 'sec'}`} onClick={() => setFiltroPeriodo(p)}>P{p}</button>
+            ))}
+          </div>
+        </div>
+        <table style={{ marginTop: 10 }}>
+          <thead><tr><th>Per.</th><th>Área</th><th>Objetivo</th><th>Barrera</th><th>Ajuste</th><th>Evaluación</th>{editable && <th></th>}</tr></thead>
           <tbody>
-            {piar.ajustes.map((a) => (
+            {piar.ajustes.filter((a) => filtroPeriodo === 0 || a.periodo === filtroPeriodo).map((a) => (
               <tr key={a.id} style={a.retirado ? { opacity: 0.5 } : null}>
+                <td>{a.periodo}</td>
                 <td>{a.area_nombre || '—'}</td>
+                <td>{a.objetivo || '—'}</td>
                 <td>{a.barrera}</td>
-                <td>{a.tipo}</td>
                 <td>{a.descripcion}</td>
-                <td>{a.intensidad}</td>
+                <td>{a.evaluacion || '—'}</td>
                 {editable && <td><button className="btn sec sm" onClick={() => eliminarAjuste(a.id)}>Eliminar</button></td>}
               </tr>
             ))}
-            {piar.ajustes.length === 0 && <tr><td colSpan="6" style={{ color: 'var(--gris-500)' }}>Sin ajustes. Agrega al menos uno por barrera.</td></tr>}
+            {piar.ajustes.length === 0 && <tr><td colSpan="7" style={{ color: 'var(--gris-500)' }}>Sin ajustes. Agrega al menos uno por barrera.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -179,7 +202,11 @@ export default function PiarDetalle() {
         <form className="card" onSubmit={agregarAjuste}>
           <h2>Agregar ajuste razonable</h2>
           <div className="fila">
-            <div className="campo"><label>Área</label>
+            <div className="campo"><label>Periodo</label>
+              <select value={nuevo.periodo} onChange={(e) => setNuevo({ ...nuevo, periodo: Number(e.target.value) })}>
+                {PERIODOS.map((p) => <option key={p} value={p}>Periodo {p}</option>)}
+              </select></div>
+            <div className="campo"><label>Área / asignatura</label>
               <select value={nuevo.area_id} onChange={(e) => setNuevo({ ...nuevo, area_id: e.target.value })}>
                 <option value="">— Área —</option>
                 {areas.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
@@ -193,10 +220,23 @@ export default function PiarDetalle() {
                 {INTENSIDADES.map((i) => <option key={i} value={i}>{i}</option>)}
               </select></div>
           </div>
+          {editable && (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', marginBottom: 10 }}>
+              <div className="campo" style={{ flex: 1, marginBottom: 0 }}>
+                <label>¿Falta una asignatura? Agrégala</label>
+                <input value={nuevaArea} onChange={(e) => setNuevaArea(e.target.value)} placeholder="Nombre de la asignatura" />
+              </div>
+              <button type="button" className="btn sec" onClick={agregarArea}>+ Agregar asignatura</button>
+            </div>
+          )}
+          <div className="campo"><label>Objetivo / propósito (según EBC y DBA)</label>
+            <textarea value={nuevo.objetivo} onChange={(e) => setNuevo({ ...nuevo, objetivo: e.target.value })} /></div>
           <div className="campo"><label>Barrera para el aprendizaje, el desarrollo o la participación</label>
             <textarea value={nuevo.barrera} onChange={(e) => setNuevo({ ...nuevo, barrera: e.target.value })} required /></div>
-          <div className="campo"><label>Ajuste razonable</label>
+          <div className="campo"><label>Ajuste razonable (apoyos / estrategias)</label>
             <textarea value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} required /></div>
+          <div className="campo"><label>Evaluación de los ajustes (observaciones)</label>
+            <textarea value={nuevo.evaluacion} onChange={(e) => setNuevo({ ...nuevo, evaluacion: e.target.value })} /></div>
           {catalogo.length > 0 && (
             <div className="campo">
               <label>Sugerencias del catálogo (MEN) — clic para usar</label>
