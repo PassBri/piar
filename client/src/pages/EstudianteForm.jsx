@@ -108,7 +108,12 @@ export default function EstudianteForm() {
         <h2 style={{ color: 'var(--gris-700)', margin: 0 }}>
           {id ? form.nombres : 'Nuevo estudiante'} — Anexo 1 (Información general)
         </h2>
-        {id && <button type="button" className="btn sec sm" onClick={() => api.abrirPdf(`/informes/estudiante/${id}/pdf`)}>Imprimir Anexo 1</button>}
+        {id && (
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button type="button" className="btn sec sm" onClick={() => api.abrirPdf(`/informes/estudiante/${id}/pdf`)}>Imprimir Anexo 1</button>
+            <button type="button" className="btn sec sm" title="Descargar Anexo 1" onClick={() => api.descargarPdf(`/informes/estudiante/${id}/pdf`, 'Anexo1.pdf')}>↓</button>
+          </div>
+        )}
       </div>
       {error && <div className="mensaje-error">{error}</div>}
       {ok && <div style={{ color: 'var(--ok)', fontSize: 14 }}>{ok}</div>}

@@ -6,31 +6,44 @@ import { autenticar, autorizar } from '../middleware/auth.js';
 const router = Router();
 router.use(autenticar);
 
-// GET /api/usuarios  (de la institución; solo rector/administrador)
-router.get('/', autorizar('administrador', 'rector'), async (req, res, next) => {
+const esSuper = (req) => req.usuario.rol === 'superadmin';
+
+// GET /api/usuarios  (superadmin: todos; rector/admin: su institución)
+router.get('/', autorizar('superadmin', 'administrador', 'rector'), async (req, res, next) => {
   try {
-    const { rows } = await query(
-      `SELECT id, nombres, correo, rol, activo FROM usuario
-       WHERE institucion_id = $1 ORDER BY rol, nombres`,
-      [req.usuario.institucion_id]
-    );
+    let sql = `SELECT u.id, u.nombres, u.correo, u.rol, u.activo, u.institucion_id,
+                      i.nombre AS institucion
+               FROM usuario u LEFT JOIN institucion i ON i.id = u.institucion_id`;
+    const params = [];
+    if (!esSuper(req)) {
+      sql += ' WHERE u.institucion_id = $1';
+      params.push(req.usuario.institucion_id);
+    }
+    sql += ' ORDER BY i.nombre NULLS FIRST, u.rol, u.nombres';
+    const { rows } = await query(sql, params);
     res.json(rows);
   } catch (err) { next(err); }
 });
 
 // POST /api/usuarios  (crear usuario)
-router.post('/', autorizar('administrador', 'rector'), async (req, res, next) => {
+router.post('/', autorizar('superadmin', 'administrador', 'rector'), async (req, res, next) => {
   try {
     const { nombres, correo, clave, rol, institucion_id } = req.body;
     if (!nombres || !correo || !clave || !rol) {
       return res.status(400).json({ error: 'Nombres, correo, clave y rol son obligatorios.' });
     }
+    // Solo el superadmin puede crear superadmins o elegir institución libremente
+    let inst;
+    if (esSuper(req)) {
+      inst = (rol === 'superadmin') ? null : (institucion_id || null);
+    } else {
+      if (rol === 'superadmin') return res.status(403).json({ error: 'No puedes crear administradores generales.' });
+      inst = req.usuario.institucion_id;
+    }
     const hash = await bcrypt.hash(clave, 10);
-    const inst = req.usuario.rol === 'administrador' ? (institucion_id || req.usuario.institucion_id)
-                                                     : req.usuario.institucion_id;
     const { rows } = await query(
       `INSERT INTO usuario (institucion_id, nombres, correo, clave_hash, rol)
-       VALUES ($1,$2,$3,$4,$5) RETURNING id, nombres, correo, rol, activo`,
+       VALUES ($1,$2,$3,$4,$5) RETURNING id, nombres, correo, rol, activo, institucion_id`,
       [inst, nombres, correo.toLowerCase().trim(), hash, rol]
     );
     res.status(201).json(rows[0]);
@@ -38,6 +51,39 @@ router.post('/', autorizar('administrador', 'rector'), async (req, res, next) =>
     if (err.code === '23505') return res.status(409).json({ error: 'El correo ya está registrado.' });
     next(err);
   }
+});
+
+// PUT /api/usuarios/:id/clave  (restablecer contraseña)
+router.put('/:id/clave', autorizar('superadmin', 'administrador', 'rector'), async (req, res, next) => {
+  try {
+    const { clave } = req.body;
+    if (!clave || clave.length < 4) return res.status(400).json({ error: 'La nueva clave debe tener al menos 4 caracteres.' });
+    // Verificar alcance: no-super solo puede cambiar claves de su institución
+    const objetivo = await query('SELECT institucion_id FROM usuario WHERE id=$1', [req.params.id]);
+    if (!objetivo.rows[0]) return res.status(404).json({ error: 'Usuario no encontrado.' });
+    if (!esSuper(req) && objetivo.rows[0].institucion_id !== req.usuario.institucion_id) {
+      return res.status(403).json({ error: 'No puedes cambiar la clave de usuarios de otra institución.' });
+    }
+    const hash = await bcrypt.hash(clave, 10);
+    await query('UPDATE usuario SET clave_hash=$1 WHERE id=$2', [hash, req.params.id]);
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// PUT /api/usuarios/:id  (editar rol/estado; solo superadmin)
+router.put('/:id', autorizar('superadmin'), async (req, res, next) => {
+  try {
+    const { nombres, rol, institucion_id, activo } = req.body;
+    const inst = rol === 'superadmin' ? null : (institucion_id ?? null);
+    const { rows } = await query(
+      `UPDATE usuario SET nombres=COALESCE($1,nombres), rol=COALESCE($2,rol),
+         institucion_id=$3, activo=COALESCE($4,activo)
+       WHERE id=$5 RETURNING id, nombres, correo, rol, activo, institucion_id`,
+      [nombres || null, rol || null, inst, activo, req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Usuario no encontrado.' });
+    res.json(rows[0]);
+  } catch (err) { next(err); }
 });
 
 export default router;

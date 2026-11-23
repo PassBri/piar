@@ -13,7 +13,7 @@ router.get('/departamentos', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post('/departamentos', autorizar('administrador'), async (req, res, next) => {
+router.post('/departamentos', autorizar('superadmin', 'administrador'), async (req, res, next) => {
   try {
     const { nombre, codigo_dane } = req.body;
     const { rows } = await query(
@@ -39,7 +39,7 @@ router.get('/municipios', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post('/municipios', autorizar('administrador'), async (req, res, next) => {
+router.post('/municipios', autorizar('superadmin', 'administrador'), async (req, res, next) => {
   try {
     const { departamento_id, nombre, codigo_dane } = req.body;
     const { rows } = await query(
@@ -67,7 +67,7 @@ router.get('/instituciones', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post('/instituciones', autorizar('administrador'), async (req, res, next) => {
+router.post('/instituciones', autorizar('superadmin', 'administrador'), async (req, res, next) => {
   try {
     const { municipio_id, nombre, sede, codigo_dane } = req.body;
     const { rows } = await query(

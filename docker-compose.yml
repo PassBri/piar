@@ -13,6 +13,7 @@ services:
       - piar_pgdata:/var/lib/postgresql/data
       - ./server/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./server/db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - ./server/db/simulacion.sql:/docker-entrypoint-initdb.d/03-simulacion.sql:ro
 
 volumes:
   piar_pgdata:

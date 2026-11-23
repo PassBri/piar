@@ -17,6 +17,8 @@ export default function PiarDetalle() {
   const [areas, setAreas] = useState([]);
   const [catalogo, setCatalogo] = useState([]);
   const [valoraciones, setValoraciones] = useState([]);
+  const [acta, setActa] = useState({ compromisos_familia: '', compromisos_institucion: '', firmada_familia: false, firmada_institucion: false });
+  const esPadre = usuario.rol === 'padre';
   const [error, setError] = useState('');
   const [nuevo, setNuevo] = useState({ area_id: '', barrera: '', tipo: 'actividades', descripcion: '', apoyo: '', intensidad: 'intermitente' });
 
@@ -27,7 +29,23 @@ export default function PiarDetalle() {
     try {
       const p = await api.get(`/piar/${id}`);
       setPiar(p);
+      setActa(p.acta || { compromisos_familia: '', compromisos_institucion: '', firmada_familia: false, firmada_institucion: false });
     } catch (e) { setError(e.message); }
+  }
+
+  function subirFirma(campo, file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setActa((a) => ({ ...a, [campo]: reader.result }));
+    reader.readAsDataURL(file);
+  }
+
+  async function guardarActa(e) {
+    e.preventDefault();
+    try {
+      await api.put(`/actas/${id}`, acta);
+      cargar();
+    } catch (err) { setError(err.message); }
   }
   function cargarValoraciones() {
     api.get(`/valoraciones?piar_id=${id}`).then(setValoraciones).catch(() => {});
@@ -83,9 +101,13 @@ export default function PiarDetalle() {
         <h2 style={{ color: 'var(--gris-700)', margin: 0 }}>
           PIAR — {piar.estudiante_nombre} ({piar.periodo})
         </h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/piar/${id}/pdf`)}>Imprimir Anexo 2</button>
-          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/seguimiento/${id}/pdf`)}>Imprimir seguimiento</button>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/piar/${id}/pdf`)}>Anexo 2</button>
+          <button className="btn sec sm" title="Descargar Anexo 2" onClick={() => api.descargarPdf(`/informes/piar/${id}/pdf`, 'Anexo2.pdf')}>↓</button>
+          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/seguimiento/${id}/pdf`)}>Seguimiento</button>
+          <button className="btn sec sm" title="Descargar seguimiento" onClick={() => api.descargarPdf(`/informes/seguimiento/${id}/pdf`, 'Seguimiento.pdf')}>↓</button>
+          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/acta/${id}/pdf`)}>Acta</button>
+          <button className="btn sec sm" title="Descargar acta" onClick={() => api.descargarPdf(`/informes/acta/${id}/pdf`, 'Acta.pdf')}>↓</button>
         </div>
       </div>
       {error && <div className="mensaje-error">{error}</div>}
@@ -191,6 +213,50 @@ export default function PiarDetalle() {
           <button className="btn">Agregar ajuste</button>
         </form>
       )}
+
+      <form className="card" onSubmit={guardarActa}>
+        <h2>Acta de acuerdo con la familia (Anexo 3)</h2>
+        <div className="campo"><label>Compromisos de la familia</label>
+          <textarea value={acta.compromisos_familia || ''} disabled={esPadre}
+            onChange={(e) => setActa({ ...acta, compromisos_familia: e.target.value })} /></div>
+        <div className="campo"><label>Compromisos de la institución</label>
+          <textarea value={acta.compromisos_institucion || ''} disabled={esPadre}
+            onChange={(e) => setActa({ ...acta, compromisos_institucion: e.target.value })} /></div>
+        <div className="fila">
+          <div className="campo">
+            <label>Firma de la familia / acudiente</label>
+            {acta.firma_familia_img
+              ? <img src={acta.firma_familia_img} alt="firma" style={{ height: 50, border: '1px solid var(--gris-200)', borderRadius: 6, background: '#fff' }} />
+              : <div style={{ fontSize: 13, color: 'var(--gris-500)' }}>Sin firma registrada</div>}
+            {esPadre && <input type="file" accept="image/*" style={{ marginTop: 6 }}
+              onChange={(e) => subirFirma('firma_familia_img', e.target.files[0])} />}
+            <label style={{ fontWeight: 400, marginTop: 6 }}>
+              <input type="checkbox" checked={!!acta.firmada_familia} style={{ width: 'auto', marginRight: 6 }}
+                onChange={(e) => setActa({ ...acta, firmada_familia: e.target.checked })} />
+              Firmada por la familia
+            </label>
+          </div>
+          {!esPadre && (
+            <div className="campo">
+              <label>Firma de la institución</label>
+              {acta.firma_institucion_img
+                ? <img src={acta.firma_institucion_img} alt="firma" style={{ height: 50, border: '1px solid var(--gris-200)', borderRadius: 6, background: '#fff' }} />
+                : <div style={{ fontSize: 13, color: 'var(--gris-500)' }}>Sin firma registrada</div>}
+              <input type="file" accept="image/*" style={{ marginTop: 6 }}
+                onChange={(e) => subirFirma('firma_institucion_img', e.target.files[0])} />
+              <label style={{ fontWeight: 400, marginTop: 6 }}>
+                <input type="checkbox" checked={!!acta.firmada_institucion} style={{ width: 'auto', marginRight: 6 }}
+                  onChange={(e) => setActa({ ...acta, firmada_institucion: e.target.checked })} />
+                Firmada por la institución
+              </label>
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn">{esPadre ? 'Firmar acta' : 'Guardar acta'}</button>
+          <button type="button" className="btn sec" onClick={() => api.descargarPdf(`/informes/acta/${id}/pdf`, 'Acta.pdf')}>Descargar acta ↓</button>
+        </div>
+      </form>
     </div>
   );
 }

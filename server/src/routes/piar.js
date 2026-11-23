@@ -9,13 +9,14 @@ router.use(autenticar);
 router.get('/', async (req, res, next) => {
   try {
     const { estudiante_id } = req.query;
+    const esSuper = req.usuario.rol === 'superadmin';
     const { rows } = await query(
       `SELECT p.*, e.nombres AS estudiante_nombre, e.grado
        FROM piar p JOIN estudiante e ON e.id = p.estudiante_id
        WHERE ($1::int IS NULL OR p.estudiante_id = $1)
-         AND e.institucion_id = $2
+         AND ($2::boolean OR e.institucion_id = $3)
        ORDER BY p.creado_en DESC`,
-      [estudiante_id || null, req.usuario.institucion_id]
+      [estudiante_id || null, esSuper, req.usuario.institucion_id]
     );
     res.json(rows);
   } catch (err) { next(err); }

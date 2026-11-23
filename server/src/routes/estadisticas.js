@@ -19,7 +19,7 @@ router.get('/mapa', async (req, res, next) => {
        LEFT JOIN estudiante e ON e.institucion_id = i.id
        GROUP BY m.id, m.nombre, d.nombre, m.lat, m.lng
        HAVING COUNT(DISTINCT i.id) > 0
-       ORDER BY estudiantes DESC`
+       ORDER BY d.nombre, m.nombre`
     );
     const departamentos = await query(
       `SELECT d.nombre AS departamento,

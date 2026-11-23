@@ -56,11 +56,11 @@ export default function Estadisticas() {
       <div className="card">
         <h2>Detalle por municipio</h2>
         <table>
-          <thead><tr><th>Municipio</th><th>Departamento</th><th>Colegios</th><th>Estudiantes</th></tr></thead>
+          <thead><tr><th>Departamento</th><th>Municipio</th><th>Colegios</th><th>Estudiantes</th></tr></thead>
           <tbody>
             {municipios.map((m) => (
               <tr key={m.id}>
-                <td>{m.municipio}</td><td>{m.departamento}</td>
+                <td>{m.departamento}</td><td>{m.municipio}</td>
                 <td>{m.colegios}</td><td>{m.estudiantes}</td>
               </tr>
             ))}

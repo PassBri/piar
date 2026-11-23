@@ -39,4 +39,14 @@ export const api = {
     const url = URL.createObjectURL(b);
     window.open(url, '_blank');
   },
+  // Descarga un PDF del backend (botón de flecha hacia abajo)
+  async descargarPdf(path, filename) {
+    const sep = path.includes('?') ? '&' : '?';
+    const b = await request(`${path}${sep}descargar=1`, { blob: true });
+    const url = URL.createObjectURL(b);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename || 'reporte.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  },
 };

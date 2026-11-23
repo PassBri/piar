@@ -78,11 +78,15 @@ Todos con la contraseña **`piar123`**:
 
 | Rol | Correo |
 |-----|--------|
+| Administrador general (toda la plataforma) | `admin@piar.co` |
+| Administrador de institución | `admin.sb@piar.co` |
 | Rector | `rector@piar.co` |
 | Psicoorientador | `orientador@piar.co` |
 | Docente | `docente@piar.co` |
 | Padre de familia | `familia@piar.co` |
-| Administrador | `admin@piar.co` |
+
+El docente demo ya tiene **5 estudiantes de ejemplo** con su PIAR completo (Anexo 1,
+valoración, ajustes razonables y seguimientos), a modo de simulación.
 
 ## Estructura del repositorio
 

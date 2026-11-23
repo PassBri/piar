@@ -1,5 +1,5 @@
 -- ============================================================
--- PIAR — Datos iniciales (demo)
+-- SIGPIAR — Datos iniciales (demo)
 -- Clave de todos los usuarios demo: piar123
 -- Jerarquía: departamento > municipio > institución; áreas Ley 115;
 -- datos distribuidos para el mapa de estadísticas.
@@ -88,7 +88,8 @@ INSERT INTO usuario (institucion_id, nombres, correo, clave_hash, rol) VALUES
   (1, 'Psicoorientador Demo', 'orientador@piar.co', '$2b$10$Dq4nCd90yN.vA2pUWEExt.RqvzXiW9zut1gXcZxpgKFHuW4AoWkB2', 'psicoorientador'),
   (1, 'Docente Demo',         'docente@piar.co',    '$2b$10$Dq4nCd90yN.vA2pUWEExt.RqvzXiW9zut1gXcZxpgKFHuW4AoWkB2', 'docente'),
   (1, 'Familia Demo',         'familia@piar.co',    '$2b$10$Dq4nCd90yN.vA2pUWEExt.RqvzXiW9zut1gXcZxpgKFHuW4AoWkB2', 'padre'),
-  (1, 'Administrador Demo',   'admin@piar.co',      '$2b$10$Dq4nCd90yN.vA2pUWEExt.RqvzXiW9zut1gXcZxpgKFHuW4AoWkB2', 'administrador')
+  (NULL, 'Administrador General',     'admin@piar.co',    '$2b$10$Dq4nCd90yN.vA2pUWEExt.RqvzXiW9zut1gXcZxpgKFHuW4AoWkB2', 'superadmin'),
+  (1,    'Administrador Institución', 'admin.sb@piar.co', '$2b$10$Dq4nCd90yN.vA2pUWEExt.RqvzXiW9zut1gXcZxpgKFHuW4AoWkB2', 'administrador')
 ON CONFLICT (correo) DO NOTHING;
 
 -- Áreas del plan de estudios (Ley 115) para la institución principal

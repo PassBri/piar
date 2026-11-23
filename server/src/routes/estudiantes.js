@@ -11,11 +11,16 @@ router.get('/', async (req, res, next) => {
     const { rol, id, institucion_id } = req.usuario;
     let sql = `SELECT e.id, e.nombres, e.documento_tipo, e.documento_numero, e.grado,
                       e.fecha_nacimiento, e.institucion_id
-               FROM estudiante e WHERE e.institucion_id = $1`;
-    const params = [institucion_id];
+               FROM estudiante e WHERE 1=1`;
+    const params = [];
+    // El administrador general ve todos los estudiantes; los demás, los de su institución.
+    if (rol !== 'superadmin') {
+      params.push(institucion_id);
+      sql += ` AND e.institucion_id = $${params.length}`;
+    }
     if (rol === 'padre') {
-      sql += ' AND e.acudiente_id = $2';
       params.push(id);
+      sql += ` AND e.acudiente_id = $${params.length}`;
     }
     sql += ' ORDER BY e.nombres';
     const { rows } = await query(sql, params);

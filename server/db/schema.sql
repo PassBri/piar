@@ -22,7 +22,9 @@ DROP TYPE IF EXISTS estado_piar CASCADE;
 DROP TYPE IF EXISTS decision_seguimiento CASCADE;
 
 -- -------- Tipos enumerados --------
-CREATE TYPE rol_usuario        AS ENUM ('rector', 'psicoorientador', 'docente', 'padre', 'administrador');
+-- superadmin = administrador general de toda la plataforma;
+-- administrador = administrador de una institución.
+CREATE TYPE rol_usuario        AS ENUM ('superadmin', 'rector', 'psicoorientador', 'docente', 'padre', 'administrador');
 CREATE TYPE intensidad_apoyo   AS ENUM ('generalizado', 'extenso', 'limitado', 'intermitente');
 CREATE TYPE tipo_ajuste        AS ENUM ('actividades', 'materiales', 'espacios', 'comunicacion', 'apoyos_humanos', 'tecnologias');
 CREATE TYPE estado_piar        AS ENUM ('borrador', 'vigente', 'cerrado');
@@ -137,6 +139,8 @@ CREATE TABLE acta_acuerdo (
     compromisos_institucion TEXT,
     firmada_familia    BOOLEAN NOT NULL DEFAULT FALSE,
     firmada_institucion BOOLEAN NOT NULL DEFAULT FALSE,
+    firma_familia_img  TEXT,   -- firma digital del acudiente (imagen dataURL)
+    firma_institucion_img TEXT,
     fecha_firma   DATE,
     creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
 );

@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import logo from '../assets/favicon-piar.png';
 
 const ROLES_LABEL = {
-  rector: 'Rector', psicoorientador: 'Psicoorientador',
+  superadmin: 'Administrador general', rector: 'Rector', psicoorientador: 'Psicoorientador',
   docente: 'Docente', padre: 'Padre de familia', administrador: 'Administrador',
 };
 
@@ -16,7 +16,7 @@ export default function Layout() {
     navigate('/login');
   }
 
-  const esGestor = ['docente', 'psicoorientador', 'administrador', 'rector'].includes(usuario.rol);
+  const esGestor = ['docente', 'psicoorientador', 'administrador', 'rector', 'superadmin'].includes(usuario.rol);
 
   return (
     <div className="app-shell">
@@ -30,7 +30,7 @@ export default function Layout() {
           <NavLink to="/estudiantes" className={({ isActive }) => isActive ? 'activo' : ''}>Estudiantes</NavLink>
           {esGestor && <NavLink to="/seguimiento" className={({ isActive }) => isActive ? 'activo' : ''}>Seguimiento</NavLink>}
           {esGestor && <NavLink to="/estadisticas" className={({ isActive }) => isActive ? 'activo' : ''}>Estadísticas</NavLink>}
-          {['administrador', 'rector'].includes(usuario.rol) &&
+          {['administrador', 'rector', 'superadmin'].includes(usuario.rol) &&
             <NavLink to="/admin" className={({ isActive }) => isActive ? 'activo' : ''}>Administración</NavLink>}
         </nav>
         <div className="rol">

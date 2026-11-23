@@ -9,6 +9,25 @@ router.use(autenticar);
 const GRIS = '#37474F';
 const GRIS_MEDIO = '#607D8B';
 
+// Decide si el PDF se abre en el navegador (inline) o se descarga (attachment)
+function disposicion(req, filename) {
+  const modo = req.query.descargar ? 'attachment' : 'inline';
+  return `${modo}; filename="${filename}"`;
+}
+
+// Inserta una firma (imagen dataURL) en el PDF, si existe
+function firma(doc, dataUrl, label, x, y) {
+  doc.fontSize(9).fillColor(GRIS_MEDIO).text(label, x, y + 42, { width: 180 });
+  if (dataUrl && dataUrl.startsWith('data:image')) {
+    try {
+      const base64 = dataUrl.split(',')[1];
+      doc.image(Buffer.from(base64, 'base64'), x, y, { fit: [170, 40] });
+    } catch { /* firma inválida, se omite */ }
+  } else {
+    doc.moveTo(x, y + 40).lineTo(x + 170, y + 40).strokeColor(GRIS_MEDIO).stroke();
+  }
+}
+
 function encabezado(doc, titulo, inst) {
   doc.fillColor(GRIS).fontSize(16).text('PIAR', { continued: false });
   doc.fillColor(GRIS_MEDIO).fontSize(10)
@@ -57,7 +76,7 @@ router.get('/estudiante/:id/pdf', async (req, res, next) => {
     if (!e) return res.status(404).json({ error: 'Estudiante no encontrado.' });
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="Anexo1_${e.id}.pdf"`);
+    res.setHeader('Content-Disposition', disposicion(req, `Anexo1_${e.id}.pdf`));
     const doc = new PDFDocument({ size: 'LETTER', margin: 50 });
     doc.pipe(res);
     encabezado(doc, 'Anexo 1 — Información general del estudiante',
@@ -95,7 +114,7 @@ router.get('/piar/:id/pdf', async (req, res, next) => {
     const inst = { nombre: piar.inst_nombre, municipio_nombre: piar.municipio_nombre, departamento_nombre: piar.departamento_nombre };
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="PIAR_${piar.estudiante_id}.pdf"`);
+    res.setHeader('Content-Disposition', disposicion(req, `PIAR_${piar.estudiante_id}.pdf`));
     const doc = new PDFDocument({ size: 'LETTER', margin: 50 });
     doc.pipe(res);
 
@@ -141,7 +160,7 @@ router.get('/seguimiento/:piarId/pdf', async (req, res, next) => {
     const inst = { nombre: piar.inst_nombre, municipio_nombre: piar.municipio_nombre, departamento_nombre: piar.departamento_nombre };
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="Seguimiento_${piar.estudiante_id}.pdf"`);
+    res.setHeader('Content-Disposition', disposicion(req, `Seguimiento_${piar.estudiante_id}.pdf`));
     const doc = new PDFDocument({ size: 'LETTER', margin: 50 });
     doc.pipe(res);
     encabezado(doc, 'Informe de seguimiento de ajustes', inst);
@@ -161,6 +180,35 @@ router.get('/seguimiento/:piarId/pdf', async (req, res, next) => {
       });
       doc.moveDown(0.4);
     }
+    doc.end();
+  } catch (err) { next(err); }
+});
+
+// GET /api/informes/acta/:piarId/pdf — Acta de acuerdo (Anexo 3) con firmas
+router.get('/acta/:piarId/pdf', async (req, res, next) => {
+  try {
+    const data = await cargarPiar(req.params.piarId);
+    if (!data) return res.status(404).json({ error: 'PIAR no encontrado.' });
+    const { piar } = data;
+    const a = (await query('SELECT * FROM acta_acuerdo WHERE piar_id=$1', [req.params.piarId])).rows[0] || {};
+    const inst = { nombre: piar.inst_nombre, municipio_nombre: piar.municipio_nombre, departamento_nombre: piar.departamento_nombre };
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', disposicion(req, `Acta_${piar.estudiante_id}.pdf`));
+    const doc = new PDFDocument({ size: 'LETTER', margin: 50 });
+    doc.pipe(res);
+    encabezado(doc, 'Acta de acuerdo con la familia (Anexo 3)', inst);
+    doc.font('Helvetica-Bold').text('Estudiante: ', { continued: true }).font('Helvetica').text(piar.estudiante || '');
+    doc.font('Helvetica-Bold').text('Periodo: ', { continued: true }).font('Helvetica').text(piar.periodo || '');
+    doc.moveDown(0.5);
+    doc.font('Helvetica-Bold').text('Compromisos de la familia:').font('Helvetica').text(a.compromisos_familia || 'Sin registrar.');
+    doc.moveDown(0.3);
+    doc.font('Helvetica-Bold').text('Compromisos de la institución:').font('Helvetica').text(a.compromisos_institucion || 'Sin registrar.');
+    doc.moveDown(2.5);
+
+    const y = doc.y;
+    firma(doc, a.firma_familia_img, a.firmada_familia ? 'Firma de la familia / acudiente' : 'Firma de la familia / acudiente (pendiente)', 60, y);
+    firma(doc, a.firma_institucion_img, 'Firma de la institución', 330, y);
     doc.end();
   } catch (err) { next(err); }
 });
