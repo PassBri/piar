@@ -91,7 +91,12 @@ th { background: var(--blanco); color: var(--gris-900); font-weight: 700; }
 .mensaje-error { color: var(--error); font-size: 14px; margin: 8px 0; }
 
 /* Login */
-.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--gris-700); }
+.login-wrap {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background:
+    linear-gradient(rgba(42, 46, 51, 0.88), rgba(42, 46, 51, 0.88)),
+    url('/fondo-login.jpg') center / cover no-repeat fixed;
+}
 .login-card { background: var(--blanco); padding: 36px; border-radius: 12px; width: 360px; box-shadow: 0 10px 40px rgba(0,0,0,0.25); }
 .login-card .logo { text-align: center; margin-bottom: 18px; }
 .login-card .logo img { width: 72px; }
