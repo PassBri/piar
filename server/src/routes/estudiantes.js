@@ -40,15 +40,15 @@ router.get('/:id', async (req, res, next) => {
 router.post('/', autorizar('docente', 'psicoorientador', 'administrador'), async (req, res, next) => {
   try {
     const { documento_tipo, documento_numero, nombres, fecha_nacimiento, grado,
-            entorno_personal, entorno_salud, entorno_hogar, acudiente_id } = req.body;
+            identificacion, entorno_personal, entorno_salud, entorno_hogar, acudiente_id } = req.body;
     if (!nombres) return res.status(400).json({ error: 'El nombre es obligatorio.' });
     const { rows } = await query(
       `INSERT INTO estudiante
         (institucion_id, documento_tipo, documento_numero, nombres, fecha_nacimiento, grado,
-         entorno_personal, entorno_salud, entorno_hogar, acudiente_id, creado_por)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+         identificacion, entorno_personal, entorno_salud, entorno_hogar, acudiente_id, creado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
       [req.usuario.institucion_id, documento_tipo, documento_numero, nombres,
-       fecha_nacimiento || null, grado,
+       fecha_nacimiento || null, grado, identificacion || {},
        entorno_personal || {}, entorno_salud || {}, entorno_hogar || {},
        acudiente_id || null, req.usuario.id]
     );
@@ -60,15 +60,15 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador'), async
 router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador'), async (req, res, next) => {
   try {
     const { documento_tipo, documento_numero, nombres, fecha_nacimiento, grado,
-            entorno_personal, entorno_salud, entorno_hogar, acudiente_id } = req.body;
+            identificacion, entorno_personal, entorno_salud, entorno_hogar, acudiente_id } = req.body;
     const { rows } = await query(
       `UPDATE estudiante SET
         documento_tipo=$1, documento_numero=$2, nombres=$3, fecha_nacimiento=$4, grado=$5,
-        entorno_personal=$6, entorno_salud=$7, entorno_hogar=$8, acudiente_id=$9
-       WHERE id=$10 RETURNING *`,
+        identificacion=$6, entorno_personal=$7, entorno_salud=$8, entorno_hogar=$9, acudiente_id=$10
+       WHERE id=$11 RETURNING *`,
       [documento_tipo, documento_numero, nombres, fecha_nacimiento || null, grado,
-       entorno_personal || {}, entorno_salud || {}, entorno_hogar || {}, acudiente_id || null,
-       req.params.id]
+       identificacion || {}, entorno_personal || {}, entorno_salud || {}, entorno_hogar || {},
+       acudiente_id || null, req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Estudiante no encontrado.' });
     res.json(rows[0]);

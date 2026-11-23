@@ -42,6 +42,50 @@ async function cargarPiar(id) {
   return { piar: rows[0], ajustes: ajustes.rows };
 }
 
+// GET /api/informes/estudiante/:id/pdf — imprime el Anexo 1 (información general)
+router.get('/estudiante/:id/pdf', async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT e.*, i.nombre AS inst_nombre, m.nombre AS municipio_nombre, d.nombre AS departamento_nombre
+       FROM estudiante e
+       LEFT JOIN institucion i ON i.id = e.institucion_id
+       LEFT JOIN municipio m ON m.id = i.municipio_id
+       LEFT JOIN departamento d ON d.id = m.departamento_id
+       WHERE e.id = $1`, [req.params.id]
+    );
+    const e = rows[0];
+    if (!e) return res.status(404).json({ error: 'Estudiante no encontrado.' });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="Anexo1_${e.id}.pdf"`);
+    const doc = new PDFDocument({ size: 'LETTER', margin: 50 });
+    doc.pipe(res);
+    encabezado(doc, 'Anexo 1 — Información general del estudiante',
+      { nombre: e.inst_nombre, municipio_nombre: e.municipio_nombre, departamento_nombre: e.departamento_nombre });
+
+    const linea = (k, v) => doc.font('Helvetica-Bold').text(`${k}: `, { continued: true })
+      .font('Helvetica').text(v || 'N/D');
+    doc.fontSize(10);
+    linea('Nombres', e.nombres);
+    linea('Documento', `${e.documento_tipo || ''} ${e.documento_numero || ''}`);
+    linea('Grado', e.grado);
+    linea('Fecha de nacimiento', e.fecha_nacimiento ? new Date(e.fecha_nacimiento).toLocaleDateString('es-CO') : null);
+
+    const bloque = (titulo, obj) => {
+      doc.moveDown(0.5).fillColor(GRIS).font('Helvetica-Bold').fontSize(12).text(titulo);
+      doc.fillColor('#000').fontSize(10);
+      const entradas = Object.entries(obj || {}).filter(([, v]) => v);
+      if (entradas.length === 0) doc.font('Helvetica-Oblique').text('Sin información.');
+      entradas.forEach(([k, v]) => linea(k.replace(/_/g, ' '), v));
+    };
+    bloque('Identificación', e.identificacion);
+    bloque('Entorno personal', e.entorno_personal);
+    bloque('Entorno de salud', e.entorno_salud);
+    bloque('Entorno de hogar', e.entorno_hogar);
+    doc.end();
+  } catch (err) { next(err); }
+});
+
 // GET /api/informes/piar/:id/pdf  — imprime los formatos del PIAR (Anexo 2)
 router.get('/piar/:id/pdf', async (req, res, next) => {
   try {

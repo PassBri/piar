@@ -16,8 +16,12 @@ export default function PiarDetalle() {
   const [piar, setPiar] = useState(null);
   const [areas, setAreas] = useState([]);
   const [catalogo, setCatalogo] = useState([]);
+  const [valoraciones, setValoraciones] = useState([]);
   const [error, setError] = useState('');
   const [nuevo, setNuevo] = useState({ area_id: '', barrera: '', tipo: 'actividades', descripcion: '', apoyo: '', intensidad: 'intermitente' });
+
+  const PERIODOS = [1, 2, 3, 4];
+  const DESEMPENOS = ['', 'Superior', 'Alto', 'Básico', 'Bajo'];
 
   async function cargar() {
     try {
@@ -25,10 +29,23 @@ export default function PiarDetalle() {
       setPiar(p);
     } catch (e) { setError(e.message); }
   }
+  function cargarValoraciones() {
+    api.get(`/valoraciones?piar_id=${id}`).then(setValoraciones).catch(() => {});
+  }
   useEffect(() => {
     cargar();
+    cargarValoraciones();
     api.get('/areas').then(setAreas).catch(() => {});
   }, [id]);
+
+  function valorDe(area_id, periodo) {
+    const v = valoraciones.find((x) => x.area_id === area_id && x.periodo === periodo);
+    return v ? v.desempeno || '' : '';
+  }
+  async function guardarValoracion(area_id, periodo, desempeno) {
+    await api.put('/valoraciones', { piar_id: Number(id), area_id, periodo, desempeno });
+    cargarValoraciones();
+  }
 
   useEffect(() => {
     api.get(`/catalogo?tipo=${nuevo.tipo}`).then(setCatalogo).catch(() => {});
@@ -87,6 +104,34 @@ export default function PiarDetalle() {
         </div>
         {editable && <button className="btn">Guardar valoración</button>}
       </form>
+
+      <div className="card">
+        <h2>Valoración por área y periodo (plan de estudios)</h2>
+        <p style={{ fontSize: 13, color: 'var(--gris-600)', marginTop: 0 }}>
+          Desempeño del estudiante en cada área, por periodo académico. Se guarda al seleccionar.
+        </p>
+        <table>
+          <thead>
+            <tr><th>Área</th>{PERIODOS.map((p) => <th key={p}>Periodo {p}</th>)}</tr>
+          </thead>
+          <tbody>
+            {areas.map((a) => (
+              <tr key={a.id}>
+                <td>{a.nombre}</td>
+                {PERIODOS.map((p) => (
+                  <td key={p}>
+                    <select value={valorDe(a.id, p)} disabled={!editable}
+                      onChange={(e) => guardarValoracion(a.id, p, e.target.value)}>
+                      {DESEMPENOS.map((d) => <option key={d} value={d}>{d || '—'}</option>)}
+                    </select>
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {areas.length === 0 && <tr><td colSpan={5} style={{ color: 'var(--gris-500)' }}>No hay áreas configuradas en la institución.</td></tr>}
+          </tbody>
+        </table>
+      </div>
 
       <div className="card">
         <h2>Barreras y ajustes razonables</h2>

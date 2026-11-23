@@ -9,12 +9,14 @@ Organizada por **departamento → municipio → institución educativa**, permit
 
 ## Características
 
-- **Expediente del estudiante (Anexo 1):** entornos personal, de salud y de hogar.
-- **PIAR (Anexo 2):** valoración pedagógica, barreras por área y ajustes razonables, con un catálogo de ajustes sugeridos por el MEN (actividades, materiales, espacios, comunicación, apoyos humanos y tecnologías).
+- **Expediente del estudiante (Anexo 1):** identificación completa y entornos personal, de salud y de hogar.
+- **PIAR (Anexo 2):** valoración pedagógica, valoración por área del plan de estudios y por periodo (1 a 4), barreras y ajustes razonables, con un catálogo de ajustes sugeridos por el MEN (actividades, materiales, espacios, comunicación, apoyos humanos y tecnologías).
+- **Plan de estudios:** áreas obligatorias de la Ley 115 de 1994 por institución.
 - **Acta de acuerdo (Anexo 3):** compromisos de la familia y de la institución.
 - **Seguimiento:** registro de seguimientos (mínimo tres al año) con alertas de pendientes.
-- **Impresión:** generación de PDF de los formatos y del informe de seguimiento, listos para firmar.
-- **Indicadores por territorio:** cobertura y PIAR vigentes por departamento, municipio e institución.
+- **Impresión:** generación de PDF del Anexo 1, del PIAR (Anexo 2) y del informe de seguimiento, listos para firmar.
+- **Estadísticas con mapa de Colombia:** número de colegios y estudiantes atendidos por municipio y departamento, sobre un mapa interactivo.
+- **Jerarquía territorial:** departamento → municipio → institución educativa.
 - **Roles de acceso:** rector, psicoorientador, docente, padre de familia y administrador.
 
 ## Arquitectura

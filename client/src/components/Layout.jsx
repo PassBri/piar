@@ -29,6 +29,7 @@ export default function Layout() {
           <NavLink to="/" end className={({ isActive }) => isActive ? 'activo' : ''}>Panel</NavLink>
           <NavLink to="/estudiantes" className={({ isActive }) => isActive ? 'activo' : ''}>Estudiantes</NavLink>
           {esGestor && <NavLink to="/seguimiento" className={({ isActive }) => isActive ? 'activo' : ''}>Seguimiento</NavLink>}
+          {esGestor && <NavLink to="/estadisticas" className={({ isActive }) => isActive ? 'activo' : ''}>Estadísticas</NavLink>}
           {['administrador', 'rector'].includes(usuario.rol) &&
             <NavLink to="/admin" className={({ isActive }) => isActive ? 'activo' : ''}>Administración</NavLink>}
         </nav>

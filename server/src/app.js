@@ -13,6 +13,8 @@ import areasRoutes from './routes/areas.js';
 import usuariosRoutes from './routes/usuarios.js';
 import informesRoutes from './routes/informes.js';
 import geografiaRoutes from './routes/geografia.js';
+import estadisticasRoutes from './routes/estadisticas.js';
+import valoracionesRoutes from './routes/valoraciones.js';
 
 export function createApp() {
   const app = express();
@@ -34,6 +36,8 @@ export function createApp() {
   app.use('/api/usuarios', usuariosRoutes);
   app.use('/api/informes', informesRoutes);
   app.use('/api/geografia', geografiaRoutes);
+  app.use('/api/estadisticas', estadisticasRoutes);
+  app.use('/api/valoraciones', valoracionesRoutes);
 
   // 404
   app.use((req, res) => res.status(404).json({ error: 'Recurso no encontrado.' }));

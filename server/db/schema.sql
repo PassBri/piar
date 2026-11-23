@@ -4,6 +4,7 @@
 -- Decreto 1421 de 2017
 -- ============================================================
 
+DROP TABLE IF EXISTS valoracion_area CASCADE;
 DROP TABLE IF EXISTS seguimiento CASCADE;
 DROP TABLE IF EXISTS ajuste_razonable CASCADE;
 DROP TABLE IF EXISTS acta_acuerdo CASCADE;
@@ -39,6 +40,8 @@ CREATE TABLE municipio (
     departamento_id INTEGER NOT NULL REFERENCES departamento(id) ON DELETE CASCADE,
     nombre          VARCHAR(120) NOT NULL,
     codigo_dane     VARCHAR(10),
+    lat             NUMERIC(9,6),   -- para ubicar el municipio en el mapa
+    lng             NUMERIC(9,6),
     UNIQUE (departamento_id, nombre)
 );
 
@@ -82,6 +85,9 @@ CREATE TABLE estudiante (
     nombres          VARCHAR(200) NOT NULL,
     fecha_nacimiento DATE,
     grado            VARCHAR(40),
+    -- Identificación ampliada del Anexo 1 (sede, jornada, lugar de nacimiento,
+    -- género, edad, sexo, grupo étnico, etc.)
+    identificacion   JSONB NOT NULL DEFAULT '{}'::jsonb,
     -- Entornos del Anexo 1 (estructura flexible en JSON)
     entorno_personal JSONB NOT NULL DEFAULT '{}'::jsonb,
     entorno_salud    JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -146,6 +152,18 @@ CREATE TABLE seguimiento (
     registrado_por INTEGER REFERENCES usuario(id) ON DELETE SET NULL,
     creado_en   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- -------- Valoración por área y periodo (Anexo 2, seguimiento por periodos) --------
+CREATE TABLE valoracion_area (
+    id          SERIAL PRIMARY KEY,
+    piar_id     INTEGER NOT NULL REFERENCES piar(id) ON DELETE CASCADE,
+    area_id     INTEGER NOT NULL REFERENCES area(id) ON DELETE CASCADE,
+    periodo     SMALLINT NOT NULL CHECK (periodo BETWEEN 1 AND 4),
+    desempeno   VARCHAR(20),   -- superior, alto, básico, bajo
+    observacion TEXT,
+    UNIQUE (piar_id, area_id, periodo)
+);
+CREATE INDEX idx_valoracion_piar ON valoracion_area(piar_id);
 
 -- -------- Catálogo de ajustes sugeridos (ejemplos del MEN) --------
 CREATE TABLE catalogo_ajuste (
