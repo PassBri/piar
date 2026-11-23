@@ -1,7 +1,7 @@
 const BASE = '/api';
 
 function getToken() {
-  return localStorage.getItem('sigpiar_token');
+  return localStorage.getItem('piar_token');
 }
 
 async function request(path, { method = 'GET', body, blob = false } = {}) {

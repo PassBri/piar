@@ -1,6 +1,6 @@
 -- ============================================================
--- SIGPIAR — Datos iniciales (demo)
--- Clave de todos los usuarios demo: sigpiar123
+-- PIAR — Datos iniciales (demo)
+-- Clave de todos los usuarios demo: piar123
 -- Jerarquía: departamento > municipio > institución; áreas Ley 115;
 -- datos distribuidos para el mapa de estadísticas.
 -- ============================================================
@@ -84,11 +84,11 @@ INSERT INTO institucion (id, municipio_id, nombre, sede) VALUES
   (1, 34, 'Institución Educativa San Bernardo', 'Sede A') ON CONFLICT DO NOTHING;
 
 INSERT INTO usuario (institucion_id, nombres, correo, clave_hash, rol) VALUES
-  (1, 'Rector Demo',          'rector@sigpiar.co',     '$2b$10$l6UYfPxNLgdHI/nD8RtWaeT6tj/Huu8MRh1NMv1urmzZmTGSlX2HK', 'rector'),
-  (1, 'Psicoorientador Demo', 'orientador@sigpiar.co', '$2b$10$l6UYfPxNLgdHI/nD8RtWaeT6tj/Huu8MRh1NMv1urmzZmTGSlX2HK', 'psicoorientador'),
-  (1, 'Docente Demo',         'docente@sigpiar.co',    '$2b$10$l6UYfPxNLgdHI/nD8RtWaeT6tj/Huu8MRh1NMv1urmzZmTGSlX2HK', 'docente'),
-  (1, 'Familia Demo',         'familia@sigpiar.co',    '$2b$10$l6UYfPxNLgdHI/nD8RtWaeT6tj/Huu8MRh1NMv1urmzZmTGSlX2HK', 'padre'),
-  (1, 'Administrador Demo',   'admin@sigpiar.co',      '$2b$10$l6UYfPxNLgdHI/nD8RtWaeT6tj/Huu8MRh1NMv1urmzZmTGSlX2HK', 'administrador')
+  (1, 'Rector Demo',          'rector@piar.co',     '$2b$10$Dq4nCd90yN.vA2pUWEExt.RqvzXiW9zut1gXcZxpgKFHuW4AoWkB2', 'rector'),
+  (1, 'Psicoorientador Demo', 'orientador@piar.co', '$2b$10$Dq4nCd90yN.vA2pUWEExt.RqvzXiW9zut1gXcZxpgKFHuW4AoWkB2', 'psicoorientador'),
+  (1, 'Docente Demo',         'docente@piar.co',    '$2b$10$Dq4nCd90yN.vA2pUWEExt.RqvzXiW9zut1gXcZxpgKFHuW4AoWkB2', 'docente'),
+  (1, 'Familia Demo',         'familia@piar.co',    '$2b$10$Dq4nCd90yN.vA2pUWEExt.RqvzXiW9zut1gXcZxpgKFHuW4AoWkB2', 'padre'),
+  (1, 'Administrador Demo',   'admin@piar.co',      '$2b$10$Dq4nCd90yN.vA2pUWEExt.RqvzXiW9zut1gXcZxpgKFHuW4AoWkB2', 'administrador')
 ON CONFLICT (correo) DO NOTHING;
 
 -- Áreas del plan de estudios (Ley 115) para la institución principal

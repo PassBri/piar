@@ -10,7 +10,7 @@ const GRIS = '#37474F';
 const GRIS_MEDIO = '#607D8B';
 
 function encabezado(doc, titulo, inst) {
-  doc.fillColor(GRIS).fontSize(16).text('SIGPIAR', { continued: false });
+  doc.fillColor(GRIS).fontSize(16).text('PIAR', { continued: false });
   doc.fillColor(GRIS_MEDIO).fontSize(10)
      .text('Plan Individual de Ajustes Razonables — Decreto 1421 de 2017');
   if (inst) {

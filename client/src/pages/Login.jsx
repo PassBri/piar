@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import logo from '../assets/logo.svg';
+import logo from '../assets/logo-piar.png';
 
 export default function Login() {
   const { login } = useAuth();
@@ -27,9 +27,8 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={enviar}>
-        <div className="logo"><img src={logo} alt="SIGPIAR" /></div>
-        <h1>SIGPIAR</h1>
-        <p className="sub">Gestión del Plan Individual de Ajustes Razonables</p>
+        <div className="logo"><img src={logo} alt="PIAR" style={{ width: 180 }} /></div>
+        <p className="sub" style={{ marginTop: 4 }}>Gestión del Plan Individual de Ajustes Razonables</p>
         <div className="campo">
           <label>Correo</label>
           <input type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} required autoFocus />
@@ -43,8 +42,8 @@ export default function Login() {
           {cargando ? 'Ingresando…' : 'Ingresar'}
         </button>
         <p className="demo-hint">
-          Demo: docente@sigpiar.co · rector@sigpiar.co · orientador@sigpiar.co · familia@sigpiar.co<br />
-          Contraseña: <strong>sigpiar123</strong>
+          Demo: docente@piar.co · rector@piar.co · orientador@piar.co · familia@piar.co<br />
+          Contraseña: <strong>piar123</strong>
         </p>
       </form>
     </div>

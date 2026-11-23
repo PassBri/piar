@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import logo from '../assets/logo.svg';
+import logo from '../assets/favicon-piar.png';
 
 const ROLES_LABEL = {
   rector: 'Rector', psicoorientador: 'Psicoorientador',
@@ -22,8 +22,8 @@ export default function Layout() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <img src={logo} alt="SIGPIAR" />
-          <span>SIGPIAR</span>
+          <img src={logo} alt="PIAR" />
+          <span>PIAR</span>
         </div>
         <nav>
           <NavLink to="/" end className={({ isActive }) => isActive ? 'activo' : ''}>Panel</NavLink>

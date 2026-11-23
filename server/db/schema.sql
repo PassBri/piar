@@ -1,5 +1,5 @@
 -- ============================================================
--- SIGPIAR — Esquema de base de datos (PostgreSQL)
+-- PIAR — Esquema de base de datos (PostgreSQL)
 -- Sistema de Gestión del Plan Individual de Ajustes Razonables
 -- Decreto 1421 de 2017
 -- ============================================================

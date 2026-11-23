@@ -5,7 +5,7 @@ import { pool } from './db.js';
 const app = createApp();
 
 app.listen(config.port, () => {
-  console.log(`SIGPIAR API escuchando en el puerto ${config.port}`);
+  console.log(`PIAR API escuchando en el puerto ${config.port}`);
 });
 
 // Cierre ordenado

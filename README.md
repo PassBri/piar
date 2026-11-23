@@ -1,4 +1,4 @@
-# SIGPIAR
+# PIAR
 
 **Sistema de Información y Gestión del Plan Individual de Ajustes Razonables**
 Plataforma web para la atención educativa a estudiantes con discapacidad en el marco del **Decreto 1421 de 2017**.
@@ -41,9 +41,9 @@ npm run db:up          # levanta PostgreSQL y carga esquema + datos demo
 O manualmente, con un PostgreSQL ya instalado:
 
 ```bash
-createdb sigpiar
-psql sigpiar -f server/db/schema.sql
-psql sigpiar -f server/db/seed.sql
+createdb piar
+psql piar -f server/db/schema.sql
+psql piar -f server/db/seed.sql
 ```
 
 ### 2. Backend
@@ -65,15 +65,15 @@ npm run dev              # app en http://localhost:5173
 
 ## Usuarios demo
 
-Todos con la contraseña **`sigpiar123`**:
+Todos con la contraseña **`piar123`**:
 
 | Rol | Correo |
 |-----|--------|
-| Rector | `rector@sigpiar.co` |
-| Psicoorientador | `orientador@sigpiar.co` |
-| Docente | `docente@sigpiar.co` |
-| Padre de familia | `familia@sigpiar.co` |
-| Administrador | `admin@sigpiar.co` |
+| Rector | `rector@piar.co` |
+| Psicoorientador | `orientador@piar.co` |
+| Docente | `docente@piar.co` |
+| Padre de familia | `familia@piar.co` |
+| Administrador | `admin@piar.co` |
 
 ## Estructura del repositorio
 

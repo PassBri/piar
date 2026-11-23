@@ -1,8 +1,8 @@
 {
-  "name": "sigpiar",
+  "name": "piar",
   "version": "1.0.0",
   "private": true,
-  "description": "SIGPIAR — Sistema de Información y Gestión del Plan Individual de Ajustes Razonables (Decreto 1421 de 2017)",
+  "description": "PIAR — Sistema de Información y Gestión del Plan Individual de Ajustes Razonables (Decreto 1421 de 2017)",
   "author": "Brian Gonzalo Suárez Acevedo",
   "license": "MIT",
   "scripts": {

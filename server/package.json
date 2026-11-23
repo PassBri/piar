@@ -1,7 +1,7 @@
 {
-  "name": "sigpiar-server",
+  "name": "piar-server",
   "version": "1.0.0",
-  "description": "API REST de SIGPIAR (Node.js + Express + PostgreSQL)",
+  "description": "API REST de PIAR (Node.js + Express + PostgreSQL)",
   "type": "module",
   "main": "src/index.js",
   "scripts": {

@@ -23,7 +23,7 @@ export function createApp() {
   app.use(express.json({ limit: '2mb' }));
 
   // Salud del servicio
-  app.get('/api/health', (req, res) => res.json({ ok: true, servicio: 'SIGPIAR API' }));
+  app.get('/api/health', (req, res) => res.json({ ok: true, servicio: 'PIAR API' }));
 
   app.use('/api/auth', authRoutes);
   app.use('/api/estudiantes', estudiantesRoutes);
