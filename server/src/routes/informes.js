@@ -1,11 +1,20 @@
 import { Router } from 'express';
 import PDFDocument from 'pdfkit';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { query } from '../db.js';
 import { autenticar, autorizar } from '../middleware/auth.js';
 import { negarAcceso, accesoEstudiante, accesoPiar, ROLES_RESERVADO } from '../lib/acceso.js';
 
 const router = Router();
 router.use(autenticar);
+
+// Logo PIAR (el pollito) para portadas de los PDF
+const LOGO_PIAR = (() => {
+  try { return fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../assets/favicon-piar.png')); }
+  catch { return null; }
+})();
 
 const GRIS = '#37474F';
 const GRIS_MEDIO = '#607D8B';
@@ -19,28 +28,84 @@ function disposicion(req, filename) {
 
 // ---- Maquetación estilo formato oficial del MEN ----
 // Dibuja el membrete y el pie en coordenadas absolutas, sin provocar paginación.
-function decorar(doc) {
-  doc.lineWidth(1).rect(444, 28, 114, 32).stroke('#999');
-  doc.font('Helvetica-Bold').fontSize(11).fillColor(GRIS).text('PIAR', 444, 33, { width: 114, align: 'center', lineBreak: false });
-  doc.font('Helvetica').fontSize(7.5).fillColor(GRIS_MEDIO).text('Decreto 1421/2017', 444, 47, { width: 114, align: 'center', lineBreak: false });
+function decorar(doc, indicePagina) {
+  // Las portadas no llevan encabezado ni pie
+  if (doc._portadas && doc._portadas.has(indicePagina)) return;
+  const cab = doc._cab;
+  if (cab) {
+    // Encabezado elegante en cada hoja: logo y datos del colegio a la izquierda, sello PIAR a la derecha
+    let tx = X0;
+    if (cab.inst && cab.inst.logo && String(cab.inst.logo).startsWith('data:image')) {
+      try { doc.image(Buffer.from(cab.inst.logo.split(',')[1], 'base64'), X0, 20, { fit: [26, 26] }); tx = X0 + 32; } catch { /* */ }
+    }
+    doc.font('Helvetica-Bold').fontSize(8.5).fillColor(GRIS).text(cab.inst?.nombre || '', tx, 21, { width: 320, lineBreak: false });
+    if (cab.inst?.nit) doc.font('Helvetica').fontSize(7).fillColor(GRIS_MEDIO).text(`NIT ${cab.inst.nit}`, tx, 32, { width: 320, lineBreak: false });
+    // Sello PIAR a la derecha
+    doc.lineWidth(0.8).rect(470, 18, 88, 26).stroke('#B0BEC5');
+    doc.font('Helvetica-Bold').fontSize(9.5).fillColor(GRIS).text('PIAR', 470, 22, { width: 88, align: 'center', lineBreak: false });
+    doc.font('Helvetica').fontSize(6.5).fillColor(GRIS_MEDIO).text('Decreto 1421/2017', 470, 34, { width: 88, align: 'center', lineBreak: false });
+    // Estudiante + documento
+    doc.font('Helvetica').fontSize(7.5).fillColor('#000').text(
+      `Estudiante: ${cab.estudiante || '—'}${cab.documento ? `   ·   Documento: ${cab.documento}` : ''}`, X0, 49, { width: ANCHO, lineBreak: false });
+    doc.moveTo(X0, 62).lineTo(X0 + ANCHO, 62).lineWidth(0.6).stroke('#CFD8DC');
+  } else {
+    // Encabezado simple (documentos sin estudiante)
+    doc.lineWidth(1).rect(444, 28, 114, 32).stroke('#999');
+    doc.font('Helvetica-Bold').fontSize(11).fillColor(GRIS).text('PIAR', 444, 33, { width: 114, align: 'center', lineBreak: false });
+    doc.font('Helvetica').fontSize(7.5).fillColor(GRIS_MEDIO).text('Decreto 1421/2017', 444, 47, { width: 114, align: 'center', lineBreak: false });
+  }
   doc.font('Helvetica').fontSize(7).fillColor(GRIS_MEDIO)
      .text('Ministerio de Educación Nacional – Viceministerio de Educación Preescolar, Básica y Media – Decreto 1421 de 2017',
        X0, 745, { width: ANCHO, align: 'center', lineBreak: false });
   doc.fillColor('#000');
 }
 
-function iniciar(res, req, filename) {
+function iniciar(res, req, filename, cab) {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', disposicion(req, filename));
-  const doc = new PDFDocument({ size: 'LETTER', bufferPages: true, margins: { top: 68, bottom: 26, left: 36, right: 36 } });
+  const conCab = !!cab;
+  const doc = new PDFDocument({ size: 'LETTER', bufferPages: true, margins: { top: conCab ? 78 : 68, bottom: 26, left: 36, right: 36 } });
+  doc._cab = cab || null;       // {inst:{logo,nombre,nit}, estudiante, documento}
+  doc._portadas = new Set();    // páginas que son portada (no llevan encabezado)
   doc.pipe(res);
   return doc;
+}
+
+// Portada: fondo gris (como el login), logo del pollito, título, estudiante y datos del colegio
+function portada(doc, { tituloDoc, estudiante, documento, inst }) {
+  doc._portadas.add(doc.bufferedPageRange().count - 1);
+  // Fondo gris
+  doc.save();
+  doc.rect(0, 0, doc.page.width, doc.page.height).fill('#37474F');
+  // Logo del pollito centrado arriba
+  const cx = doc.page.width / 2;
+  if (LOGO_PIAR) { try { doc.image(LOGO_PIAR, cx - 55, 120, { fit: [110, 110] }); } catch { /* */ } }
+  doc.fillColor('#fff').font('Helvetica-Bold').fontSize(30).text('PIAR', 0, 250, { width: doc.page.width, align: 'center' });
+  doc.fillColor('#B0BEC5').font('Helvetica').fontSize(11).text('Plan Individual de Ajustes Razonables', 0, 288, { width: doc.page.width, align: 'center' });
+  doc.fillColor('#90A4AE').fontSize(9).text('Decreto 1421 de 2017', 0, 306, { width: doc.page.width, align: 'center' });
+  // Título del documento
+  doc.fillColor('#fff').font('Helvetica-Bold').fontSize(16).text(tituloDoc, 60, 380, { width: doc.page.width - 120, align: 'center' });
+  // Nombre del estudiante
+  if (estudiante) {
+    doc.fillColor('#ECEFF1').font('Helvetica').fontSize(13).text(estudiante, 60, 418, { width: doc.page.width - 120, align: 'center' });
+    if (documento) doc.fillColor('#B0BEC5').fontSize(10).text(`Documento: ${documento}`, 60, 440, { width: doc.page.width - 120, align: 'center' });
+  }
+  // Pie de portada: logo y datos del colegio
+  if (inst && inst.logo && String(inst.logo).startsWith('data:image')) {
+    try { doc.image(Buffer.from(inst.logo.split(',')[1], 'base64'), cx - 24, 560, { fit: [48, 48] }); } catch { /* */ }
+  }
+  if (inst && (inst.nombre || inst.nit)) {
+    doc.fillColor('#ECEFF1').font('Helvetica-Bold').fontSize(11).text(inst.nombre || '', 60, 616, { width: doc.page.width - 120, align: 'center' });
+    if (inst.nit) doc.fillColor('#B0BEC5').font('Helvetica').fontSize(9).text(`NIT ${inst.nit}`, 60, 632, { width: doc.page.width - 120, align: 'center' });
+  }
+  doc.restore();
+  doc.addPage(); // el contenido empieza en la página siguiente
 }
 
 // Decora todas las páginas y cierra el documento.
 function finalizar(doc) {
   const r = doc.bufferedPageRange();
-  for (let i = r.start; i < r.start + r.count; i++) { doc.switchToPage(i); decorar(doc); }
+  for (let i = r.start; i < r.start + r.count; i++) { doc.switchToPage(i); decorar(doc, i); }
   doc.end();
 }
 
@@ -180,8 +245,10 @@ router.get('/estudiante/:id/pdf', async (req, res, next) => {
     const e = rows[0];
     const neg = negarAcceso(req.usuario, e);
     if (neg) return res.status(neg.status).json({ error: neg.error });
-    const doc = iniciar(res, req, `Anexo1_${e.id}.pdf`);
-    titulo(doc, 'INFORMACIÓN GENERAL DEL ESTUDIANTE', 'Información para la matrícula – Anexo 1 PIAR', { logo: e.inst_logo, nombre: e.inst_nombre, nit: e.inst_nit });
+    const inst1 = { logo: e.inst_logo, nombre: e.inst_nombre, nit: e.inst_nit };
+    const doc = iniciar(res, req, `Anexo1_${e.id}.pdf`, { inst: inst1, estudiante: e.nombres, documento: e.documento_numero });
+    portada(doc, { tituloDoc: 'Anexo 1 · Información general del estudiante', estudiante: e.nombres, documento: e.documento_numero, inst: inst1 });
+    titulo(doc, 'INFORMACIÓN GENERAL DEL ESTUDIANTE', 'Información para la matrícula – Anexo 1 PIAR');
     if (e.foto && typeof e.foto === 'string' && e.foto.startsWith('data:image')) {
       try {
         const buf = Buffer.from(e.foto.split(',')[1], 'base64');
@@ -266,8 +333,10 @@ router.get('/piar/:id/pdf', async (req, res, next) => {
     if (!data) return res.status(404).json({ error: 'PIAR no encontrado.' });
     { const neg = negarAcceso(req.usuario, await accesoPiar(data.piar.id)); if (neg) return res.status(neg.status).json({ error: neg.error }); }
     const { piar, ajustes } = data;
-    const doc = iniciar(res, req, `Anexo2_${piar.estudiante_id}.pdf`);
-    titulo(doc, 'PLAN INDIVIDUAL DE AJUSTES RAZONABLES – ANEXO 2', null, { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit });
+    const inst2 = { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit };
+    const doc = iniciar(res, req, `Anexo2_${piar.estudiante_id}.pdf`, { inst: inst2, estudiante: piar.estudiante, documento: piar.documento_numero });
+    portada(doc, { tituloDoc: 'Anexo 2 · Valoración pedagógica y ajustes razonables', estudiante: piar.estudiante, documento: piar.documento_numero, inst: inst2 });
+    titulo(doc, 'PLAN INDIVIDUAL DE AJUSTES RAZONABLES – ANEXO 2', null);
     const cc = piar.caracteristicas || {};
     campos(doc, [['Institución educativa', piar.inst_nombre], ['Sede', piar.inst_sede]]);
     campos(doc, [['Jornada', cc.jornada || '—'], ['Fecha de elaboración', piar.fecha_elaboracion ? new Date(piar.fecha_elaboracion).toLocaleDateString('es-CO') : '—']]);
@@ -350,8 +419,10 @@ router.get('/acta/:piarId/pdf', async (req, res, next) => {
     { const neg = negarAcceso(req.usuario, await accesoPiar(data.piar.id)); if (neg) return res.status(neg.status).json({ error: neg.error }); }
     const { piar } = data;
     const a = (await query('SELECT * FROM acta_acuerdo WHERE piar_id=$1', [req.params.piarId])).rows[0] || {};
-    const doc = iniciar(res, req, `Anexo3_Acta_${piar.estudiante_id}.pdf`);
-    titulo(doc, 'ACTA DE ACUERDO – ANEXO 3', 'Plan Individual de Ajustes Razonables – PIAR', { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit });
+    const inst3 = { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit };
+    const doc = iniciar(res, req, `Anexo3_Acta_${piar.estudiante_id}.pdf`, { inst: inst3, estudiante: piar.estudiante, documento: piar.documento_numero });
+    portada(doc, { tituloDoc: 'Anexo 3 · Acta de Acuerdo con la familia', estudiante: piar.estudiante, documento: piar.documento_numero, inst: inst3 });
+    titulo(doc, 'ACTA DE ACUERDO – ANEXO 3', 'Plan Individual de Ajustes Razonables – PIAR');
     campos(doc, [['Institución educativa y sede', `${piar.inst_nombre || ''}${piar.inst_sede ? ' · ' + piar.inst_sede : ''}`], ['Fecha', a.fecha_firma ? new Date(a.fecha_firma).toLocaleDateString('es-CO') : '—']]);
     campos(doc, [['Nombre del estudiante', piar.estudiante], ['Documento', piar.documento_numero || '—']]);
     campos(doc, [['Grado', piar.grado || '—'], ['Año', piar.periodo]]);
@@ -412,8 +483,10 @@ router.get('/anexo4/:piarId/pdf', async (req, res, next) => {
     { const neg = negarAcceso(req.usuario, await accesoPiar(data.piar.id)); if (neg) return res.status(neg.status).json({ error: neg.error }); }
     const { piar } = data;
     const a = (await query('SELECT * FROM anexo4 WHERE piar_id=$1', [req.params.piarId])).rows[0] || {};
-    const doc = iniciar(res, req, `Anexo4_${piar.estudiante_id}.pdf`);
-    titulo(doc, 'ACTA DE SEGUIMIENTO, ENTREGA Y TRANSICIÓN – ANEXO 4', 'Cierre del año y transición del estudiante', { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit });
+    const inst4 = { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit };
+    const doc = iniciar(res, req, `Anexo4_${piar.estudiante_id}.pdf`, { inst: inst4, estudiante: piar.estudiante, documento: piar.documento_numero });
+    portada(doc, { tituloDoc: 'Anexo 4 · Acta de seguimiento, entrega y transición', estudiante: piar.estudiante, documento: piar.documento_numero, inst: inst4 });
+    titulo(doc, 'ACTA DE SEGUIMIENTO, ENTREGA Y TRANSICIÓN – ANEXO 4', 'Cierre del año y transición del estudiante');
     campos(doc, [['Estudiante', piar.estudiante], ['Periodo / Año', piar.periodo]]);
     banda(doc, 'Logros y avances durante el año');
     campos(doc, [['Logros', a.logros || '—']]);
