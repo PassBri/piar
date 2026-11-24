@@ -85,7 +85,7 @@ export default function Seguimiento() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-        <h2 style={{ color: 'var(--gris-700)', margin: 0 }}>Estudiantes y seguimiento</h2>
+        <h1 style={{ margin: 0 }}>Estudiantes y seguimiento</h1>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <button className="btn sec sm" onClick={() => api.descargarArchivo('/estudiantes/exportar/csv', 'estudiantes.csv')}>Exportar CSV ↓</button>
           {puedeCrear && (

@@ -265,7 +265,7 @@ export default function PiarDetalle() {
     <div>
       <Link to={`/estudiantes/${piar.estudiante_id}`} className="btn sec sm">← Volver al estudiante</Link>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '12px 0', flexWrap: 'wrap', gap: 8 }}>
-        <h2 style={{ color: 'var(--gris-700)', margin: 0 }}>PIAR — {piar.estudiante_nombre} ({piar.periodo})</h2>
+        <h1 style={{ margin: 0 }}>PIAR — {piar.estudiante_nombre} ({piar.periodo})</h1>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--gris-600)', fontWeight: 400 }}>
             <input type="checkbox" checked={conPortada} style={{ width: 'auto' }} onChange={(e) => setConPortada(e.target.checked)} />

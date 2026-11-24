@@ -258,7 +258,7 @@ export default function EstudianteForm() {
           </div>
         )}
       </div>
-      <h2 style={{ color: 'var(--gris-700)', marginTop: 12 }}>{id ? form.nombres : 'Nuevo estudiante'}</h2>
+      <h1 style={{ marginTop: 12 }}>{id ? form.nombres : 'Nuevo estudiante'}</h1>
       {id && (
         <div className="anexos-tabs">
           <span className="activo">Anexo 1 · Información</span>
