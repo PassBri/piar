@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import logo from '../assets/logo-piar.png';
+import logo from '../assets/logo-piar-full.png';
 
 export default function Login() {
   const { login } = useAuth();
@@ -27,8 +27,7 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={enviar}>
-        <div className="logo"><img src={logo} alt="PIAR" style={{ width: 180 }} /></div>
-        <p className="sub" style={{ marginTop: 4 }}>Gestión del Plan Individual de Ajustes Razonables</p>
+        <div className="logo"><img src={logo} alt="PIAR — Plan Individual de Ajustes Razonables" style={{ width: 270, maxWidth: '100%' }} /></div>
         <div className="campo">
           <label>Correo</label>
           <input type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} required autoFocus />
