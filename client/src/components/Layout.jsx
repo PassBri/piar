@@ -17,13 +17,11 @@ const CONFIG = ['administrador', 'rector', 'coordinador', 'psicoorientador', 'su
 // Menú ordenado por el flujo del proceso PIAR, en secciones
 const MENU = [
   { items: [{ to: '/', end: true, label: 'Panel' }] },
-  { titulo: 'Estudiantes', items: [
+  { titulo: 'Proceso PIAR', items: [
+    { to: '/deteccion', label: 'Detección', roles: GESTOR },
     { to: '/seguimiento', label: 'Estudiantes', roles: GESTOR },
     { to: '/estudiantes', label: 'Mi hijo/a', roles: ['padre'] },
     { to: '/mosaico', label: 'Mosaico', roles: GESTOR },
-  ] },
-  { titulo: 'Proceso PIAR', items: [
-    { to: '/deteccion', label: 'Detección', roles: GESTOR },
     { to: '/remisiones', label: 'Remisiones', roles: GESTOR },
     { to: '/apoyos', label: 'Apoyos', roles: GESTOR },
     { to: '/pmi', label: 'PMI', roles: DIRECTIVO },
