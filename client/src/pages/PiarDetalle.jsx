@@ -150,6 +150,16 @@ export default function PiarDetalle() {
       setNuevo((n) => ({ ...n, area_id: a.id }));
     } catch (err) { setError(err.message); }
   }
+  // Educación inicial: la valoración es por dimensiones y DBA de transición, no por áreas
+  async function agregarDimensiones() {
+    const DIMENSIONES = ['Dimensión corporal', 'Dimensión comunicativa', 'Dimensión cognitiva',
+      'Dimensión personal-social', 'Dimensión artística', 'Dimensión ética y de valores', 'Dimensión espiritual'];
+    try {
+      const existentes = areas.map((a) => a.nombre);
+      for (const d of DIMENSIONES) { if (!existentes.includes(d)) await api.post('/areas', { nombre: d }); }
+      const lista = await api.get('/areas'); setAreas(lista);
+    } catch (err) { setError(err.message); }
+  }
   async function eliminarAjuste(aid) { await api.del(`/ajustes/${aid}`); cargar(); }
 
   if (!piar) return <div>{error || 'Cargando…'}</div>;
@@ -350,6 +360,7 @@ export default function PiarDetalle() {
                 <input value={nuevaArea} onChange={(e) => setNuevaArea(e.target.value)} placeholder="Nombre de la asignatura" />
               </div>
               <button type="button" className="btn sec" onClick={agregarArea}>+ Agregar asignatura</button>
+              <button type="button" className="btn sec" title="Crea las dimensiones del desarrollo para educación inicial" onClick={agregarDimensiones}>+ Dimensiones (preescolar)</button>
             </div>
           ) : (
             <p style={{ fontSize: 12, color: 'var(--gris-500)', marginBottom: 10 }}>
