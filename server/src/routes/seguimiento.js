@@ -6,7 +6,7 @@ const router = Router();
 router.use(autenticar);
 
 // POST /api/seguimientos  (registrar seguimiento de un ajuste)
-router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector'), async (req, res, next) => {
+router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
     const { ajuste_id, fecha, periodo, impacto, decision } = req.body;
     if (!ajuste_id) return res.status(400).json({ error: 'El ajuste es obligatorio.' });

@@ -29,8 +29,10 @@ function Barra({ etiqueta, valor }) {
 export default function PiarDetalle() {
   const { id } = useParams();
   const { usuario } = useAuth();
-  const editable = ['docente', 'psicoorientador', 'administrador', 'coordinador', 'rector'].includes(usuario.rol);
+  const editable = ['docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'].includes(usuario.rol);
   const puedeConfigurar = ['rector', 'coordinador', 'administrador', 'superadmin'].includes(usuario.rol);
+  // Las áreas (asignaturas) las crean coordinador/psicoorientador; el docente solo las escoge.
+  const puedeCrearArea = ['psicoorientador', 'coordinador', 'administrador', 'rector', 'superadmin'].includes(usuario.rol);
   const esPadre = usuario.rol === 'padre';
   const [piar, setPiar] = useState(null);
   const [areas, setAreas] = useState([]);
@@ -302,13 +304,19 @@ export default function PiarDetalle() {
                 {INTENSIDADES.map((i) => <option key={i} value={i}>{i}</option>)}
               </select></div>
           </div>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', marginBottom: 10 }}>
-            <div className="campo" style={{ flex: 1, marginBottom: 0 }}>
-              <label>¿Falta una asignatura? Agrégala</label>
-              <input value={nuevaArea} onChange={(e) => setNuevaArea(e.target.value)} placeholder="Nombre de la asignatura" />
+          {puedeCrearArea ? (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', marginBottom: 10 }}>
+              <div className="campo" style={{ flex: 1, marginBottom: 0 }}>
+                <label>¿Falta una asignatura? Agrégala (coordinador / psicoorientador)</label>
+                <input value={nuevaArea} onChange={(e) => setNuevaArea(e.target.value)} placeholder="Nombre de la asignatura" />
+              </div>
+              <button type="button" className="btn sec" onClick={agregarArea}>+ Agregar asignatura</button>
             </div>
-            <button type="button" className="btn sec" onClick={agregarArea}>+ Agregar asignatura</button>
-          </div>
+          ) : (
+            <p style={{ fontSize: 12, color: 'var(--gris-500)', marginBottom: 10 }}>
+              Escoge el área de la lista. Si falta una asignatura, el coordinador o el psicoorientador debe agregarla.
+            </p>
+          )}
           <div className="campo"><label>Objetivo / propósito (según EBC y DBA)</label>
             <textarea value={nuevo.objetivo} onChange={(e) => setNuevo({ ...nuevo, objetivo: e.target.value })} /></div>
           <div className="campo"><label>Barrera para el aprendizaje, el desarrollo o la participación</label>

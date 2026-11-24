@@ -6,7 +6,7 @@ const router = Router();
 router.use(autenticar);
 
 // POST /api/ajustes  (añadir ajuste razonable a un PIAR)
-router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector'), async (req, res, next) => {
+router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
     const { piar_id, area_id, periodo, objetivo, barrera, tipo, descripcion, apoyo, intensidad, evaluacion } = req.body;
     if (!piar_id || !barrera || !tipo || !descripcion) {
@@ -23,7 +23,7 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coord
 });
 
 // PUT /api/ajustes/:id
-router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector'), async (req, res, next) => {
+router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
     const { area_id, periodo, objetivo, barrera, tipo, descripcion, apoyo, intensidad, evaluacion, retirado, justificacion_retiro } = req.body;
     const { rows } = await query(
@@ -40,7 +40,7 @@ router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coo
 });
 
 // DELETE /api/ajustes/:id
-router.delete('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector'), async (req, res, next) => {
+router.delete('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
     const { rowCount } = await query('DELETE FROM ajuste_razonable WHERE id=$1', [req.params.id]);
     if (!rowCount) return res.status(404).json({ error: 'Ajuste no encontrado.' });

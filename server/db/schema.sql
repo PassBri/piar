@@ -103,6 +103,7 @@ CREATE TABLE estudiante (
     fecha_nacimiento DATE,
     grado            VARCHAR(40),
     curso_id         INTEGER REFERENCES curso(id) ON DELETE SET NULL,
+    foto             TEXT,   -- foto del estudiante (data URL base64)
     -- Identificación ampliada del Anexo 1 (sede, jornada, lugar de nacimiento,
     -- género, edad, sexo, grupo étnico, etc.)
     identificacion   JSONB NOT NULL DEFAULT '{}'::jsonb,

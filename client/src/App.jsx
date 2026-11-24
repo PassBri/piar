@@ -9,6 +9,7 @@ import PiarDetalle from './pages/PiarDetalle.jsx';
 import Seguimiento from './pages/Seguimiento.jsx';
 import Estadisticas from './pages/Estadisticas.jsx';
 import Aprendizaje from './pages/Aprendizaje.jsx';
+import Mosaico from './pages/Mosaico.jsx';
 import Admin from './pages/Admin.jsx';
 
 function Privada({ children }) {
@@ -24,6 +25,7 @@ export default function App() {
       <Route path="/" element={<Privada><Layout /></Privada>}>
         <Route index element={<Dashboard />} />
         <Route path="estudiantes" element={<Estudiantes />} />
+        <Route path="mosaico" element={<Mosaico />} />
         <Route path="estudiantes/nuevo" element={<EstudianteForm />} />
         <Route path="estudiantes/:id" element={<EstudianteForm />} />
         <Route path="piar/:id" element={<PiarDetalle />} />

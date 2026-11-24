@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import PDFDocument from 'pdfkit';
 import { query } from '../db.js';
-import { autenticar } from '../middleware/auth.js';
+import { autenticar, autorizar } from '../middleware/auth.js';
 
 const router = Router();
 router.use(autenticar);
@@ -161,6 +161,15 @@ router.get('/estudiante/:id/pdf', async (req, res, next) => {
     if (!e) return res.status(404).json({ error: 'Estudiante no encontrado.' });
     const doc = iniciar(res, req, `Anexo1_${e.id}.pdf`);
     titulo(doc, 'INFORMACIÓN GENERAL DEL ESTUDIANTE', 'Información para la matrícula – Anexo 1 PIAR');
+    if (e.foto && typeof e.foto === 'string' && e.foto.startsWith('data:image')) {
+      try {
+        const buf = Buffer.from(e.foto.split(',')[1], 'base64');
+        const fy = doc.y; const fw = 70; const fh = 84; const fx = X0 + (ANCHO - fw) / 2;
+        doc.image(buf, fx, fy, { width: fw, height: fh });
+        doc.rect(fx, fy, fw, fh).stroke(BORDE);
+        doc.y = fy + fh + 6;
+      } catch { /* foto inválida: se omite */ }
+    }
     campos(doc, [['Institución educativa', e.inst_nombre], ['Sede', e.inst_sede]]);
     campos(doc, [['Municipio', e.municipio_nombre], ['Departamento', e.departamento_nombre]]);
 
@@ -423,6 +432,56 @@ router.get('/competencias/:piarId/pdf', async (req, res, next) => {
       doc.font('Helvetica').fontSize(8).fillColor(GRIS_MEDIO).text(t, x, yf + 25, { width: 150, lineBreak: false });
     });
     doc.y = yf + 40;
+    finalizar(doc);
+  } catch (err) { next(err); }
+});
+
+// ====== Mosaico de estudiantes (foto, nombre, discapacidad, grado) ======
+router.get('/mosaico/pdf', autorizar('superadmin', 'rector', 'coordinador', 'psicoorientador', 'administrador', 'docente'), async (req, res, next) => {
+  try {
+    const esSuper = req.usuario.rol === 'superadmin';
+    const inst = esSuper ? (req.query.institucion_id || null) : req.usuario.institucion_id;
+    const params = [inst || null];
+    let sql = `SELECT e.nombres, e.grado, e.foto, e.entorno_salud->>'discapacidad' AS discapacidad,
+                      c.sede AS curso_sede, c.grado AS curso_grado, c.grupo AS curso_grupo, i.nombre AS institucion_nombre
+               FROM estudiante e LEFT JOIN curso c ON c.id = e.curso_id
+               LEFT JOIN institucion i ON i.id = e.institucion_id
+               WHERE ($1::int IS NULL OR e.institucion_id = $1)`;
+    if (req.query.curso_id) { params.push(req.query.curso_id); sql += ` AND e.curso_id = $${params.length}`; }
+    if (req.query.sede) { params.push(req.query.sede); sql += ` AND c.sede = $${params.length}`; }
+    sql += ' ORDER BY i.nombre, c.sede, c.grado, c.grupo, e.nombres';
+    const { rows } = await query(sql, params);
+
+    const sub = [rows[0]?.institucion_nombre, req.query.sede, req.query.grupo].filter(Boolean).join(' · ') || 'Todos los estudiantes';
+    const doc = iniciar(res, req, 'Mosaico_estudiantes.pdf');
+    titulo(doc, 'MOSAICO DE ESTUDIANTES', sub);
+    doc.moveDown(0.3);
+
+    const cols = 4; const cw = ANCHO / cols; const ch = 150; const fw = 58; const fh = 70;
+    let yFila = doc.y;
+    rows.forEach((r, idx) => {
+      const col = idx % cols;
+      if (col === 0) {
+        if (yFila + ch > TOPE) { doc.addPage(); yFila = doc.y; } else if (idx > 0) { yFila += ch; }
+      }
+      const x = X0 + col * cw;
+      doc.rect(x + 2, yFila, cw - 4, ch - 6).stroke(BORDE);
+      const fx = x + (cw - fw) / 2;
+      if (r.foto && typeof r.foto === 'string' && r.foto.startsWith('data:image')) {
+        try { doc.image(Buffer.from(r.foto.split(',')[1], 'base64'), fx, yFila + 8, { width: fw, height: fh }); } catch { /* omitir */ }
+      } else {
+        doc.rect(fx, yFila + 8, fw, fh).fillAndStroke(GRIS_CLARO, BORDE);
+        doc.fillColor(GRIS_MEDIO).font('Helvetica').fontSize(6.5).text('Sin foto', fx, yFila + 38, { width: fw, align: 'center' });
+      }
+      doc.rect(fx, yFila + 8, fw, fh).stroke(BORDE);
+      doc.fillColor('#000').font('Helvetica-Bold').fontSize(7.5).text(r.nombres || '—', x + 4, yFila + fh + 14, { width: cw - 8, align: 'center' });
+      const grado = r.curso_grado || r.grado || '—';
+      const grupo = r.curso_grupo ? ` · Grupo ${r.curso_grupo}` : '';
+      doc.font('Helvetica').fontSize(7).fillColor(GRIS_MEDIO).text(`${grado}${grupo}`, x + 4, doc.y + 1, { width: cw - 8, align: 'center' });
+      doc.font('Helvetica-Oblique').fontSize(6.8).fillColor(GRIS).text(r.discapacidad || 'Sin discapacidad registrada', x + 4, doc.y + 1, { width: cw - 8, align: 'center' });
+    });
+    if (rows.length === 0) doc.font('Helvetica-Oblique').fontSize(10).text('No hay estudiantes para esta selección.', X0, doc.y + 10);
+    else doc.y = yFila + ch;
     finalizar(doc);
   } catch (err) { next(err); }
 });

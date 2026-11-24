@@ -20,7 +20,7 @@ router.get('/', async (req, res, next) => {
 });
 
 // PUT /api/valoraciones — crear o actualizar la valoración de un área en un periodo
-router.put('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector'), async (req, res, next) => {
+router.put('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
     const { piar_id, area_id, periodo, desempeno, observacion } = req.body;
     if (!piar_id || !area_id || !periodo) {

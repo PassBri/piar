@@ -97,6 +97,19 @@ th { background: var(--blanco); color: var(--gris-900); font-weight: 700; }
 .formato-cab .sub { font-size: 11px; color: var(--gris-500); margin-top: 2px; }
 .formato-sello { border: 1px solid #999; border-radius: 4px; padding: 4px 10px; text-align: center; min-width: 110px; }
 .formato-sello b { color: var(--gris-700); font-size: 13px; }
+.foto-anexo { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.foto-anexo img { width: 90px; height: 110px; object-fit: cover; border: 1px solid #999; border-radius: 4px; background: #fff; }
+.foto-anexo > span { width: 90px; height: 110px; display: flex; align-items: center; justify-content: center; border: 1px dashed #aaa; border-radius: 4px; color: var(--gris-500); font-size: 12px; }
+.foto-acciones { display: flex; gap: 4px; }
+
+/* Mosaico de estudiantes */
+.mosaico-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 14px; }
+.mosaico-tarjeta { background: var(--blanco); border: 1px solid var(--gris-200); border-radius: 10px; padding: 10px; text-align: center; box-shadow: var(--sombra); }
+.mosaico-tarjeta img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 6px; background: var(--gris-100); }
+.mosaico-sinfoto { width: 100%; aspect-ratio: 3/4; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--gris-300); border-radius: 6px; color: var(--gris-500); font-size: 12px; }
+.mosaico-nombre { font-weight: 700; font-size: 13px; margin-top: 8px; color: var(--gris-900); line-height: 1.2; }
+.mosaico-grado { font-size: 12px; color: var(--gris-600); margin-top: 2px; }
+.mosaico-disc { font-size: 11.5px; color: var(--gris-500); font-style: italic; margin-top: 3px; }
 .formato-sello span { display: block; font-size: 9px; color: var(--gris-500); }
 table.ftabla { width: 100%; border-collapse: collapse; }
 table.ftabla td { border: 1px solid #aab; padding: 0; vertical-align: top; }

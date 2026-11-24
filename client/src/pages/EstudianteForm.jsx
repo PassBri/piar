@@ -58,15 +58,34 @@ const CAMPOS = {
 };
 const GRUPOS = Object.keys(CAMPOS);
 const vacio = {
-  nombres: '', documento_tipo: 'TI', documento_numero: '', grado: '', fecha_nacimiento: '', curso_id: '',
+  nombres: '', documento_tipo: 'TI', documento_numero: '', grado: '', fecha_nacimiento: '', curso_id: '', foto: '',
   identificacion: {}, entorno_personal: {}, entorno_salud: {}, entorno_hogar: {}, entorno_educativo: {},
 };
+
+// Escala la foto a máx. 400px y la guarda como JPEG (mantiene la base liviana)
+function procesarFoto(file, cb) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 400;
+      const escala = Math.min(1, max / Math.max(img.width, img.height));
+      const w = Math.round(img.width * escala); const h = Math.round(img.height * escala);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      cb(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
 
 export default function EstudianteForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { usuario } = useAuth();
-  const editable = ['docente', 'psicoorientador', 'administrador', 'superadmin'].includes(usuario.rol);
+  const editable = ['docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'].includes(usuario.rol);
   const [form, setForm] = useState(vacio);
   const [piars, setPiars] = useState([]);
   const [cursos, setCursos] = useState([]);
@@ -164,9 +183,24 @@ export default function EstudianteForm() {
       <form onSubmit={guardar}>
         <div className="formato">
           <div className="formato-cab">
-            <div>
-              <h3>Información general del estudiante</h3>
-              <div className="sub">Información para la matrícula – Anexo 1 PIAR</div>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <div className="foto-anexo">
+                {form.foto ? <img src={form.foto} alt="Foto" /> : <span>Foto</span>}
+                {editable && (
+                  <div className="foto-acciones">
+                    <label className="btn sec sm" style={{ cursor: 'pointer' }}>
+                      {form.foto ? 'Cambiar' : 'Subir'}
+                      <input type="file" accept="image/*" style={{ display: 'none' }}
+                        onChange={(e) => e.target.files[0] && procesarFoto(e.target.files[0], (d) => set('foto', d))} />
+                    </label>
+                    {form.foto && <button type="button" className="btn sec sm" onClick={() => set('foto', '')}>Quitar</button>}
+                  </div>
+                )}
+              </div>
+              <div>
+                <h3>Información general del estudiante</h3>
+                <div className="sub">Información para la matrícula – Anexo 1 PIAR</div>
+              </div>
             </div>
             <div className="formato-sello"><b>PIAR</b><span>Decreto 1421/2017</span></div>
           </div>
