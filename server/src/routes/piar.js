@@ -114,17 +114,19 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coord
 router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
     const { periodo, valoracion, aspectos_generales, recomendaciones_pmi, estado,
-            pmi, grado, director_grupo, fecha_elaboracion } = req.body;
+            pmi, grado, director_grupo, fecha_elaboracion, caracteristicas } = req.body;
     const neg = negarAcceso(req.usuario, await accesoPiar(req.params.id));
     if (neg) return res.status(neg.status).json({ error: neg.error });
     const { rows } = await query(
       `UPDATE piar SET periodo=$1, valoracion=$2, aspectos_generales=$3,
          recomendaciones_pmi=$4, estado=COALESCE($5,estado),
          pmi=$6, grado=COALESCE($7,grado), director_grupo=$8,
-         fecha_elaboracion=COALESCE($9,fecha_elaboracion), actualizado_en=now()
+         fecha_elaboracion=COALESCE($9,fecha_elaboracion),
+         caracteristicas=COALESCE($11,caracteristicas), actualizado_en=now()
        WHERE id=$10 RETURNING *`,
       [periodo, valoracion, aspectos_generales, recomendaciones_pmi || {}, estado || null,
-       pmi || null, grado || null, director_grupo || null, fecha_elaboracion || null, req.params.id]
+       pmi || null, grado || null, director_grupo || null, fecha_elaboracion || null, req.params.id,
+       caracteristicas ? JSON.stringify(caracteristicas) : null]
     );
     if (!rows[0]) return res.status(404).json({ error: 'PIAR no encontrado.' });
     await auditar(req, { entidad: 'piar', entidad_id: Number(req.params.id), piar_id: Number(req.params.id), accion: 'editar', descripcion: 'Actualizó la valoración del PIAR (Anexo 2)' });

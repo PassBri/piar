@@ -29,6 +29,16 @@ export async function ensureSchema() {
   return true;
 }
 
+/** Aplica migraciones idempotentes en cada arranque (no borra datos). */
+export async function migrar() {
+  try {
+    await pool.query(leerSql('migrations.sql'));
+    console.log('Migraciones aplicadas.');
+  } catch (e) {
+    console.error('No se pudieron aplicar las migraciones:', e.message);
+  }
+}
+
 // Permite ejecutarlo a mano con: npm run db:init
 if (import.meta.url === `file://${process.argv[1]}`) {
   ensureSchema()

@@ -33,9 +33,11 @@ export function avanceAnexo1(est) {
 
 // Anexo 2: valoración pedagógica, aspectos generales, al menos un ajuste, y valoraciones por área
 export function avanceAnexo2(piar, numAjustes, numAreasValoradas) {
+  const c = piar.caracteristicas || {};
   const items = [
-    lleno(piar.valoracion),
-    lleno(piar.aspectos_generales),
+    lleno(c.gustos) || lleno(piar.aspectos_generales),
+    lleno(c.desempeno) || lleno(piar.valoracion),
+    lleno(c.habilidades),
     Number(numAjustes) > 0,
     Number(numAreasValoradas) > 0,
   ];

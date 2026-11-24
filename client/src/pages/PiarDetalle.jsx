@@ -10,6 +10,15 @@ const TIPOS = [
 const INTENSIDADES = ['generalizado', 'extenso', 'limitado', 'intermitente'];
 const DESEMPENOS = ['', 'Superior', 'Alto', 'Básico', 'Bajo'];
 
+// Actores del Plan de Mejoramiento Institucional (punto 7 del formato oficial)
+const ACTORES_PMI = [
+  ['familia', 'Familia, cuidadores o con quienes vive'],
+  ['docentes', 'Docentes'],
+  ['directivos', 'Directivos'],
+  ['administrativos', 'Administrativos'],
+  ['pares', 'Pares (sus compañeros)'],
+];
+
 const nombrePeriodo = (p) => (p === 5 ? 'Promoción' : `Periodo ${p}`);
 const ROLES_LABEL = {
   superadmin: 'Administrador general', rector: 'Rector', coordinador: 'Coordinador',
@@ -130,9 +139,15 @@ export default function PiarDetalle() {
       aspectos_generales: piar.aspectos_generales, estado: piar.estado,
       pmi: piar.pmi, grado: piar.grado, director_grupo: piar.director_grupo,
       fecha_elaboracion: piar.fecha_elaboracion,
+      caracteristicas: piar.caracteristicas || {},
+      recomendaciones_pmi: piar.recomendaciones_pmi || {},
     });
     cargar();
   }
+  const setCarac = (campo, valor) => setPiar((p) => ({ ...p, caracteristicas: { ...(p.caracteristicas || {}), [campo]: valor } }));
+  const setActor = (actor, campo, valor) => setPiar((p) => ({
+    ...p, recomendaciones_pmi: { ...(p.recomendaciones_pmi || {}), [actor]: { ...((p.recomendaciones_pmi || {})[actor] || {}), [campo]: valor } },
+  }));
   async function guardarPeriodos(n, promo) {
     try {
       await api.put(`/geografia/instituciones/${piar.institucion_id}/periodos`, { num_periodos: n, usa_promocion: promo });
@@ -140,8 +155,13 @@ export default function PiarDetalle() {
     } catch (err) { setError(err.message); }
   }
   async function agregarAjuste(e) {
-    e.preventDefault();
+    e?.preventDefault?.();
+    if (!nuevo.barrera?.trim() || !nuevo.descripcion?.trim()) {
+      setError('Para agregar la fila, escribe al menos la barrera y el ajuste razonable.');
+      return;
+    }
     try {
+      setError('');
       const periodo = periodoActivo === 0 ? nuevo.periodo : periodoActivo;
       await api.post('/ajustes', { piar_id: Number(id), ...nuevo, periodo, area_id: nuevo.area_id || null });
       setNuevo(ajusteVacio);
@@ -165,6 +185,26 @@ export default function PiarDetalle() {
       const existentes = areas.map((a) => a.nombre);
       for (const d of DIMENSIONES) { if (!existentes.includes(d)) await api.post('/areas', { nombre: d }); }
       const lista = await api.get('/areas'); setAreas(lista);
+    } catch (err) { setError(err.message); }
+  }
+  // Áreas transversales del formato oficial (sección "otras")
+  async function agregarAreasBase() {
+    const BASE = ['Convivencia', 'Socialización', 'Participación', 'Autonomía', 'Autocontrol'];
+    try {
+      const existentes = areas.map((a) => a.nombre);
+      for (const d of BASE) { if (!existentes.includes(d)) await api.post('/areas', { nombre: d }); }
+      const lista = await api.get('/areas'); setAreas(lista);
+    } catch (err) { setError(err.message); }
+  }
+  // Edición directa de una celda del ajuste (guarda al salir del campo)
+  async function actualizarAjuste(a, cambios) {
+    try {
+      await api.put(`/ajustes/${a.id}`, {
+        area_id: a.area_id, periodo: a.periodo, objetivo: a.objetivo, barrera: a.barrera,
+        tipo: a.tipo, descripcion: a.descripcion, apoyo: a.apoyo, intensidad: a.intensidad,
+        evaluacion: a.evaluacion, ...cambios,
+      });
+      cargar();
     } catch (err) { setError(err.message); }
   }
   async function eliminarAjuste(aid) { await api.del(`/ajustes/${aid}`); cargar(); }
@@ -235,18 +275,35 @@ export default function PiarDetalle() {
               <tr><td className="lbl">Fecha de elaboración</td>
                 <td className="val"><input type="date" value={piar.fecha_elaboracion ? piar.fecha_elaboracion.slice(0, 10) : ''} onChange={(e) => setPiar({ ...piar, fecha_elaboracion: e.target.value })} disabled={!editable} /></td></tr>
               <tr><td className="banda" colSpan={2}>1. Características del estudiante</td></tr>
-              <tr><td className="lbl">Síntesis de la valoración pedagógica</td>
-                <td className="val"><textarea value={piar.valoracion || ''} onChange={(e) => setPiar({ ...piar, valoracion: e.target.value })} disabled={!editable} /></td></tr>
-              <tr><td className="lbl">Aspectos generales (gustos, habilidades, apoyos que requiere)</td>
-                <td className="val"><textarea value={piar.aspectos_generales || ''} onChange={(e) => setPiar({ ...piar, aspectos_generales: e.target.value })} disabled={!editable} /></td></tr>
+              <tr><td className="lbl">Descripción general: gustos e intereses o aspectos que le desagradan, y expectativas del estudiante y la familia</td>
+                <td className="val"><textarea rows={3} value={(piar.caracteristicas || {}).gustos || ''} onChange={(e) => setCarac('gustos', e.target.value)} disabled={!editable} /></td></tr>
+              <tr><td className="lbl">Descripción de lo que hace, puede hacer o requiere apoyo para favorecer su proceso educativo</td>
+                <td className="val"><textarea rows={3} value={(piar.caracteristicas || {}).desempeno || ''} onChange={(e) => setCarac('desempeno', e.target.value)} disabled={!editable} /></td></tr>
+              <tr><td className="lbl">Habilidades, competencias, cualidades y aprendizajes con los que cuenta para el grado en que fue matriculado</td>
+                <td className="val"><textarea rows={3} value={(piar.caracteristicas || {}).habilidades || ''} onChange={(e) => setCarac('habilidades', e.target.value)} disabled={!editable} /></td></tr>
               <tr><td className="lbl">Estado del PIAR</td>
                 <td className="val">
                   <select value={piar.estado} onChange={(e) => setPiar({ ...piar, estado: e.target.value })} disabled={!editable}>
                     <option value="borrador">Borrador</option><option value="vigente">Vigente</option><option value="cerrado">Cerrado</option>
                   </select></td></tr>
-              <tr><td className="banda" colSpan={2}>7. Recomendaciones para el Plan de Mejoramiento Institucional (PMI)</td></tr>
-              <tr><td className="lbl">Acciones para eliminar las barreras a nivel institucional</td>
-                <td className="val"><textarea value={piar.pmi || ''} onChange={(e) => setPiar({ ...piar, pmi: e.target.value })} disabled={!editable} placeholder="Recomendaciones de infraestructura, formación, recursos, etc. para eliminar las barreras detectadas" /></td></tr>
+            </tbody>
+          </table>
+
+          {/* 7. PMI por actores (formato oficial) */}
+          <table className="ftabla" style={{ marginTop: 4 }}>
+            <tbody>
+              <tr><td className="banda" colSpan={3}>7. Recomendaciones para el Plan de Mejoramiento Institucional (eliminación de barreras)</td></tr>
+              <tr><td className="lbl" style={{ width: '20%' }}>Actores</td><td className="lbl">Acciones</td><td className="lbl">Estrategias a implementar</td></tr>
+              {ACTORES_PMI.map(([clave, nombre]) => {
+                const a = (piar.recomendaciones_pmi || {})[clave] || {};
+                return (
+                  <tr key={clave}>
+                    <td className="lbl" style={{ fontWeight: 600 }}>{nombre}</td>
+                    <td className="val"><textarea rows={2} value={a.acciones || ''} onChange={(e) => setActor(clave, 'acciones', e.target.value)} disabled={!editable} /></td>
+                    <td className="val"><textarea rows={2} value={a.estrategias || ''} onChange={(e) => setActor(clave, 'estrategias', e.target.value)} disabled={!editable} /></td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           {editable && <div style={{ padding: 10 }}><button className="btn">Guardar valoración</button></div>}
@@ -310,97 +367,124 @@ export default function PiarDetalle() {
           </tbody>
         </table>
 
-        {/* Barreras y ajustes razonables del periodo */}
-        <h3 style={{ marginBottom: 6 }}>Barreras y ajustes razonables {periodoActivo === 0 ? '(todos)' : `· ${nombrePeriodo(periodoActivo)}`}</h3>
+        {/* Barreras y ajustes razonables del periodo — se diligencia por filas, una por área */}
+        <h3 style={{ marginBottom: 2 }}>2. Ajustes razonables {periodoActivo === 0 ? '(todos)' : `· ${nombrePeriodo(periodoActivo)}`}</h3>
+        <p style={{ fontSize: 12, color: 'var(--gris-500)', margin: '0 0 6px' }}>
+          Escribe directamente en cada fila. Los cambios se guardan al salir del campo. La última fila agrega un ajuste nuevo.
+        </p>
         <table className="ftabla">
           <thead>
             <tr>
-              {periodoActivo === 0 && <th style={{ width: '7%' }}>Per.</th>}
-              <th style={{ width: '15%' }}>Área</th><th>Objetivo / propósito</th><th>Barrera</th><th>Ajuste razonable</th><th>Evaluación</th>{editable && <th style={{ width: '8%' }}></th>}
+              {periodoActivo === 0 && <th style={{ width: '6%' }}>Per.</th>}
+              <th style={{ width: '16%' }}>Área</th>
+              <th>Objetivos / propósitos<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(para el grado, según EBC y DBA)</span></th>
+              <th>Barreras<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(en el contexto)</span></th>
+              <th>Ajustes razonables<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(apoyos/estrategias)</span></th>
+              <th>Evaluación de los ajustes</th>
+              {editable && <th style={{ width: '4%' }}></th>}
             </tr>
           </thead>
           <tbody>
             {ajustesVisibles.map((a) => (
               <tr key={a.id} style={a.retirado ? { opacity: 0.5 } : null}>
                 {periodoActivo === 0 && <td className="lbl" style={{ textAlign: 'center' }}>{nombrePeriodo(a.periodo)}</td>}
-                <td className="val" style={{ padding: '5px 7px' }}>{a.area_nombre || '—'}</td>
-                <td className="val" style={{ padding: '5px 7px' }}>{a.objetivo || '—'}</td>
-                <td className="val" style={{ padding: '5px 7px' }}>{a.barrera}</td>
-                <td className="val" style={{ padding: '5px 7px' }}>{a.descripcion}</td>
-                <td className="val" style={{ padding: '5px 7px' }}>{a.evaluacion || '—'}</td>
-                {editable && <td className="val" style={{ textAlign: 'center' }}><button className="btn sec sm" onClick={() => eliminarAjuste(a.id)}>×</button></td>}
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
+                  {editable ? (
+                    <>
+                      <select value={a.area_id || ''} onChange={(e) => actualizarAjuste(a, { area_id: e.target.value || null })} style={{ marginBottom: 4 }}>
+                        <option value="">— Área —</option>
+                        {areas.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
+                      </select>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <select value={a.tipo} title="Tipo de ajuste" onChange={(e) => actualizarAjuste(a, { tipo: e.target.value })} style={{ fontSize: 10 }}>
+                          {TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                        </select>
+                        <select value={a.intensidad || 'intermitente'} title="Intensidad del apoyo" onChange={(e) => actualizarAjuste(a, { intensidad: e.target.value })} style={{ fontSize: 10 }}>
+                          {INTENSIDADES.map((i) => <option key={i} value={i}>{i}</option>)}
+                        </select>
+                      </div>
+                    </>
+                  ) : (a.area_nombre || '—')}
+                </td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
+                  {editable ? <textarea key={`o${a.id}`} rows={2} defaultValue={a.objetivo || ''} onBlur={(e) => { if ((a.objetivo || '') !== e.target.value) actualizarAjuste(a, { objetivo: e.target.value }); }} /> : (a.objetivo || '—')}
+                </td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
+                  {editable ? <textarea key={`b${a.id}`} rows={2} defaultValue={a.barrera || ''} onBlur={(e) => { if ((a.barrera || '') !== e.target.value && e.target.value.trim()) actualizarAjuste(a, { barrera: e.target.value }); }} /> : a.barrera}
+                </td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
+                  {editable ? <textarea key={`d${a.id}`} rows={2} defaultValue={a.descripcion || ''} onBlur={(e) => { if ((a.descripcion || '') !== e.target.value && e.target.value.trim()) actualizarAjuste(a, { descripcion: e.target.value }); }} /> : a.descripcion}
+                </td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
+                  {editable ? <textarea key={`e${a.id}`} rows={2} defaultValue={a.evaluacion || ''} onBlur={(e) => { if ((a.evaluacion || '') !== e.target.value) actualizarAjuste(a, { evaluacion: e.target.value }); }} /> : (a.evaluacion || '—')}
+                </td>
+                {editable && <td className="val" style={{ textAlign: 'center', verticalAlign: 'top' }}><button type="button" className="btn sec sm" title="Eliminar fila" onClick={() => eliminarAjuste(a.id)}>×</button></td>}
               </tr>
             ))}
-            {ajustesVisibles.length === 0 && <tr><td className="val" colSpan={periodoActivo === 0 ? 7 : 6} style={{ color: 'var(--gris-500)', padding: 8 }}>Sin ajustes en esta selección.</td></tr>}
+            {editable && (
+              <tr style={{ background: '#F7FAFC' }}>
+                {periodoActivo === 0 && (
+                  <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
+                    <select value={nuevo.periodo} onChange={(e) => setNuevo({ ...nuevo, periodo: Number(e.target.value) })} style={{ fontSize: 10 }}>
+                      {periodosDisponibles.map((p) => <option key={p} value={p}>{nombrePeriodo(p)}</option>)}
+                    </select>
+                  </td>
+                )}
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
+                  <select value={nuevo.area_id} onChange={(e) => setNuevo({ ...nuevo, area_id: e.target.value })} style={{ marginBottom: 4 }}>
+                    <option value="">— Área —</option>
+                    {areas.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
+                  </select>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <select value={nuevo.tipo} title="Tipo de ajuste" onChange={(e) => setNuevo({ ...nuevo, tipo: e.target.value })} style={{ fontSize: 10 }}>
+                      {TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                    <select value={nuevo.intensidad} title="Intensidad del apoyo" onChange={(e) => setNuevo({ ...nuevo, intensidad: e.target.value })} style={{ fontSize: 10 }}>
+                      {INTENSIDADES.map((i) => <option key={i} value={i}>{i}</option>)}
+                    </select>
+                  </div>
+                </td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.objetivo} onChange={(e) => setNuevo({ ...nuevo, objetivo: e.target.value })} placeholder="Objetivo…" /></td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.barrera} onChange={(e) => setNuevo({ ...nuevo, barrera: e.target.value })} placeholder="Barrera…" /></td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} placeholder="Ajuste razonable…" /></td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.evaluacion} onChange={(e) => setNuevo({ ...nuevo, evaluacion: e.target.value })} placeholder="Evaluación…" /></td>
+                <td className="val" style={{ textAlign: 'center', verticalAlign: 'top' }}><button type="button" className="btn sm" title="Agregar esta fila" onClick={() => agregarAjuste()}>+</button></td>
+              </tr>
+            )}
+            {ajustesVisibles.length === 0 && !editable && <tr><td className="val" colSpan={periodoActivo === 0 ? 6 : 5} style={{ color: 'var(--gris-500)', padding: 8 }}>Sin ajustes en esta selección.</td></tr>}
           </tbody>
         </table>
-      </div>
 
-      {editable && (
-        <form className="card" onSubmit={agregarAjuste}>
-          <h2>Agregar ajuste razonable {periodoActivo !== 0 && `· ${nombrePeriodo(periodoActivo)}`}</h2>
-          <div className="fila">
-            {periodoActivo === 0 && (
-              <div className="campo"><label>Periodo</label>
-                <select value={nuevo.periodo} onChange={(e) => setNuevo({ ...nuevo, periodo: Number(e.target.value) })}>
-                  {periodosDisponibles.map((p) => <option key={p} value={p}>{nombrePeriodo(p)}</option>)}
-                </select></div>
+        {editable && (
+          <div style={{ marginTop: 10 }}>
+            {puedeCrearArea ? (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 8 }}>
+                <div className="campo" style={{ flex: 1, minWidth: 200, marginBottom: 0 }}>
+                  <label>¿Falta una asignatura? Agrégala (coordinador / psicoorientador)</label>
+                  <input value={nuevaArea} onChange={(e) => setNuevaArea(e.target.value)} placeholder="Nombre de la asignatura" />
+                </div>
+                <button type="button" className="btn sec" onClick={agregarArea}>+ Asignatura</button>
+                <button type="button" className="btn sec" title="Convivencia, Socialización, Participación, Autonomía, Autocontrol" onClick={agregarAreasBase}>+ Áreas base del formato</button>
+                <button type="button" className="btn sec" title="Dimensiones del desarrollo (educación inicial)" onClick={agregarDimensiones}>+ Dimensiones (preescolar)</button>
+              </div>
+            ) : (
+              <p style={{ fontSize: 12, color: 'var(--gris-500)', marginBottom: 8 }}>
+                Escoge el área de la lista en la última fila. Si falta una asignatura, el coordinador o el psicoorientador debe agregarla.
+              </p>
             )}
-            <div className="campo"><label>Área / asignatura</label>
-              <select value={nuevo.area_id} onChange={(e) => setNuevo({ ...nuevo, area_id: e.target.value })}>
-                <option value="">— Área —</option>
-                {areas.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
-              </select></div>
-            <div className="campo"><label>Tipo de ajuste</label>
-              <select value={nuevo.tipo} onChange={(e) => setNuevo({ ...nuevo, tipo: e.target.value })}>
-                {TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select></div>
-            <div className="campo"><label>Intensidad del apoyo</label>
-              <select value={nuevo.intensidad} onChange={(e) => setNuevo({ ...nuevo, intensidad: e.target.value })}>
-                {INTENSIDADES.map((i) => <option key={i} value={i}>{i}</option>)}
-              </select></div>
-          </div>
-          {puedeCrearArea ? (
-            <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', marginBottom: 10 }}>
-              <div className="campo" style={{ flex: 1, marginBottom: 0 }}>
-                <label>¿Falta una asignatura? Agrégala (coordinador / psicoorientador)</label>
-                <input value={nuevaArea} onChange={(e) => setNuevaArea(e.target.value)} placeholder="Nombre de la asignatura" />
+            {catalogo.length > 0 && (
+              <div className="campo">
+                <label>Sugerencias del catálogo (MEN) — clic para ponerlas en el ajuste de la nueva fila</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {catalogo.map((c) => (
+                    <button type="button" key={c.id} className="btn sec sm" onClick={() => setNuevo({ ...nuevo, descripcion: c.descripcion })}>{c.descripcion}</button>
+                  ))}
+                </div>
               </div>
-              <button type="button" className="btn sec" onClick={agregarArea}>+ Agregar asignatura</button>
-              <button type="button" className="btn sec" title="Crea las dimensiones del desarrollo para educación inicial" onClick={agregarDimensiones}>+ Dimensiones (preescolar)</button>
-            </div>
-          ) : (
-            <p style={{ fontSize: 12, color: 'var(--gris-500)', marginBottom: 10 }}>
-              Escoge el área de la lista. Si falta una asignatura, el coordinador o el psicoorientador debe agregarla.
-            </p>
-          )}
-          <div className="fila">
-            <div className="campo"><label>Objetivo / propósito (según EBC y DBA)</label>
-              <textarea rows={3} value={nuevo.objetivo} onChange={(e) => setNuevo({ ...nuevo, objetivo: e.target.value })} /></div>
-            <div className="campo"><label>Barrera para el aprendizaje, el desarrollo o la participación</label>
-              <textarea rows={3} value={nuevo.barrera} onChange={(e) => setNuevo({ ...nuevo, barrera: e.target.value })} required /></div>
+            )}
           </div>
-          <div className="fila">
-            <div className="campo"><label>Ajuste razonable (apoyos / estrategias)</label>
-              <textarea rows={3} value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} required /></div>
-            <div className="campo"><label>Evaluación de los ajustes (observaciones)</label>
-              <textarea rows={3} value={nuevo.evaluacion} onChange={(e) => setNuevo({ ...nuevo, evaluacion: e.target.value })} /></div>
-          </div>
-          {catalogo.length > 0 && (
-            <div className="campo">
-              <label>Sugerencias del catálogo (MEN) — clic para usar</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {catalogo.map((c) => (
-                  <button type="button" key={c.id} className="btn sec sm" onClick={() => setNuevo({ ...nuevo, descripcion: c.descripcion })}>{c.descripcion}</button>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="campo"><label>Apoyo requerido</label>
-            <input value={nuevo.apoyo} onChange={(e) => setNuevo({ ...nuevo, apoyo: e.target.value })} /></div>
-          <button className="btn">Agregar ajuste</button>
-        </form>
-      )}
+        )}
+      </div>
       </>}
 
       {vista === 'anexo3' && (
