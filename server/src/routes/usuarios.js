@@ -8,6 +8,13 @@ router.use(autenticar);
 
 const esSuper = (req) => req.usuario.rol === 'superadmin';
 
+// Política de contraseñas: mínimo 8 caracteres, con letras y números.
+function claveDebil(clave) {
+  if (!clave || clave.length < 8) return 'La contraseña debe tener al menos 8 caracteres.';
+  if (!/[a-zA-Z]/.test(clave) || !/[0-9]/.test(clave)) return 'La contraseña debe incluir letras y números.';
+  return null;
+}
+
 // GET /api/usuarios  (superadmin: todos; rector/admin: su institución)
 router.get('/', autorizar('superadmin', 'administrador', 'rector'), async (req, res, next) => {
   try {
@@ -32,6 +39,8 @@ router.post('/', autorizar('superadmin', 'administrador', 'rector'), async (req,
     if (!nombres || !correo || !clave || !rol) {
       return res.status(400).json({ error: 'Nombres, correo, clave y rol son obligatorios.' });
     }
+    const debil = claveDebil(clave);
+    if (debil) return res.status(400).json({ error: debil });
     // Solo el superadmin puede crear superadmins o elegir institución libremente
     let inst;
     if (esSuper(req)) {
@@ -62,7 +71,8 @@ router.post('/', autorizar('superadmin', 'administrador', 'rector'), async (req,
 router.put('/:id/clave', autorizar('superadmin', 'administrador', 'rector'), async (req, res, next) => {
   try {
     const { clave } = req.body;
-    if (!clave || clave.length < 4) return res.status(400).json({ error: 'La nueva clave debe tener al menos 4 caracteres.' });
+    const debil = claveDebil(clave);
+    if (debil) return res.status(400).json({ error: debil });
     // Verificar alcance: no-super solo puede cambiar claves de su institución
     const objetivo = await query('SELECT institucion_id FROM usuario WHERE id=$1', [req.params.id]);
     if (!objetivo.rows[0]) return res.status(404).json({ error: 'Usuario no encontrado.' });
