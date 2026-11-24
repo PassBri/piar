@@ -21,10 +21,10 @@ const MENU = [
     { to: '/deteccion', label: 'Detección', roles: GESTOR },
     { to: '/seguimiento', label: 'Estudiantes', roles: GESTOR },
     { to: '/estudiantes', label: 'Mi hijo/a', roles: ['padre'] },
-    { to: '/mosaico', label: 'Mosaico', roles: GESTOR },
     { to: '/remisiones', label: 'Remisiones', roles: GESTOR },
     { to: '/apoyos', label: 'Apoyos', roles: GESTOR },
     { to: '/pmi', label: 'PMI', roles: DIRECTIVO },
+    { to: '/mosaico', label: 'Mosaico', roles: GESTOR },
   ] },
   { titulo: 'Análisis', items: [
     { to: '/estadisticas', label: 'Estadísticas', roles: GESTOR },
