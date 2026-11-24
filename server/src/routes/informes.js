@@ -634,6 +634,90 @@ router.get('/pmi', autorizar('superadmin', 'rector', 'coordinador', 'administrad
   } catch (err) { next(err); }
 });
 
+// Helper: carga estudiante + institución para un formato por estudiante
+async function cargarEstudianteInforme(id) {
+  const { rows } = await query(
+    `SELECT e.id, e.nombres AS estudiante, e.documento_tipo, e.documento_numero, e.grado,
+            e.institucion_id, e.reservado, e.entorno_salud->>'discapacidad' AS discapacidad,
+            i.nombre AS inst_nombre, i.logo AS inst_logo, i.nit AS inst_nit
+     FROM estudiante e LEFT JOIN institucion i ON i.id = e.institucion_id WHERE e.id = $1`, [id]);
+  return rows[0];
+}
+
+// ====== Formato de apoyos para pruebas de Estado ======
+router.get('/prueba-estado/:id/pdf', async (req, res, next) => {
+  try {
+    const p = (await query('SELECT * FROM prueba_estado WHERE id=$1', [req.params.id])).rows[0];
+    if (!p) return res.status(404).json({ error: 'No encontrado.' });
+    const e = await cargarEstudianteInforme(p.estudiante_id);
+    const neg = negarAcceso(req.usuario, e);
+    if (neg) return res.status(neg.status).json({ error: neg.error });
+    const doc = iniciar(res, req, `Pruebas_Estado_${e.id}.pdf`);
+    titulo(doc, 'SOLICITUD DE APOYOS PARA PRUEBAS DE ESTADO', 'Estudiante con discapacidad — Decreto 1421 de 2017',
+      { logo: e.inst_logo, nombre: e.inst_nombre, nit: e.inst_nit });
+    campos(doc, [['Estudiante', e.estudiante], ['Documento', `${e.documento_tipo || ''} ${e.documento_numero || ''}`]]);
+    campos(doc, [['Grado', e.grado], ['Tipo de prueba', p.tipo || '—']]);
+    campos(doc, [['Discapacidad', e.discapacidad || '—']]);
+    banda(doc, 'Apoyos solicitados');
+    const apoyos = Array.isArray(p.apoyos) ? p.apoyos : [];
+    if (apoyos.length === 0) doc.font('Helvetica-Oblique').fontSize(9).text('No se registraron apoyos.', X0, doc.y + 2);
+    else apoyos.forEach((a) => { saltoSi(doc, 14); doc.font('Helvetica').fontSize(9).fillColor('#000').text(`•  ${a}`, X0 + 4, doc.y, { width: ANCHO - 8 }); });
+    if (p.otros_apoyos) { doc.moveDown(0.3); campos(doc, [['Otros apoyos', p.otros_apoyos]]); }
+    if (p.observaciones) campos(doc, [['Observaciones', p.observaciones]]);
+    finalizar(doc);
+  } catch (err) { next(err); }
+});
+
+// ====== Formato de remisión ======
+router.get('/remision/:id/pdf', async (req, res, next) => {
+  try {
+    const r = (await query('SELECT * FROM remision WHERE id=$1', [req.params.id])).rows[0];
+    if (!r) return res.status(404).json({ error: 'No encontrada.' });
+    const e = await cargarEstudianteInforme(r.estudiante_id);
+    const neg = negarAcceso(req.usuario, e);
+    if (neg) return res.status(neg.status).json({ error: neg.error });
+    const doc = iniciar(res, req, `Remision_${e.id}.pdf`);
+    titulo(doc, 'FORMATO DE REMISIÓN / ARTICULACIÓN INTERSECTORIAL', 'Remisión a otro sector para el apoyo del estudiante',
+      { logo: e.inst_logo, nombre: e.inst_nombre, nit: e.inst_nit });
+    campos(doc, [['Estudiante', e.estudiante], ['Grado', e.grado]]);
+    campos(doc, [['Fecha', r.fecha ? new Date(r.fecha).toLocaleDateString('es-CO') : '—'], ['Estado', r.estado]]);
+    campos(doc, [['Sector', r.sector || '—'], ['Entidad', r.entidad || '—']]);
+    banda(doc, 'Motivo de la remisión');
+    campos(doc, [['Motivo', r.motivo || '—']]);
+    if (r.respuesta) { banda(doc, 'Respuesta / informe recibido'); campos(doc, [['Síntesis', r.respuesta]]); }
+    finalizar(doc);
+  } catch (err) { next(err); }
+});
+
+// ====== Acta de promoción / egreso / titulación ======
+router.get('/promocion/:piarId/pdf', async (req, res, next) => {
+  try {
+    const data = await cargarPiar(req.params.piarId);
+    if (!data) return res.status(404).json({ error: 'PIAR no encontrado.' });
+    { const neg = negarAcceso(req.usuario, await accesoPiar(data.piar.id)); if (neg) return res.status(neg.status).json({ error: neg.error }); }
+    const { piar } = data;
+    const pr = (await query('SELECT * FROM promocion WHERE piar_id=$1', [req.params.piarId])).rows[0] || {};
+    const DEC = { promovido: 'Promovido', no_promovido: 'No promovido', promocion_anticipada: 'Promoción anticipada', egresado: 'Egresado', titulado: 'Titulado (bachiller)' };
+    const doc = iniciar(res, req, `Promocion_${piar.estudiante_id}.pdf`);
+    titulo(doc, 'ACTA DE PROMOCIÓN, EGRESO Y TITULACIÓN', 'Decisión de fin de año — estudiante con PIAR',
+      { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit });
+    campos(doc, [['Estudiante', piar.estudiante], ['Año', piar.periodo]]);
+    campos(doc, [['Grado cursado', pr.grado_cursado || piar.grado || '—'], ['Decisión', DEC[pr.decision] || '—']]);
+    campos(doc, [['Grado al que se promueve', pr.grado_siguiente || '—']]);
+    banda(doc, 'Criterios de promoción (flexibles)');
+    campos(doc, [['Criterios', pr.criterios || '—']]);
+    campos(doc, [['Observaciones', pr.observaciones || '—']]);
+    saltoSi(doc, 70); doc.moveDown(2);
+    const y = doc.y;
+    [['Rector(a)', 60], ['Docente / orientación', 220], ['Familia / acudiente', 380]].forEach(([t, x]) => {
+      doc.moveTo(x, y + 24).lineTo(x + 150, y + 24).stroke(BORDE);
+      doc.font('Helvetica').fontSize(8).fillColor(GRIS_MEDIO).text(t, x, y + 27, { width: 150, lineBreak: false });
+    });
+    doc.y = y + 42;
+    finalizar(doc);
+  } catch (err) { next(err); }
+});
+
 // ====== Formato de tamizaje (detección en el aula) ======
 router.get('/tamizaje/:id/pdf', async (req, res, next) => {
   try {

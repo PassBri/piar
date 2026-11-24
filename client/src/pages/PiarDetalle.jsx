@@ -53,6 +53,8 @@ export default function PiarDetalle() {
   const [vista, setVista] = useState('anexo2'); // anexo2 | anexo3 | anexo4
   const a4vacio = { logros: '', recomendaciones: '', grado_destino: '', institucion_destino: '', apoyos_transicion: '', observaciones: '', firmada_entrega: false };
   const [anexo4, setAnexo4] = useState(a4vacio);
+  const promVacio = { decision: '', grado_cursado: '', grado_siguiente: '', criterios: '', observaciones: '' };
+  const [promocion, setPromocion] = useState(promVacio);
   const supervisa = ['rector', 'coordinador', 'psicoorientador', 'administrador', 'superadmin'].includes(usuario.rol);
 
   const numPeriodos = piar?.num_periodos || 4;
@@ -75,6 +77,11 @@ export default function PiarDetalle() {
   }
   function cargarAnexo4() {
     api.get(`/anexo4/${id}`).then((d) => setAnexo4(d || a4vacio)).catch(() => {});
+    api.get(`/apoyos/promocion/${id}`).then((d) => setPromocion(d || promVacio)).catch(() => {});
+  }
+  async function guardarPromocion(e) {
+    e.preventDefault();
+    try { await api.put(`/apoyos/promocion/${id}`, promocion); cargarBitacora(); } catch (err) { setError(err.message); }
   }
   async function guardarAnexo4(e) {
     e.preventDefault();
@@ -484,6 +491,36 @@ export default function PiarDetalle() {
           Entrega formalizada
         </label>
         {editable && <button className="btn">Guardar Anexo 4</button>}
+      </form>
+      )}
+
+      {vista === 'anexo4' && (
+      <form className="card" onSubmit={guardarPromocion}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <h2 style={{ margin: 0 }}>Promoción, egreso y titulación</h2>
+          <button type="button" className="btn sec sm" onClick={() => api.descargarPdf(`/informes/promocion/${id}/pdf`, 'Acta_promocion.pdf')}>Acta de promoción ↓</button>
+        </div>
+        <p style={{ color: 'var(--gris-600)', fontSize: 13 }}>Decisión de fin de año con criterios flexibles (Decreto 1421).</p>
+        <div className="fila">
+          <div className="campo"><label>Decisión</label>
+            <select value={promocion.decision || ''} disabled={!editable} onChange={(e) => setPromocion({ ...promocion, decision: e.target.value })}>
+              <option value="">— Elegir —</option>
+              <option value="promovido">Promovido</option>
+              <option value="no_promovido">No promovido</option>
+              <option value="promocion_anticipada">Promoción anticipada</option>
+              <option value="egresado">Egresado</option>
+              <option value="titulado">Titulado (bachiller)</option>
+            </select></div>
+          <div className="campo"><label>Grado cursado</label>
+            <input value={promocion.grado_cursado || ''} disabled={!editable} onChange={(e) => setPromocion({ ...promocion, grado_cursado: e.target.value })} /></div>
+          <div className="campo"><label>Grado al que se promueve</label>
+            <input value={promocion.grado_siguiente || ''} disabled={!editable} onChange={(e) => setPromocion({ ...promocion, grado_siguiente: e.target.value })} /></div>
+        </div>
+        <div className="campo"><label>Criterios de promoción (flexibles)</label>
+          <textarea value={promocion.criterios || ''} disabled={!editable} onChange={(e) => setPromocion({ ...promocion, criterios: e.target.value })} /></div>
+        <div className="campo"><label>Observaciones</label>
+          <textarea value={promocion.observaciones || ''} disabled={!editable} onChange={(e) => setPromocion({ ...promocion, observaciones: e.target.value })} /></div>
+        {editable && <button className="btn">Guardar promoción</button>}
       </form>
       )}
 
