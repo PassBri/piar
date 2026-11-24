@@ -54,9 +54,15 @@ function decorar(doc, indicePagina) {
     doc.font('Helvetica-Bold').fontSize(11).fillColor(GRIS).text('PIAR', 444, 33, { width: 114, align: 'center', lineBreak: false });
     doc.font('Helvetica').fontSize(7.5).fillColor(GRIS_MEDIO).text('Decreto 1421/2017', 444, 47, { width: 114, align: 'center', lineBreak: false });
   }
-  doc.font('Helvetica').fontSize(7).fillColor(GRIS_MEDIO)
+  // Pie: fecha de impresión (izq), número de página (der) y nota ministerial (centro)
+  const hoy = new Date().toLocaleDateString('es-CO');
+  const total = doc.bufferedPageRange().count;
+  doc.font('Helvetica').fontSize(6.5).fillColor(GRIS_MEDIO)
+     .text(`Impreso el ${hoy}`, X0, 736, { width: 200, lineBreak: false });
+  doc.text(`Página ${indicePagina + 1} de ${total}`, X0 + ANCHO - 140, 736, { width: 140, align: 'right', lineBreak: false });
+  doc.font('Helvetica').fontSize(6.5).fillColor(GRIS_MEDIO)
      .text('Ministerio de Educación Nacional – Viceministerio de Educación Preescolar, Básica y Media – Decreto 1421 de 2017',
-       X0, 745, { width: ANCHO, align: 'center', lineBreak: false });
+       X0, 748, { width: ANCHO, align: 'center', lineBreak: false });
   doc.fillColor('#000');
 }
 
@@ -98,6 +104,9 @@ function portada(doc, { tituloDoc, estudiante, documento, inst }) {
     doc.fillColor('#ECEFF1').font('Helvetica-Bold').fontSize(11).text(inst.nombre || '', 60, 616, { width: doc.page.width - 120, align: 'center' });
     if (inst.nit) doc.fillColor('#B0BEC5').font('Helvetica').fontSize(9).text(`NIT ${inst.nit}`, 60, 632, { width: doc.page.width - 120, align: 'center' });
   }
+  // Fecha de impresión
+  const hoy = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+  doc.fillColor('#90A4AE').font('Helvetica').fontSize(8.5).text(`Impreso el ${hoy}`, 0, 690, { width: doc.page.width, align: 'center' });
   doc.restore();
   doc.addPage(); // el contenido empieza en la página siguiente
 }
@@ -247,7 +256,7 @@ router.get('/estudiante/:id/pdf', async (req, res, next) => {
     if (neg) return res.status(neg.status).json({ error: neg.error });
     const inst1 = { logo: e.inst_logo, nombre: e.inst_nombre, nit: e.inst_nit };
     const doc = iniciar(res, req, `Anexo1_${e.id}.pdf`, { inst: inst1, estudiante: e.nombres, documento: e.documento_numero });
-    portada(doc, { tituloDoc: 'Anexo 1 · Información general del estudiante', estudiante: e.nombres, documento: e.documento_numero, inst: inst1 });
+    if (req.query.portada !== '0') portada(doc, { tituloDoc: 'Anexo 1 · Información general del estudiante', estudiante: e.nombres, documento: e.documento_numero, inst: inst1 });
     titulo(doc, 'INFORMACIÓN GENERAL DEL ESTUDIANTE', 'Información para la matrícula – Anexo 1 PIAR');
     if (e.foto && typeof e.foto === 'string' && e.foto.startsWith('data:image')) {
       try {
@@ -335,7 +344,7 @@ router.get('/piar/:id/pdf', async (req, res, next) => {
     const { piar, ajustes } = data;
     const inst2 = { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit };
     const doc = iniciar(res, req, `Anexo2_${piar.estudiante_id}.pdf`, { inst: inst2, estudiante: piar.estudiante, documento: piar.documento_numero });
-    portada(doc, { tituloDoc: 'Anexo 2 · Valoración pedagógica y ajustes razonables', estudiante: piar.estudiante, documento: piar.documento_numero, inst: inst2 });
+    if (req.query.portada !== '0') portada(doc, { tituloDoc: 'Anexo 2 · Valoración pedagógica y ajustes razonables', estudiante: piar.estudiante, documento: piar.documento_numero, inst: inst2 });
     titulo(doc, 'PLAN INDIVIDUAL DE AJUSTES RAZONABLES – ANEXO 2', null);
     const cc = piar.caracteristicas || {};
     campos(doc, [['Institución educativa', piar.inst_nombre], ['Sede', piar.inst_sede]]);
@@ -421,7 +430,7 @@ router.get('/acta/:piarId/pdf', async (req, res, next) => {
     const a = (await query('SELECT * FROM acta_acuerdo WHERE piar_id=$1', [req.params.piarId])).rows[0] || {};
     const inst3 = { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit };
     const doc = iniciar(res, req, `Anexo3_Acta_${piar.estudiante_id}.pdf`, { inst: inst3, estudiante: piar.estudiante, documento: piar.documento_numero });
-    portada(doc, { tituloDoc: 'Anexo 3 · Acta de Acuerdo con la familia', estudiante: piar.estudiante, documento: piar.documento_numero, inst: inst3 });
+    if (req.query.portada !== '0') portada(doc, { tituloDoc: 'Anexo 3 · Acta de Acuerdo con la familia', estudiante: piar.estudiante, documento: piar.documento_numero, inst: inst3 });
     titulo(doc, 'ACTA DE ACUERDO – ANEXO 3', 'Plan Individual de Ajustes Razonables – PIAR');
     campos(doc, [['Institución educativa y sede', `${piar.inst_nombre || ''}${piar.inst_sede ? ' · ' + piar.inst_sede : ''}`], ['Fecha', a.fecha_firma ? new Date(a.fecha_firma).toLocaleDateString('es-CO') : '—']]);
     campos(doc, [['Nombre del estudiante', piar.estudiante], ['Documento', piar.documento_numero || '—']]);
@@ -485,7 +494,7 @@ router.get('/anexo4/:piarId/pdf', async (req, res, next) => {
     const a = (await query('SELECT * FROM anexo4 WHERE piar_id=$1', [req.params.piarId])).rows[0] || {};
     const inst4 = { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit };
     const doc = iniciar(res, req, `Anexo4_${piar.estudiante_id}.pdf`, { inst: inst4, estudiante: piar.estudiante, documento: piar.documento_numero });
-    portada(doc, { tituloDoc: 'Anexo 4 · Acta de seguimiento, entrega y transición', estudiante: piar.estudiante, documento: piar.documento_numero, inst: inst4 });
+    if (req.query.portada !== '0') portada(doc, { tituloDoc: 'Anexo 4 · Acta de seguimiento, entrega y transición', estudiante: piar.estudiante, documento: piar.documento_numero, inst: inst4 });
     titulo(doc, 'ACTA DE SEGUIMIENTO, ENTREGA Y TRANSICIÓN – ANEXO 4', 'Cierre del año y transición del estudiante');
     campos(doc, [['Estudiante', piar.estudiante], ['Periodo / Año', piar.periodo]]);
     banda(doc, 'Logros y avances durante el año');

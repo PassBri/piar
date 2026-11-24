@@ -65,6 +65,9 @@ export default function PiarDetalle() {
   const [periodoActivo, setPeriodoActivo] = useState(1); // 1..5, o 0 = todos
   const [bitacora, setBitacora] = useState([]);
   const [vista, setVista] = useState('anexo2'); // anexo2 | anexo3 | anexo4
+  const [conPortada, setConPortada] = useState(true);
+  const pp = conPortada ? '' : '?portada=0';
+  const ppAmp = conPortada ? '' : '&portada=0';
   const a4vacio = { logros: '', recomendaciones: '', grado_destino: '', institucion_destino: '', apoyos_transicion: '', observaciones: '', firmada_entrega: false };
   const [anexo4, setAnexo4] = useState(a4vacio);
   const promVacio = { decision: '', grado_cursado: '', grado_siguiente: '', criterios: '', observaciones: '' };
@@ -251,12 +254,16 @@ export default function PiarDetalle() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '12px 0', flexWrap: 'wrap', gap: 8 }}>
         <h2 style={{ color: 'var(--gris-700)', margin: 0 }}>PIAR — {piar.estudiante_nombre} ({piar.periodo})</h2>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/competencias/${id}/pdf`)}>Informe anual</button>
-          <button className="btn sec sm" title="Descargar informe anual de competencias" onClick={() => api.descargarPdf(`/informes/competencias/${id}/pdf`, 'Informe_anual_competencias.pdf')}>↓</button>
-          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/seguimiento/${id}/pdf`)}>Seguimiento</button>
-          <button className="btn sec sm" title="Descargar seguimiento" onClick={() => api.descargarPdf(`/informes/seguimiento/${id}/pdf`, 'Seguimiento.pdf')}>↓</button>
-          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/acta/${id}/pdf`)}>Acta</button>
-          <button className="btn sec sm" title="Descargar acta" onClick={() => api.descargarPdf(`/informes/acta/${id}/pdf`, 'Acta.pdf')}>↓</button>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--gris-600)', fontWeight: 400 }}>
+            <input type="checkbox" checked={conPortada} style={{ width: 'auto' }} onChange={(e) => setConPortada(e.target.checked)} />
+            Con portada
+          </label>
+          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/competencias/${id}/pdf${pp}`)}>Informe anual</button>
+          <button className="btn sec sm" title="Descargar informe anual de competencias" onClick={() => api.descargarPdf(`/informes/competencias/${id}/pdf${pp}`, 'Informe_anual_competencias.pdf')}>↓</button>
+          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/seguimiento/${id}/pdf${pp}`)}>Seguimiento</button>
+          <button className="btn sec sm" title="Descargar seguimiento" onClick={() => api.descargarPdf(`/informes/seguimiento/${id}/pdf${pp}`, 'Seguimiento.pdf')}>↓</button>
+          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/acta/${id}/pdf${pp}`)}>Acta</button>
+          <button className="btn sec sm" title="Descargar acta" onClick={() => api.descargarPdf(`/informes/acta/${id}/pdf${pp}`, 'Acta.pdf')}>↓</button>
         </div>
       </div>
       {error && <div className="mensaje-error">{error}</div>}
@@ -364,10 +371,10 @@ export default function PiarDetalle() {
         </div>
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/piar/${id}/pdf?periodo=${sufijoPdf}`)}>
+          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/piar/${id}/pdf?periodo=${sufijoPdf}${ppAmp}`)}>
             Imprimir {periodoActivo === 0 ? 'todos los periodos' : nombrePeriodo(periodoActivo)}
           </button>
-          <button className="btn sec sm" title="Descargar" onClick={() => api.descargarPdf(`/informes/piar/${id}/pdf?periodo=${sufijoPdf}`, `${nombrePdf}.pdf`)}>↓</button>
+          <button className="btn sec sm" title="Descargar" onClick={() => api.descargarPdf(`/informes/piar/${id}/pdf?periodo=${sufijoPdf}${ppAmp}`, `${nombrePdf}.pdf`)}>↓</button>
         </div>
 
         {/* Barreras y ajustes razonables del periodo — se diligencia por filas, una por área */}

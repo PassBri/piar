@@ -52,6 +52,18 @@ export default function MiColegio() {
       setOk('Datos del colegio guardados.');
     } catch (err) { setError(err.message); }
   }
+  async function guardarConfig(cambios) {
+    setError(''); setOk('');
+    const next = { ...inst, ...cambios };
+    setInst(next);
+    try {
+      const saved = await api.put(`/geografia/instituciones/${inst.id}/periodos`, {
+        num_periodos: next.num_periodos, usa_promocion: next.usa_promocion, sistema_evaluacion: next.sistema_evaluacion,
+      });
+      setInst({ ...next, ...saved });
+      setOk('Configuración académica guardada.');
+    } catch (err) { setError(err.message); }
+  }
 
   return (
     <div>
@@ -104,6 +116,44 @@ export default function MiColegio() {
             <button className="btn">Guardar datos</button>
           </div>
         </form>
+      )}
+
+      {inst && (
+        <div className="card">
+          <h2 style={{ marginTop: 0 }}>Configuración académica</h2>
+          <p style={{ color: 'var(--gris-600)', fontSize: 13, marginTop: 0 }}>
+            Define cómo evalúa y cuántos periodos maneja el colegio. Aplica a la valoración del desempeño en el Anexo 2.
+          </p>
+          <div className="fila">
+            <div className="campo">
+              <label>Sistema de evaluación (SIEE)</label>
+              <select value={inst.sistema_evaluacion || 'cualitativo'} onChange={(e) => guardarConfig({ sistema_evaluacion: e.target.value })}>
+                <option value="cualitativo">Cualitativo (Superior / Alto / Básico / Bajo)</option>
+                <option value="numerico5">Numérico — nota de 1 a 5</option>
+                <option value="numerico10">Numérico — nota de 1 a 10</option>
+              </select>
+            </div>
+            <div className="campo">
+              <label>Número de periodos</label>
+              <select value={inst.num_periodos || 3} onChange={(e) => guardarConfig({ num_periodos: Number(e.target.value) })}>
+                {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n} {n === 1 ? 'periodo' : 'periodos'}</option>)}
+              </select>
+            </div>
+            <div className="campo">
+              <label>Promoción (consolidado anual)</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 400, marginTop: 8 }}>
+                <input type="checkbox" checked={inst.usa_promocion ?? true} style={{ width: 'auto' }}
+                  onChange={(e) => guardarConfig({ usa_promocion: e.target.checked })} />
+                Usar pestaña de promoción
+              </label>
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--gris-500)' }}>
+            Vista previa del desempeño: {(inst.sistema_evaluacion === 'numerico5' ? '5 · 4 · 3 · 2 · 1'
+              : inst.sistema_evaluacion === 'numerico10' ? '10 · 9 · … · 1'
+              : 'Superior · Alto · Básico · Bajo')}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -108,6 +108,8 @@ export default function EstudianteForm() {
   const [tipoEvid, setTipoEvid] = useState('Estudio médico');
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
+  const [conPortada, setConPortada] = useState(true);
+  const pp = conPortada ? '' : '?portada=0';
 
   useEffect(() => {
     api.get('/cursos').then(setCursos).catch(() => {});
@@ -229,9 +231,13 @@ export default function EstudianteForm() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Link to="/estudiantes" className="btn sec sm">← Volver</Link>
         {id && (
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button type="button" className="btn sec sm" onClick={() => api.abrirPdf(`/informes/estudiante/${id}/pdf`)}>Imprimir Anexo 1</button>
-            <button type="button" className="btn sec sm" title="Descargar Anexo 1" onClick={() => api.descargarPdf(`/informes/estudiante/${id}/pdf`, 'Anexo1.pdf')}>↓</button>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--gris-600)', fontWeight: 400 }}>
+              <input type="checkbox" checked={conPortada} style={{ width: 'auto' }} onChange={(e) => setConPortada(e.target.checked)} />
+              Con portada
+            </label>
+            <button type="button" className="btn sec sm" onClick={() => api.abrirPdf(`/informes/estudiante/${id}/pdf${pp}`)}>Imprimir Anexo 1</button>
+            <button type="button" className="btn sec sm" title="Descargar Anexo 1" onClick={() => api.descargarPdf(`/informes/estudiante/${id}/pdf${pp}`, 'Anexo1.pdf')}>↓</button>
           </div>
         )}
       </div>
@@ -241,6 +247,7 @@ export default function EstudianteForm() {
           <span className="activo">Anexo 1 · Información</span>
           {piars[0] ? <Link to={`/piar/${piars[0].id}`}>Anexo 2 · Valoración y ajustes</Link> : <span className="deshab">Anexo 2 · Valoración y ajustes</span>}
           {piars[0] ? <Link to={`/piar/${piars[0].id}`}>Anexo 3 · Acta de acuerdo</Link> : <span className="deshab">Anexo 3 · Acta de acuerdo</span>}
+          {piars[0] ? <Link to={`/piar/${piars[0].id}`}>Anexo 4 · Seguimiento y transición</Link> : <span className="deshab">Anexo 4 · Seguimiento y transición</span>}
         </div>
       )}
       {error && <div className="mensaje-error">{error}</div>}
