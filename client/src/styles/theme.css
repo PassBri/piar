@@ -45,7 +45,17 @@ a { color: var(--gris-700); }
   display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
 }
 .topbar h1 { font-size: 18px; margin: 0; color: var(--gris-700); }
-.content { padding: 24px; flex: 1; }
+.content { padding: 24px; flex: 1; zoom: var(--zoom, 1); }
+
+/* Accesibilidad */
+.a11y { display: flex; gap: 3px; margin-right: 4px; }
+.a11y .btn.activo { background: var(--gris-700); color: #fff; }
+*:focus-visible { outline: 3px solid #1565c0; outline-offset: 1px; border-radius: 3px; }
+body.alto-contraste { --gris-500: #333; --gris-600: #222; --gris-700: #000; --gris-900: #000; }
+body.alto-contraste .card, body.alto-contraste .formato { border: 2px solid #000 !important; }
+body.alto-contraste a, body.alto-contraste .btn.sec { color: #000; }
+body.alto-contraste input, body.alto-contraste select, body.alto-contraste textarea { border-color: #000 !important; }
+body.alto-contraste label, body.alto-contraste p, body.alto-contraste td { color: #000 !important; }
 
 /* Botones */
 .btn {
