@@ -263,13 +263,15 @@ router.get('/piar/:id/pdf', async (req, res, next) => {
     const { piar, ajustes } = data;
     const doc = iniciar(res, req, `Anexo2_${piar.estudiante_id}.pdf`);
     titulo(doc, 'PLAN INDIVIDUAL DE AJUSTES RAZONABLES – ANEXO 2', null, { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit });
+    const cc = piar.caracteristicas || {};
     campos(doc, [['Institución educativa', piar.inst_nombre], ['Sede', piar.inst_sede]]);
-    campos(doc, [['Año / Periodo', piar.periodo], ['Estado', piar.estado]]);
-    campos(doc, [['Director(a) de grupo', piar.director_grupo || '—'], ['Fecha de elaboración', piar.fecha_elaboracion ? new Date(piar.fecha_elaboracion).toLocaleDateString('es-CO') : '—']]);
+    campos(doc, [['Jornada', cc.jornada || '—'], ['Fecha de elaboración', piar.fecha_elaboracion ? new Date(piar.fecha_elaboracion).toLocaleDateString('es-CO') : '—']]);
+    campos(doc, [['Docentes que elaboran y cargo', cc.docentes_elabora || '—']]);
 
     banda(doc, 'Datos del estudiante');
     campos(doc, [['Nombre del estudiante', piar.estudiante], ['Documento', `${piar.documento_tipo || ''} ${piar.documento_numero || ''}`]]);
-    campos(doc, [['Grado', piar.grado], ['Fecha de nacimiento', piar.fecha_nacimiento ? new Date(piar.fecha_nacimiento).toLocaleDateString('es-CO') : '—']]);
+    campos(doc, [['Grado', piar.grado], ['Año / Periodo', piar.periodo]]);
+    campos(doc, [['Director(a) de grupo', piar.director_grupo || '—'], ['Estado', piar.estado]]);
 
     banda(doc, '1. Características del estudiante');
     const car = piar.caracteristicas || {};
@@ -315,6 +317,22 @@ router.get('/piar/:id/pdf', async (req, res, next) => {
       if (!algo && (piar.pmi || '').trim()) campos(doc, [['Acciones para eliminar barreras a nivel institucional', piar.pmi]]);
       if (!algo && !(piar.pmi || '').trim()) campos(doc, [['Recomendaciones', '—']]);
     }
+
+    // Firmas de quienes realizan la valoración
+    saltoSi(doc, 70);
+    doc.moveDown(1.2);
+    doc.font('Helvetica-Oblique').fontSize(8).fillColor(GRIS_MEDIO).text(
+      'Firma y cargo de quienes realizan el proceso de valoración: docentes, coordinadores, docente de apoyo u otro profesional. Si hay varios docentes a cargo del curso, cada uno aporta su valoración y los ajustes de su área.',
+      X0, doc.y, { width: ANCHO });
+    doc.moveDown(1.5);
+    const yf = doc.y;
+    ['Nombre y firma', 'Nombre y firma', 'Nombre y firma'].forEach((t, i) => {
+      const x = X0 + i * (ANCHO / 3) + 6;
+      doc.moveTo(x, yf + 22).lineTo(x + 140, yf + 22).stroke(BORDE);
+      doc.font('Helvetica').fontSize(8).fillColor(GRIS_MEDIO).text(t, x, yf + 25, { width: 140, lineBreak: false });
+      doc.text('Área: ______________', x, yf + 37, { width: 150, lineBreak: false });
+    });
+    doc.y = yf + 50;
     finalizar(doc);
   } catch (err) { next(err); }
 });

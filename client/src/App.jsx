@@ -15,6 +15,7 @@ import MiColegio from './pages/MiColegio.jsx';
 import PMI from './pages/PMI.jsx';
 import Deteccion from './pages/Deteccion.jsx';
 import Apoyos from './pages/Apoyos.jsx';
+import Remisiones from './pages/Remisiones.jsx';
 import Admin from './pages/Admin.jsx';
 
 function Privada({ children }) {
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="pmi" element={<PMI />} />
         <Route path="deteccion" element={<Deteccion />} />
         <Route path="apoyos" element={<Apoyos />} />
+        <Route path="remisiones" element={<Remisiones />} />
         <Route path="admin" element={<Admin />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

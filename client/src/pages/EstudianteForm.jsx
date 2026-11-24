@@ -106,11 +106,8 @@ export default function EstudianteForm() {
   const [autoriz, setAutoriz] = useState({ autoriza: false, nombre_acudiente: '', documento_acudiente: '', parentesco: '', fecha: '', firma_img: '' });
   const [evidencias, setEvidencias] = useState([]);
   const [tipoEvid, setTipoEvid] = useState('Estudio médico');
-  const [remisiones, setRemisiones] = useState([]);
-  const [motivoRem, setMotivoRem] = useState('');
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
-  const esPsico = ['psicoorientador', 'coordinador', 'rector', 'administrador', 'superadmin'].includes(usuario.rol);
 
   useEffect(() => {
     api.get('/cursos').then(setCursos).catch(() => {});
@@ -125,27 +122,8 @@ export default function EstudianteForm() {
       api.get(`/piar?estudiante_id=${id}`).then(setPiars).catch(() => {});
       api.get(`/autorizacion/${id}`).then((d) => d && setAutoriz({ ...d, fecha: d.fecha ? d.fecha.slice(0, 10) : '' })).catch(() => {});
       api.get(`/evidencias/${id}`).then(setEvidencias).catch(() => {});
-      api.get(`/apoyos/remisiones?estudiante_id=${id}`).then((r) => setRemisiones(r.filter((x) => x.sector === 'Psicoorientación'))).catch(() => {});
     }
   }, [id]);
-
-  async function recargarRemisiones() {
-    const r = await api.get(`/apoyos/remisiones?estudiante_id=${id}`);
-    setRemisiones(r.filter((x) => x.sector === 'Psicoorientación'));
-  }
-  async function crearRemision() {
-    if (!motivoRem.trim()) { setError('Escribe el motivo de la remisión.'); return; }
-    try {
-      setError('');
-      await api.post('/apoyos/remisiones', { estudiante_id: Number(id), sector: 'Psicoorientación', entidad: 'Orientación escolar', motivo: motivoRem.trim() });
-      setMotivoRem(''); setOk('Remisión enviada a psicoorientación.');
-      recargarRemisiones();
-    } catch (err) { setError(err.message); }
-  }
-  async function responderRemision(rid, estado, respuesta) {
-    try { await api.put(`/apoyos/remisiones/${rid}`, { estado, respuesta }); recargarRemisiones(); }
-    catch (err) { setError(err.message); }
-  }
 
   function subirEvidencia(file) {
     if (!file) return;
@@ -421,50 +399,6 @@ export default function EstudianteForm() {
                 </tr>
               ))}
               {evidencias.length === 0 && <tr><td colSpan="4" style={{ color: 'var(--gris-500)' }}>Sin documentos adjuntos todavía.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {id && (
-        <div className="card" style={{ marginTop: 18 }}>
-          <h2 style={{ marginTop: 0 }}>Remisión a psicoorientación</h2>
-          <p style={{ color: 'var(--gris-600)', fontSize: 13, marginTop: 0 }}>
-            El docente remite al estudiante al equipo de orientación cuando observa señales que requieren valoración.
-          </p>
-          {editable && (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 10 }}>
-              <div className="campo" style={{ flex: 1, minWidth: 260, marginBottom: 0 }}>
-                <label>Motivo de la remisión</label>
-                <textarea rows={2} value={motivoRem} onChange={(e) => setMotivoRem(e.target.value)}
-                  placeholder="Describe lo observado en el aula que motiva la remisión" />
-              </div>
-              <button type="button" className="btn" onClick={crearRemision}>Remitir</button>
-            </div>
-          )}
-          <table>
-            <thead><tr><th>Fecha</th><th>Motivo</th><th>Estado</th><th>Respuesta de orientación</th></tr></thead>
-            <tbody>
-              {remisiones.map((r) => (
-                <tr key={r.id}>
-                  <td style={{ fontSize: 13, whiteSpace: 'nowrap' }}>{r.fecha ? new Date(r.fecha).toLocaleDateString('es-CO') : '—'}</td>
-                  <td style={{ fontSize: 13 }}>{r.motivo}</td>
-                  <td>
-                    {esPsico ? (
-                      <select value={r.estado} onChange={(e) => responderRemision(r.id, e.target.value, r.respuesta)} style={{ fontSize: 12 }}>
-                        <option value="enviada">Enviada</option><option value="en_proceso">En proceso</option><option value="respondida">Atendida</option>
-                      </select>
-                    ) : <span className={`badge ${r.estado === 'respondida' ? 'ok' : 'gris'}`}>{r.estado}</span>}
-                  </td>
-                  <td style={{ fontSize: 13 }}>
-                    {esPsico
-                      ? <textarea rows={2} defaultValue={r.respuesta || ''} placeholder="Síntesis de la atención / valoración"
-                          onBlur={(e) => { if ((r.respuesta || '') !== e.target.value) responderRemision(r.id, r.estado === 'enviada' ? 'en_proceso' : r.estado, e.target.value); }} />
-                      : (r.respuesta || '—')}
-                  </td>
-                </tr>
-              ))}
-              {remisiones.length === 0 && <tr><td colSpan="4" style={{ color: 'var(--gris-500)' }}>Sin remisiones a psicoorientación.</td></tr>}
             </tbody>
           </table>
         </div>

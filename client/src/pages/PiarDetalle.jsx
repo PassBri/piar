@@ -8,7 +8,8 @@ const TIPOS = [
   ['comunicacion', 'Comunicación'], ['apoyos_humanos', 'Apoyos humanos'], ['tecnologias', 'Tecnologías'],
 ];
 const INTENSIDADES = ['generalizado', 'extenso', 'limitado', 'intermitente'];
-const DESEMPENOS = ['', 'Superior', 'Alto', 'Básico', 'Bajo'];
+// Escala de valoración: cualitativa nacional o nota numérica (1-5, 1-10) según el SIEE del colegio
+const ESCALA_DESEMPENO = ['Superior', 'Alto', 'Básico', 'Bajo', '5', '4', '3', '2', '1', '10', '9', '8', '7', '6'];
 
 // Actores del Plan de Mejoramiento Institucional (punto 7 del formato oficial)
 const ACTORES_PMI = [
@@ -157,6 +158,13 @@ export default function PiarDetalle() {
     cargar();
   }
   const setCarac = (campo, valor) => setPiar((p) => ({ ...p, caracteristicas: { ...(p.caracteristicas || {}), [campo]: valor } }));
+  function edadDe(fecha) {
+    if (!fecha) return '';
+    const d = new Date(fecha), h = new Date();
+    let a = h.getFullYear() - d.getFullYear();
+    if (h.getMonth() < d.getMonth() || (h.getMonth() === d.getMonth() && h.getDate() < d.getDate())) a--;
+    return a >= 0 && a < 120 ? `${a} años` : '';
+  }
   const setActor = (actor, campo, valor) => setPiar((p) => ({
     ...p, recomendaciones_pmi: { ...(p.recomendaciones_pmi || {}), [actor]: { ...((p.recomendaciones_pmi || {})[actor] || {}), [campo]: valor } },
   }));
@@ -277,48 +285,39 @@ export default function PiarDetalle() {
         <form onSubmit={guardarCabecera}>
           <table className="ftabla">
             <tbody>
-              <tr><td className="banda" colSpan={2}>Datos del estudiante y elaboración</td></tr>
-              <tr><td className="lbl">Estudiante</td><td className="val"><input value={piar.estudiante_nombre} disabled /></td></tr>
-              <tr><td className="lbl">Grado (de este año)</td>
-                <td className="val"><input value={piar.grado || ''} onChange={(e) => setPiar({ ...piar, grado: e.target.value })} disabled={!editable} placeholder="Grado que cursa este año" /></td></tr>
-              <tr><td className="lbl">Año / Periodo</td><td className="val"><input value={piar.periodo || ''} disabled /></td></tr>
-              <tr><td className="lbl">Director(a) de grupo</td>
-                <td className="val"><input value={piar.director_grupo || ''} onChange={(e) => setPiar({ ...piar, director_grupo: e.target.value })} disabled={!editable} placeholder="Nombre del director de grupo" /></td></tr>
+              <tr><td className="banda" colSpan={4}>Datos de elaboración</td></tr>
               <tr><td className="lbl">Fecha de elaboración</td>
-                <td className="val"><input type="date" value={piar.fecha_elaboracion ? piar.fecha_elaboracion.slice(0, 10) : ''} onChange={(e) => setPiar({ ...piar, fecha_elaboracion: e.target.value })} disabled={!editable} /></td></tr>
-              <tr><td className="banda" colSpan={2}>1. Características del estudiante</td></tr>
+                <td className="val"><input type="date" value={piar.fecha_elaboracion ? piar.fecha_elaboracion.slice(0, 10) : ''} onChange={(e) => setPiar({ ...piar, fecha_elaboracion: e.target.value })} disabled={!editable} /></td>
+                <td className="lbl">Jornada</td>
+                <td className="val"><input value={(piar.caracteristicas || {}).jornada || ''} onChange={(e) => setCarac('jornada', e.target.value)} disabled={!editable} placeholder="Mañana / Tarde / Única" /></td></tr>
+              <tr><td className="lbl">Institución educativa</td><td className="val"><input value={piar.inst_nombre || ''} disabled /></td>
+                <td className="lbl">Sede</td><td className="val"><input value={piar.inst_sede || ''} disabled /></td></tr>
+              <tr><td className="lbl">Docentes que elaboran y cargo</td>
+                <td className="val" colSpan={3}><input value={(piar.caracteristicas || {}).docentes_elabora || ''} onChange={(e) => setCarac('docentes_elabora', e.target.value)} disabled={!editable} placeholder="Nombres y cargos de quienes elaboran el PIAR" /></td></tr>
+              <tr><td className="banda" colSpan={4}>Datos del estudiante</td></tr>
+              <tr><td className="lbl">Nombre del estudiante</td><td className="val"><input value={piar.estudiante_nombre} disabled /></td>
+                <td className="lbl">Documento</td><td className="val"><input value={piar.documento_numero || ''} disabled /></td></tr>
+              <tr><td className="lbl">Edad</td><td className="val"><input value={edadDe(piar.fecha_nacimiento)} disabled /></td>
+                <td className="lbl">Grado</td>
+                <td className="val"><input value={piar.grado || ''} onChange={(e) => setPiar({ ...piar, grado: e.target.value })} disabled={!editable} placeholder="Grado que cursa este año" /></td></tr>
+              <tr><td className="lbl">Año / Periodo</td><td className="val"><input value={piar.periodo || ''} disabled /></td>
+                <td className="lbl">Director(a) de grupo</td>
+                <td className="val"><input value={piar.director_grupo || ''} onChange={(e) => setPiar({ ...piar, director_grupo: e.target.value })} disabled={!editable} placeholder="Director de grupo" /></td></tr>
+              <tr><td className="banda" colSpan={4}>1. Características del estudiante</td></tr>
               <tr><td className="lbl">Descripción general: gustos e intereses o aspectos que le desagradan, y expectativas del estudiante y la familia</td>
-                <td className="val"><textarea rows={3} value={(piar.caracteristicas || {}).gustos || ''} onChange={(e) => setCarac('gustos', e.target.value)} disabled={!editable} /></td></tr>
+                <td className="val" colSpan={3}><textarea rows={3} value={(piar.caracteristicas || {}).gustos || ''} onChange={(e) => setCarac('gustos', e.target.value)} disabled={!editable} /></td></tr>
               <tr><td className="lbl">Descripción de lo que hace, puede hacer o requiere apoyo para favorecer su proceso educativo</td>
-                <td className="val"><textarea rows={3} value={(piar.caracteristicas || {}).desempeno || ''} onChange={(e) => setCarac('desempeno', e.target.value)} disabled={!editable} /></td></tr>
+                <td className="val" colSpan={3}><textarea rows={3} value={(piar.caracteristicas || {}).desempeno || ''} onChange={(e) => setCarac('desempeno', e.target.value)} disabled={!editable} /></td></tr>
               <tr><td className="lbl">Habilidades, competencias, cualidades y aprendizajes con los que cuenta para el grado en que fue matriculado</td>
-                <td className="val"><textarea rows={3} value={(piar.caracteristicas || {}).habilidades || ''} onChange={(e) => setCarac('habilidades', e.target.value)} disabled={!editable} /></td></tr>
+                <td className="val" colSpan={3}><textarea rows={3} value={(piar.caracteristicas || {}).habilidades || ''} onChange={(e) => setCarac('habilidades', e.target.value)} disabled={!editable} /></td></tr>
               <tr><td className="lbl">Estado del PIAR</td>
-                <td className="val">
+                <td className="val" colSpan={3}>
                   <select value={piar.estado} onChange={(e) => setPiar({ ...piar, estado: e.target.value })} disabled={!editable}>
                     <option value="borrador">Borrador</option><option value="vigente">Vigente</option><option value="cerrado">Cerrado</option>
                   </select></td></tr>
             </tbody>
           </table>
-
-          {/* 7. PMI por actores (formato oficial) */}
-          <table className="ftabla" style={{ marginTop: 4 }}>
-            <tbody>
-              <tr><td className="banda" colSpan={3}>7. Recomendaciones para el Plan de Mejoramiento Institucional (eliminación de barreras)</td></tr>
-              <tr><td className="lbl" style={{ width: '20%' }}>Actores</td><td className="lbl">Acciones</td><td className="lbl">Estrategias a implementar</td></tr>
-              {ACTORES_PMI.map(([clave, nombre]) => {
-                const a = (piar.recomendaciones_pmi || {})[clave] || {};
-                return (
-                  <tr key={clave}>
-                    <td className="lbl" style={{ fontWeight: 600 }}>{nombre}</td>
-                    <td className="val"><textarea rows={2} value={a.acciones || ''} onChange={(e) => setActor(clave, 'acciones', e.target.value)} disabled={!editable} /></td>
-                    <td className="val"><textarea rows={2} value={a.estrategias || ''} onChange={(e) => setActor(clave, 'estrategias', e.target.value)} disabled={!editable} /></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {editable && <div style={{ padding: 10 }}><button className="btn">Guardar valoración</button></div>}
+          {editable && <div style={{ padding: 10 }}><button className="btn">Guardar datos y características</button></div>}
         </form>
         <div className="formato-pie">Ministerio de Educación Nacional – Decreto 1421 de 2017 – Anexo 2</div>
       </div>
@@ -355,7 +354,9 @@ export default function PiarDetalle() {
         </div>
 
         {/* Valoración por área */}
-        <h3 style={{ marginBottom: 6 }}>Valoración por área {periodoActivo === 0 ? '(todos los periodos)' : `· ${nombrePeriodo(periodoActivo)}`}</h3>
+        <datalist id="escala-desempeno">{ESCALA_DESEMPENO.map((d) => <option key={d} value={d} />)}</datalist>
+        <h3 style={{ marginBottom: 2 }}>Valoración por área {periodoActivo === 0 ? '(todos los periodos)' : `· ${nombrePeriodo(periodoActivo)}`}</h3>
+        <p style={{ fontSize: 12, color: 'var(--gris-500)', margin: '0 0 6px' }}>Desempeño según el SIEE del colegio: Superior/Alto/Básico/Bajo, o una nota (1 a 5, o 1 a 10).</p>
         <table className="ftabla" style={{ marginBottom: 16 }}>
           <thead>
             {periodoActivo === 0
@@ -368,9 +369,9 @@ export default function PiarDetalle() {
                 <td className="lbl">{a.nombre}</td>
                 {(periodoActivo === 0 ? periodosDisponibles : [periodoActivo]).map((p) => (
                   <td className="val" key={p}>
-                    <select value={valorDe(a.id, p)} disabled={!editable} onChange={(e) => guardarValoracion(a.id, p, e.target.value)}>
-                      {DESEMPENOS.map((d) => <option key={d} value={d}>{d || '—'}</option>)}
-                    </select>
+                    <input list="escala-desempeno" key={`des-${a.id}-${p}`} defaultValue={valorDe(a.id, p)} disabled={!editable}
+                      onBlur={(e) => { if ((valorDe(a.id, p) || '') !== e.target.value) guardarValoracion(a.id, p, e.target.value); }}
+                      placeholder="—" style={{ textAlign: 'center' }} />
                   </td>
                 ))}
               </tr>
@@ -470,15 +471,22 @@ export default function PiarDetalle() {
         {editable && (
           <div style={{ marginTop: 10 }}>
             {puedeCrearArea ? (
-              <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 8 }}>
-                <div className="campo" style={{ flex: 1, minWidth: 200, marginBottom: 0 }}>
-                  <label>¿Falta una asignatura? Agrégala (coordinador / psicoorientador)</label>
-                  <input value={nuevaArea} onChange={(e) => setNuevaArea(e.target.value)} placeholder="Nombre de la asignatura" />
+              <>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 4 }}>
+                  <div className="campo" style={{ flex: 1, minWidth: 220, marginBottom: 0 }}>
+                    <label>Agregar asignatura o área</label>
+                    <input value={nuevaArea} onChange={(e) => setNuevaArea(e.target.value)} placeholder="Nombre de la asignatura"
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregarArea(); } }} />
+                  </div>
+                  <button type="button" className="btn" onClick={agregarArea}>+ Agregar</button>
                 </div>
-                <button type="button" className="btn sec" onClick={agregarArea}>+ Asignatura</button>
-                <button type="button" className="btn sec" title="Convivencia, Socialización, Participación, Autonomía, Autocontrol" onClick={agregarAreasBase}>+ Áreas base del formato</button>
-                <button type="button" className="btn sec" title="Dimensiones del desarrollo (educación inicial)" onClick={agregarDimensiones}>+ Dimensiones (preescolar)</button>
-              </div>
+                <p style={{ fontSize: 12, color: 'var(--gris-500)', margin: '2px 0 8px' }}>
+                  Inicio rápido:{' '}
+                  <button type="button" onClick={agregarAreasBase} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', textDecoration: 'underline', padding: 0, font: 'inherit' }}>cargar áreas del formato</button>
+                  {' · '}
+                  <button type="button" onClick={agregarDimensiones} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', textDecoration: 'underline', padding: 0, font: 'inherit' }}>dimensiones de preescolar</button>
+                </p>
+              </>
             ) : (
               <p style={{ fontSize: 12, color: 'var(--gris-500)', marginBottom: 8 }}>
                 Escoge el área de la lista en la última fila. Si falta una asignatura, el coordinador o el psicoorientador debe agregarla.
@@ -497,6 +505,32 @@ export default function PiarDetalle() {
           </div>
         )}
       </div>
+
+      {/* 7. PMI por actores — va después de los ajustes razonables (orden oficial) */}
+      <form className="formato" onSubmit={guardarCabecera}>
+        <div className="formato-cab">
+          <div><h3>7. Recomendaciones para el Plan de Mejoramiento Institucional</h3>
+            <div className="sub">Eliminación de barreras y creación de procesos para la participación, el aprendizaje y el progreso</div></div>
+          <div className="formato-sello"><b>PIAR</b><span>Decreto 1421/2017</span></div>
+        </div>
+        <table className="ftabla">
+          <thead><tr><th style={{ width: '20%' }}>Actores</th><th>Acciones</th><th>Estrategias a implementar</th></tr></thead>
+          <tbody>
+            {ACTORES_PMI.map(([clave, nombre]) => {
+              const a = (piar.recomendaciones_pmi || {})[clave] || {};
+              return (
+                <tr key={clave}>
+                  <td className="lbl" style={{ fontWeight: 600 }}>{nombre}</td>
+                  <td className="val"><textarea rows={2} value={a.acciones || ''} onChange={(e) => setActor(clave, 'acciones', e.target.value)} disabled={!editable} /></td>
+                  <td className="val"><textarea rows={2} value={a.estrategias || ''} onChange={(e) => setActor(clave, 'estrategias', e.target.value)} disabled={!editable} /></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {editable && <div style={{ padding: 10 }}><button className="btn">Guardar PMI</button></div>}
+        <div className="formato-pie">Firma y cargo de quienes realizan el proceso de valoración: docentes, coordinadores, docente de apoyo u otro profesional. Si hay varios docentes a cargo del curso, cada uno aporta su valoración y los ajustes de su área.</div>
+      </form>
       </>}
 
       {vista === 'anexo3' && (

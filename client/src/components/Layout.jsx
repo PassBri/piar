@@ -23,6 +23,7 @@ const MENU = [
   ] },
   { titulo: 'Proceso PIAR', items: [
     { to: '/deteccion', label: 'Detección', roles: GESTOR },
+    { to: '/remisiones', label: 'Remisiones', roles: GESTOR },
     { to: '/seguimiento', label: 'Seguimiento', roles: GESTOR },
     { to: '/apoyos', label: 'Apoyos', roles: GESTOR },
     { to: '/pmi', label: 'PMI', roles: DIRECTIVO },

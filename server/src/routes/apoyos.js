@@ -44,6 +44,26 @@ router.get('/remisiones', async (req, res, next) => {
     res.json(rows);
   } catch (err) { next(err); }
 });
+
+// Listado por institución para el módulo de remisiones (solo psicoorientación)
+router.get('/remisiones-institucion', async (req, res, next) => {
+  try {
+    const esSuper = req.usuario.rol === 'superadmin';
+    const inst = esSuper ? null : req.usuario.institucion_id;
+    // Oculta estudiantes reservados a quien no tenga acceso a reservados
+    const ROLES_RESERVADO = ['psicoorientador', 'coordinador', 'rector', 'administrador', 'superadmin'];
+    const veReservados = ROLES_RESERVADO.includes(req.usuario.rol);
+    const { rows } = await query(
+      `SELECT r.*, e.nombres AS estudiante_nombre, e.reservado, u.nombres AS remitente
+       FROM remision r JOIN estudiante e ON e.id = r.estudiante_id
+       LEFT JOIN usuario u ON u.id = r.creado_por
+       WHERE r.sector = 'Psicoorientación' AND ($1::int IS NULL OR e.institucion_id = $1)
+         AND ($2::boolean OR e.reservado = FALSE)
+       ORDER BY r.fecha DESC, r.id DESC`,
+      [inst, veReservados]);
+    res.json(rows);
+  } catch (err) { next(err); }
+});
 router.post('/remisiones', autorizar(...GESTION), async (req, res, next) => {
   try {
     const { estudiante_id, sector, entidad, motivo } = req.body;
