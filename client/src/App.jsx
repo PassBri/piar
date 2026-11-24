@@ -12,6 +12,7 @@ import Aprendizaje from './pages/Aprendizaje.jsx';
 import Mosaico from './pages/Mosaico.jsx';
 import Discapacidades from './pages/Discapacidades.jsx';
 import MiColegio from './pages/MiColegio.jsx';
+import PMI from './pages/PMI.jsx';
 import Admin from './pages/Admin.jsx';
 
 function Privada({ children }) {
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="aprendizaje" element={<Aprendizaje />} />
         <Route path="discapacidades" element={<Discapacidades />} />
         <Route path="mi-colegio" element={<MiColegio />} />
+        <Route path="pmi" element={<PMI />} />
         <Route path="admin" element={<Admin />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

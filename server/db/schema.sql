@@ -130,6 +130,10 @@ CREATE TABLE piar (
     valoracion    TEXT,                 -- síntesis de la valoración pedagógica
     aspectos_generales TEXT,            -- gustos, intereses, habilidades actuales
     recomendaciones_pmi JSONB NOT NULL DEFAULT '{}'::jsonb,  -- 6 dimensiones
+    pmi           TEXT,                 -- recomendaciones para el Plan de Mejoramiento Institucional (eliminación de barreras)
+    grado         VARCHAR(40),          -- grado que cursa el estudiante ese año (trayectoria)
+    director_grupo VARCHAR(200),        -- director de grupo del año
+    fecha_elaboracion DATE,
     estado        estado_piar NOT NULL DEFAULT 'borrador',
     creado_por    INTEGER REFERENCES usuario(id) ON DELETE SET NULL,
     creado_en     TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -160,6 +164,7 @@ CREATE TABLE acta_acuerdo (
     piar_id       INTEGER NOT NULL UNIQUE REFERENCES piar(id) ON DELETE CASCADE,
     compromisos_familia    TEXT,
     compromisos_institucion TEXT,
+    actividades_casa       TEXT,   -- "y en casa apoyará con las siguientes actividades" (MEN)
     firmada_familia    BOOLEAN NOT NULL DEFAULT FALSE,
     firmada_institucion BOOLEAN NOT NULL DEFAULT FALSE,
     firma_familia_img  TEXT,   -- firma digital del acudiente (imagen dataURL)

@@ -17,7 +17,7 @@ router.get('/:piarId', async (req, res, next) => {
 // PUT /api/actas/:piarId  (crear o actualizar el acta de acuerdo, Anexo 3)
 router.put('/:piarId', async (req, res, next) => {
   try {
-    const { compromisos_familia, compromisos_institucion,
+    const { compromisos_familia, compromisos_institucion, actividades_casa,
             firmada_familia, firmada_institucion, fecha_firma,
             firma_familia_img, firma_institucion_img } = req.body;
     const rol = req.usuario.rol;
@@ -39,19 +39,20 @@ router.put('/:piarId', async (req, res, next) => {
 
     const { rows } = await query(
       `INSERT INTO acta_acuerdo
-        (piar_id, compromisos_familia, compromisos_institucion, firmada_familia, firmada_institucion,
+        (piar_id, compromisos_familia, compromisos_institucion, actividades_casa, firmada_familia, firmada_institucion,
          firma_familia_img, firma_institucion_img, fecha_firma)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
        ON CONFLICT (piar_id) DO UPDATE SET
          compromisos_familia = EXCLUDED.compromisos_familia,
          compromisos_institucion = EXCLUDED.compromisos_institucion,
+         actividades_casa = EXCLUDED.actividades_casa,
          firmada_familia = EXCLUDED.firmada_familia,
          firmada_institucion = EXCLUDED.firmada_institucion,
          firma_familia_img = COALESCE(EXCLUDED.firma_familia_img, acta_acuerdo.firma_familia_img),
          firma_institucion_img = COALESCE(EXCLUDED.firma_institucion_img, acta_acuerdo.firma_institucion_img),
          fecha_firma = EXCLUDED.fecha_firma
        RETURNING *`,
-      [req.params.piarId, compromisos_familia, compromisos_institucion,
+      [req.params.piarId, compromisos_familia, compromisos_institucion, actividades_casa || null,
        !!firmada_familia, !!firmada_institucion,
        firma_familia_img || null, firma_institucion_img || null, fecha_firma || null]
     );

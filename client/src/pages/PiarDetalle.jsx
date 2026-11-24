@@ -121,6 +121,8 @@ export default function PiarDetalle() {
     await api.put(`/piar/${id}`, {
       periodo: piar.periodo, valoracion: piar.valoracion,
       aspectos_generales: piar.aspectos_generales, estado: piar.estado,
+      pmi: piar.pmi, grado: piar.grado, director_grupo: piar.director_grupo,
+      fecha_elaboracion: piar.fecha_elaboracion,
     });
     cargar();
   }
@@ -206,9 +208,15 @@ export default function PiarDetalle() {
         <form onSubmit={guardarCabecera}>
           <table className="ftabla">
             <tbody>
-              <tr><td className="banda" colSpan={2}>Datos del estudiante</td></tr>
+              <tr><td className="banda" colSpan={2}>Datos del estudiante y elaboración</td></tr>
               <tr><td className="lbl">Estudiante</td><td className="val"><input value={piar.estudiante_nombre} disabled /></td></tr>
-              <tr><td className="lbl">Grado / Periodo-Año</td><td className="val"><input value={`${piar.grado || ''}  ·  ${piar.periodo || ''}`} disabled /></td></tr>
+              <tr><td className="lbl">Grado (de este año)</td>
+                <td className="val"><input value={piar.grado || ''} onChange={(e) => setPiar({ ...piar, grado: e.target.value })} disabled={!editable} placeholder="Grado que cursa este año" /></td></tr>
+              <tr><td className="lbl">Año / Periodo</td><td className="val"><input value={piar.periodo || ''} disabled /></td></tr>
+              <tr><td className="lbl">Director(a) de grupo</td>
+                <td className="val"><input value={piar.director_grupo || ''} onChange={(e) => setPiar({ ...piar, director_grupo: e.target.value })} disabled={!editable} placeholder="Nombre del director de grupo" /></td></tr>
+              <tr><td className="lbl">Fecha de elaboración</td>
+                <td className="val"><input type="date" value={piar.fecha_elaboracion ? piar.fecha_elaboracion.slice(0, 10) : ''} onChange={(e) => setPiar({ ...piar, fecha_elaboracion: e.target.value })} disabled={!editable} /></td></tr>
               <tr><td className="banda" colSpan={2}>1. Características del estudiante</td></tr>
               <tr><td className="lbl">Síntesis de la valoración pedagógica</td>
                 <td className="val"><textarea value={piar.valoracion || ''} onChange={(e) => setPiar({ ...piar, valoracion: e.target.value })} disabled={!editable} /></td></tr>
@@ -219,6 +227,9 @@ export default function PiarDetalle() {
                   <select value={piar.estado} onChange={(e) => setPiar({ ...piar, estado: e.target.value })} disabled={!editable}>
                     <option value="borrador">Borrador</option><option value="vigente">Vigente</option><option value="cerrado">Cerrado</option>
                   </select></td></tr>
+              <tr><td className="banda" colSpan={2}>7. Recomendaciones para el Plan de Mejoramiento Institucional (PMI)</td></tr>
+              <tr><td className="lbl">Acciones para eliminar las barreras a nivel institucional</td>
+                <td className="val"><textarea value={piar.pmi || ''} onChange={(e) => setPiar({ ...piar, pmi: e.target.value })} disabled={!editable} placeholder="Recomendaciones de infraestructura, formación, recursos, etc. para eliminar las barreras detectadas" /></td></tr>
             </tbody>
           </table>
           {editable && <div style={{ padding: 10 }}><button className="btn">Guardar valoración</button></div>}
@@ -379,6 +390,9 @@ export default function PiarDetalle() {
         <div className="campo"><label>Compromisos de la institución</label>
           <textarea value={acta.compromisos_institucion || ''} disabled={esPadre}
             onChange={(e) => setActa({ ...acta, compromisos_institucion: e.target.value })} /></div>
+        <div className="campo"><label>En casa, la familia apoyará con las siguientes actividades</label>
+          <textarea value={acta.actividades_casa || ''} disabled={esPadre}
+            onChange={(e) => setActa({ ...acta, actividades_casa: e.target.value })} placeholder="Actividades de apoyo en casa, incluidos los recesos escolares" /></div>
         <div className="fila">
           <div className="campo">
             <label>Firma de la familia / acudiente</label>

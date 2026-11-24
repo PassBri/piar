@@ -255,9 +255,10 @@ router.get('/piar/:id/pdf', async (req, res, next) => {
     { const neg = negarAcceso(req.usuario, await accesoPiar(data.piar.id)); if (neg) return res.status(neg.status).json({ error: neg.error }); }
     const { piar, ajustes } = data;
     const doc = iniciar(res, req, `Anexo2_${piar.estudiante_id}.pdf`);
-    titulo(doc, 'PLAN INDIVIDUAL DE AJUSTES RAZONABLES – ANEXO 2');
+    titulo(doc, 'PLAN INDIVIDUAL DE AJUSTES RAZONABLES – ANEXO 2', null, { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit });
     campos(doc, [['Institución educativa', piar.inst_nombre], ['Sede', piar.inst_sede]]);
-    campos(doc, [['Periodo / Año', piar.periodo], ['Estado', piar.estado]]);
+    campos(doc, [['Año / Periodo', piar.periodo], ['Estado', piar.estado]]);
+    campos(doc, [['Director(a) de grupo', piar.director_grupo || '—'], ['Fecha de elaboración', piar.fecha_elaboracion ? new Date(piar.fecha_elaboracion).toLocaleDateString('es-CO') : '—']]);
 
     banda(doc, 'Datos del estudiante');
     campos(doc, [['Nombre del estudiante', piar.estudiante], ['Documento', `${piar.documento_tipo || ''} ${piar.documento_numero || ''}`]]);
@@ -289,6 +290,10 @@ router.get('/piar/:id/pdf', async (req, res, next) => {
       delP.forEach((a) => filaAjuste(doc, a));
     });
     if (impresos === 0) doc.font('Helvetica-Oblique').fontSize(9).text('No se han registrado ajustes razonables para esta selección.');
+    if (!soloP) {
+      banda(doc, '7. Recomendaciones para el Plan de Mejoramiento Institucional (PMI)');
+      campos(doc, [['Acciones para eliminar barreras a nivel institucional', piar.pmi || '—']]);
+    }
     finalizar(doc);
   } catch (err) { next(err); }
 });
@@ -309,6 +314,8 @@ router.get('/acta/:piarId/pdf', async (req, res, next) => {
     campos(doc, [['Compromisos', a.compromisos_familia || '—']]);
     banda(doc, 'Compromisos de la institución');
     campos(doc, [['Compromisos', a.compromisos_institucion || '—']]);
+    banda(doc, 'En casa, la familia apoyará con las siguientes actividades');
+    campos(doc, [['Actividades de apoyo en casa', a.actividades_casa || '—']]);
 
     saltoSi(doc, 80);
     doc.moveDown(2);
@@ -604,6 +611,80 @@ router.get('/asistencia/pdf', autorizar('superadmin', 'rector', 'coordinador', '
       doc.y = y + rowH;
     });
     if (rows.length === 0) doc.font('Helvetica-Oblique').fontSize(10).text('No hay estudiantes para esta selección.', X0, doc.y + 10);
+    finalizar(doc);
+  } catch (err) { next(err); }
+});
+
+// Datos del PMI consolidado (para la pantalla)
+router.get('/pmi', autorizar('superadmin', 'rector', 'coordinador', 'administrador'), async (req, res, next) => {
+  try {
+    const esSuper = req.usuario.rol === 'superadmin';
+    const inst = esSuper ? (req.query.institucion_id || null) : req.usuario.institucion_id;
+    const recomendaciones = (await query(
+      `SELECT p.id AS piar_id, p.periodo, p.pmi, p.grado AS grado_piar, e.nombres, e.grado
+       FROM piar p JOIN estudiante e ON e.id = p.estudiante_id
+       WHERE ($1::int IS NULL OR e.institucion_id = $1) AND COALESCE(p.pmi,'') <> ''
+       ORDER BY e.nombres`, [inst || null])).rows;
+    const barreras = (await query(
+      `SELECT a.barrera, COUNT(*)::int AS n
+       FROM ajuste_razonable a JOIN piar p ON p.id = a.piar_id JOIN estudiante e ON e.id = p.estudiante_id
+       WHERE ($1::int IS NULL OR e.institucion_id = $1) AND COALESCE(a.barrera,'') <> ''
+       GROUP BY a.barrera ORDER BY n DESC LIMIT 20`, [inst || null])).rows;
+    res.json({ recomendaciones, barreras });
+  } catch (err) { next(err); }
+});
+
+// ====== Formato de Plan de Mejoramiento Institucional (PMI) desde los PIAR ======
+router.get('/pmi/pdf', autorizar('superadmin', 'rector', 'coordinador', 'administrador'), async (req, res, next) => {
+  try {
+    const esSuper = req.usuario.rol === 'superadmin';
+    const inst = esSuper ? (req.query.institucion_id || null) : req.usuario.institucion_id;
+    // PIAR del colegio con recomendaciones PMI o barreras
+    const { rows } = await query(
+      `SELECT p.id, p.periodo, p.pmi, p.grado AS grado_piar, e.nombres, e.grado, i.nombre AS institucion_nombre,
+              i.logo AS inst_logo, i.nit AS inst_nit
+       FROM piar p JOIN estudiante e ON e.id = p.estudiante_id
+       LEFT JOIN institucion i ON i.id = e.institucion_id
+       WHERE ($1::int IS NULL OR e.institucion_id = $1)
+       ORDER BY e.nombres`, [inst || null]);
+    // Barreras recurrentes (de los ajustes) para el colegio
+    const barreras = await query(
+      `SELECT a.barrera, COUNT(*)::int AS n
+       FROM ajuste_razonable a JOIN piar p ON p.id = a.piar_id
+       JOIN estudiante e ON e.id = p.estudiante_id
+       WHERE ($1::int IS NULL OR e.institucion_id = $1) AND COALESCE(a.barrera,'') <> ''
+       GROUP BY a.barrera ORDER BY n DESC LIMIT 15`, [inst || null]);
+
+    const inst0 = rows[0] || {};
+    const doc = iniciar(res, req, 'Formato_PMI.pdf');
+    titulo(doc, 'PLAN DE MEJORAMIENTO INSTITUCIONAL (PMI)', 'Eliminación de barreras — derivado de los PIAR',
+      { logo: inst0.inst_logo, nombre: inst0.institucion_nombre, nit: inst0.inst_nit });
+
+    banda(doc, 'Barreras recurrentes identificadas en los PIAR');
+    doc.moveDown(0.2);
+    if (barreras.rows.length === 0) {
+      doc.font('Helvetica-Oblique').fontSize(9).text('Aún no se han registrado barreras en los PIAR.', X0, doc.y + 2);
+    } else {
+      barreras.rows.forEach((b) => {
+        saltoSi(doc, 16);
+        doc.font('Helvetica-Bold').fontSize(9).fillColor(GRIS).text(`(${b.n})  `, X0, doc.y, { continued: true });
+        doc.font('Helvetica').fillColor('#000').text(b.barrera, { width: ANCHO - 30 });
+      });
+    }
+
+    banda(doc, 'Recomendaciones para el Plan de Mejoramiento Institucional');
+    doc.moveDown(0.2);
+    const conPmi = rows.filter((r) => (r.pmi || '').trim());
+    if (conPmi.length === 0) {
+      doc.font('Helvetica-Oblique').fontSize(9).text('Aún no se han registrado recomendaciones PMI en los PIAR. Se diligencian en el Anexo 2 de cada estudiante.', X0, doc.y + 2, { width: ANCHO });
+    } else {
+      conPmi.forEach((r) => {
+        saltoSi(doc, 30);
+        doc.font('Helvetica-Bold').fontSize(9).fillColor(GRIS).text(`${r.nombres}  ·  ${r.grado_piar || r.grado || ''}  ·  ${r.periodo}`, X0, doc.y);
+        doc.font('Helvetica').fontSize(9).fillColor('#000').text(r.pmi, X0, doc.y, { width: ANCHO });
+        doc.moveDown(0.4);
+      });
+    }
     finalizar(doc);
   } catch (err) { next(err); }
 });

@@ -31,6 +31,7 @@ export default function Layout() {
           {esGestor && <NavLink to="/mosaico" className={({ isActive }) => isActive ? 'activo' : ''}>Mosaico</NavLink>}
           {esGestor && <NavLink to="/seguimiento" className={({ isActive }) => isActive ? 'activo' : ''}>Seguimiento</NavLink>}
           {esGestor && <NavLink to="/estadisticas" className={({ isActive }) => isActive ? 'activo' : ''}>Estadísticas</NavLink>}
+          {['rector', 'coordinador', 'administrador', 'superadmin'].includes(usuario.rol) && <NavLink to="/pmi" className={({ isActive }) => isActive ? 'activo' : ''}>PMI</NavLink>}
           <NavLink to="/aprendizaje" className={({ isActive }) => isActive ? 'activo' : ''}>Aprendizaje</NavLink>
           <NavLink to="/discapacidades" className={({ isActive }) => isActive ? 'activo' : ''}>Discapacidades</NavLink>
           {['administrador', 'rector', 'coordinador', 'psicoorientador', 'superadmin'].includes(usuario.rol) &&

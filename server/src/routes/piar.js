@@ -14,11 +14,11 @@ router.get('/', async (req, res, next) => {
     const { estudiante_id } = req.query;
     const esSuper = req.usuario.rol === 'superadmin';
     const { rows } = await query(
-      `SELECT p.*, e.nombres AS estudiante_nombre, e.grado
+      `SELECT p.*, e.nombres AS estudiante_nombre, e.grado AS grado_actual
        FROM piar p JOIN estudiante e ON e.id = p.estudiante_id
        WHERE ($1::int IS NULL OR p.estudiante_id = $1)
          AND ($2::boolean OR e.institucion_id = $3)
-       ORDER BY p.creado_en DESC`,
+       ORDER BY p.periodo DESC, p.creado_en DESC`,
       [estudiante_id || null, esSuper, req.usuario.institucion_id]
     );
     res.json(rows);
@@ -98,10 +98,12 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coord
     if (!estudiante_id || !periodo) {
       return res.status(400).json({ error: 'Estudiante y periodo son obligatorios.' });
     }
+    // Hereda el grado actual del estudiante (grado de ese año, para la trayectoria)
+    const gr = await query('SELECT grado FROM estudiante WHERE id=$1', [estudiante_id]);
     const { rows } = await query(
-      `INSERT INTO piar (estudiante_id, periodo, valoracion, aspectos_generales, recomendaciones_pmi, creado_por)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [estudiante_id, periodo, valoracion, aspectos_generales, recomendaciones_pmi || {}, req.usuario.id]
+      `INSERT INTO piar (estudiante_id, periodo, valoracion, aspectos_generales, recomendaciones_pmi, grado, fecha_elaboracion, creado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,CURRENT_DATE,$7) RETURNING *`,
+      [estudiante_id, periodo, valoracion, aspectos_generales, recomendaciones_pmi || {}, gr.rows[0]?.grado || null, req.usuario.id]
     );
     await auditar(req, { entidad: 'piar', entidad_id: rows[0].id, piar_id: rows[0].id, estudiante_id, accion: 'crear', descripcion: `Creó el PIAR (${periodo})` });
     res.status(201).json(rows[0]);
@@ -111,14 +113,18 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coord
 // PUT /api/piar/:id
 router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
-    const { periodo, valoracion, aspectos_generales, recomendaciones_pmi, estado } = req.body;
+    const { periodo, valoracion, aspectos_generales, recomendaciones_pmi, estado,
+            pmi, grado, director_grupo, fecha_elaboracion } = req.body;
     const neg = negarAcceso(req.usuario, await accesoPiar(req.params.id));
     if (neg) return res.status(neg.status).json({ error: neg.error });
     const { rows } = await query(
       `UPDATE piar SET periodo=$1, valoracion=$2, aspectos_generales=$3,
-         recomendaciones_pmi=$4, estado=COALESCE($5,estado), actualizado_en=now()
-       WHERE id=$6 RETURNING *`,
-      [periodo, valoracion, aspectos_generales, recomendaciones_pmi || {}, estado || null, req.params.id]
+         recomendaciones_pmi=$4, estado=COALESCE($5,estado),
+         pmi=$6, grado=COALESCE($7,grado), director_grupo=$8,
+         fecha_elaboracion=COALESCE($9,fecha_elaboracion), actualizado_en=now()
+       WHERE id=$10 RETURNING *`,
+      [periodo, valoracion, aspectos_generales, recomendaciones_pmi || {}, estado || null,
+       pmi || null, grado || null, director_grupo || null, fecha_elaboracion || null, req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'PIAR no encontrado.' });
     await auditar(req, { entidad: 'piar', entidad_id: Number(req.params.id), piar_id: Number(req.params.id), accion: 'editar', descripcion: 'Actualizó la valoración del PIAR (Anexo 2)' });

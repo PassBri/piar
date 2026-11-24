@@ -274,20 +274,23 @@ export default function EstudianteForm() {
       {id && (
         <div className="card" style={{ marginTop: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>PIAR del estudiante (por año, con sus 4 periodos)</h2>
-            {editable && <button className="btn sm" onClick={crearPiar}>+ Nuevo PIAR</button>}
+            <h2>Trayectoria del estudiante (un PIAR por año, grado a grado)</h2>
+            {editable && <button className="btn sm" onClick={crearPiar}>+ Nuevo PIAR (año actual)</button>}
           </div>
+          <p style={{ color: 'var(--gris-600)', fontSize: 13, marginTop: 0 }}>Cada año se registra un PIAR con su grado; el historial se conserva mientras el estudiante avanza.</p>
           <table>
-            <thead><tr><th>Periodo/Año</th><th>Estado</th><th></th></tr></thead>
+            <thead><tr><th>Año</th><th>Grado</th><th>Director de grupo</th><th>Estado</th><th></th></tr></thead>
             <tbody>
               {piars.map((p) => (
                 <tr key={p.id}>
-                  <td>{p.periodo}</td>
+                  <td><b>{p.periodo}</b></td>
+                  <td>{p.grado || p.grado_actual || '—'}</td>
+                  <td style={{ fontSize: 13 }}>{p.director_grupo || '—'}</td>
                   <td><span className="badge gris">{p.estado}</span></td>
                   <td><Link className="btn sec sm" to={`/piar/${p.id}`}>Abrir</Link></td>
                 </tr>
               ))}
-              {piars.length === 0 && <tr><td colSpan="3" style={{ color: 'var(--gris-500)' }}>Sin PIAR todavía.</td></tr>}
+              {piars.length === 0 && <tr><td colSpan="5" style={{ color: 'var(--gris-500)' }}>Sin PIAR todavía.</td></tr>}
             </tbody>
           </table>
         </div>
