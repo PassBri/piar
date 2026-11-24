@@ -46,6 +46,11 @@ router.post('/', autorizar('superadmin', 'administrador', 'rector'), async (req,
        VALUES ($1,$2,$3,$4,$5) RETURNING id, nombres, correo, rol, activo, institucion_id`,
       [inst, nombres, correo.toLowerCase().trim(), hash, rol]
     );
+    // Asignar cursos (grados/grupos) si se enviaron
+    const cursos = Array.isArray(req.body.cursos) ? req.body.cursos : [];
+    for (const cid of cursos) {
+      await query('INSERT INTO usuario_curso (usuario_id, curso_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [rows[0].id, cid]);
+    }
     res.status(201).json(rows[0]);
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'El correo ya está registrado.' });
@@ -67,6 +72,33 @@ router.put('/:id/clave', autorizar('superadmin', 'administrador', 'rector'), asy
     const hash = await bcrypt.hash(clave, 10);
     await query('UPDATE usuario SET clave_hash=$1 WHERE id=$2', [hash, req.params.id]);
     res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// GET /api/usuarios/:id/cursos  (cursos asignados a un usuario)
+router.get('/:id/cursos', autorizar('superadmin', 'administrador', 'rector', 'coordinador'), async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT c.* FROM usuario_curso uc JOIN curso c ON c.id = uc.curso_id
+       WHERE uc.usuario_id = $1 ORDER BY c.sede, c.grado, c.grupo`, [req.params.id]);
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
+// PUT /api/usuarios/:id/cursos  (reemplaza los cursos asignados)  body: { cursos: [ids] }
+router.put('/:id/cursos', autorizar('superadmin', 'administrador', 'rector', 'coordinador'), async (req, res, next) => {
+  try {
+    const objetivo = await query('SELECT institucion_id FROM usuario WHERE id=$1', [req.params.id]);
+    if (!objetivo.rows[0]) return res.status(404).json({ error: 'Usuario no encontrado.' });
+    if (!esSuper(req) && objetivo.rows[0].institucion_id !== req.usuario.institucion_id) {
+      return res.status(403).json({ error: 'No puedes asignar cursos a usuarios de otra institución.' });
+    }
+    const cursos = Array.isArray(req.body.cursos) ? req.body.cursos : [];
+    await query('DELETE FROM usuario_curso WHERE usuario_id=$1', [req.params.id]);
+    for (const cid of cursos) {
+      await query('INSERT INTO usuario_curso (usuario_id, curso_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [req.params.id, cid]);
+    }
+    res.json({ ok: true, cursos: cursos.length });
   } catch (err) { next(err); }
 });
 

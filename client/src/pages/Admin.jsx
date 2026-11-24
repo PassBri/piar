@@ -19,7 +19,8 @@ export default function Admin() {
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
   const rolesDisponibles = esSuper ? [...ROLES, ['superadmin', 'Administrador general']] : ROLES;
-  const [nuevo, setNuevo] = useState({ nombres: '', correo: '', clave: '', rol: 'docente', institucion_id: '' });
+  const [nuevo, setNuevo] = useState({ nombres: '', correo: '', clave: '', rol: 'docente', institucion_id: '', cursos: [] });
+  const [cursosForm, setCursosForm] = useState([]);
   const [nuevaInst, setNuevaInst] = useState({ nombre: '', sede: '', municipio_id: '' });
   const [municipios, setMunicipios] = useState([]);
   const [cursos, setCursos] = useState([]);
@@ -57,13 +58,25 @@ export default function Admin() {
     try { await api.del(`/cursos/${id}`); cargarCursos(); } catch (err) { setError(err.message); }
   }
 
+  // Cursos disponibles para asignar al nuevo usuario (según su institución)
+  useEffect(() => {
+    const inst = esSuper ? nuevo.institucion_id : usuario.institucion_id;
+    const q = esSuper ? (inst ? `?institucion_id=${inst}` : null) : '';
+    if (q === null) { setCursosForm([]); return; }
+    api.get(`/cursos${q}`).then(setCursosForm).catch(() => {});
+  }, [nuevo.institucion_id, esSuper]);
+
+  function toggleCurso(id) {
+    setNuevo((n) => ({ ...n, cursos: n.cursos.includes(id) ? n.cursos.filter((c) => c !== id) : [...n.cursos, id] }));
+  }
+
   async function crearUsuario(e) {
     e.preventDefault();
     setError(''); setOk('');
     try {
       await api.post('/usuarios', { ...nuevo, institucion_id: nuevo.institucion_id || null });
       setOk('Usuario creado.');
-      setNuevo({ nombres: '', correo: '', clave: '', rol: 'docente', institucion_id: '' });
+      setNuevo({ nombres: '', correo: '', clave: '', rol: 'docente', institucion_id: '', cursos: [] });
       cargar();
     } catch (err) { setError(err.message); }
   }
@@ -205,6 +218,19 @@ export default function Admin() {
               </select></div>
           )}
         </div>
+        {nuevo.rol !== 'superadmin' && nuevo.rol !== 'padre' && cursosForm.length > 0 && (
+          <div className="campo">
+            <label>Cursos asignados (grados/grupos) {nuevo.rol === 'docente' ? '— del docente' : ''}</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {cursosForm.map((c) => (
+                <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontWeight: 400, fontSize: 13, border: '1px solid var(--gris-200)', borderRadius: 8, padding: '5px 9px', cursor: 'pointer' }}>
+                  <input type="checkbox" style={{ width: 'auto' }} checked={nuevo.cursos.includes(c.id)} onChange={() => toggleCurso(c.id)} />
+                  {c.sede} · {c.grado} · {c.grupo}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
         <button className="btn">Crear usuario</button>
       </form>}
 

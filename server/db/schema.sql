@@ -223,3 +223,11 @@ CREATE TABLE auditoria (
 CREATE INDEX idx_auditoria_estudiante ON auditoria(estudiante_id);
 CREATE INDEX idx_auditoria_piar ON auditoria(piar_id);
 CREATE INDEX idx_auditoria_fecha ON auditoria(creado_en DESC);
+
+-- -------- Asignación de cursos (grados/grupos) a los usuarios (docentes, etc.) --------
+CREATE TABLE usuario_curso (
+    usuario_id INTEGER NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+    curso_id   INTEGER NOT NULL REFERENCES curso(id) ON DELETE CASCADE,
+    PRIMARY KEY (usuario_id, curso_id)
+);
+CREATE INDEX idx_usuario_curso_usuario ON usuario_curso(usuario_id);
