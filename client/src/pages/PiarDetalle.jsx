@@ -29,8 +29,8 @@ function Barra({ etiqueta, valor }) {
 export default function PiarDetalle() {
   const { id } = useParams();
   const { usuario } = useAuth();
-  const editable = ['docente', 'psicoorientador', 'administrador'].includes(usuario.rol);
-  const puedeConfigurar = ['rector', 'administrador', 'superadmin'].includes(usuario.rol);
+  const editable = ['docente', 'psicoorientador', 'administrador', 'coordinador', 'rector'].includes(usuario.rol);
+  const puedeConfigurar = ['rector', 'coordinador', 'administrador', 'superadmin'].includes(usuario.rol);
   const esPadre = usuario.rol === 'padre';
   const [piar, setPiar] = useState(null);
   const [areas, setAreas] = useState([]);

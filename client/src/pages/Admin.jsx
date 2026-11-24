@@ -3,13 +3,16 @@ import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const ROLES = [
-  ['docente', 'Docente'], ['psicoorientador', 'Psicoorientador'], ['rector', 'Rector'],
-  ['padre', 'Padre de familia'], ['administrador', 'Administrador de institución'],
+  ['docente', 'Docente'], ['psicoorientador', 'Psicoorientador'], ['coordinador', 'Coordinador'],
+  ['rector', 'Rector'], ['padre', 'Padre de familia'], ['administrador', 'Administrador de institución'],
 ];
+const JORNADAS = ['Mañana', 'Tarde', 'Única', 'Nocturna', 'Fin de semana'];
+const GRADOS = ['Preescolar', '1°', '2°', '3°', '4°', '5°', '6°', '7°', '8°', '9°', '10°', '11°'];
 
 export default function Admin() {
   const { usuario } = useAuth();
   const esSuper = usuario.rol === 'superadmin';
+  const puedeUsuarios = ['superadmin', 'administrador', 'rector'].includes(usuario.rol);
   const [indicadores, setIndicadores] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
   const [instituciones, setInstituciones] = useState([]);
@@ -19,16 +22,40 @@ export default function Admin() {
   const [nuevo, setNuevo] = useState({ nombres: '', correo: '', clave: '', rol: 'docente', institucion_id: '' });
   const [nuevaInst, setNuevaInst] = useState({ nombre: '', sede: '', municipio_id: '' });
   const [municipios, setMunicipios] = useState([]);
+  const [cursos, setCursos] = useState([]);
+  const [cursoInst, setCursoInst] = useState(''); // institución elegida (solo superadmin)
+  const [nuevoCurso, setNuevoCurso] = useState({ sede: 'Principal', jornada: 'Mañana', grado: '1°', grupo: 'A' });
 
+  function cargarCursos() {
+    const q = esSuper ? (cursoInst ? `?institucion_id=${cursoInst}` : null) : '';
+    if (q === null) { setCursos([]); return; }
+    api.get(`/cursos${q}`).then(setCursos).catch(() => {});
+  }
   function cargar() {
-    api.get('/informes/indicadores').then((d) => setIndicadores(d.por_institucion)).catch((e) => setError(e.message));
-    api.get('/usuarios').then(setUsuarios).catch(() => {});
+    api.get('/informes/indicadores').then((d) => setIndicadores(d.por_institucion)).catch(() => {});
+    if (puedeUsuarios) api.get('/usuarios').then(setUsuarios).catch(() => {});
     if (esSuper) {
       api.get('/geografia/instituciones').then(setInstituciones).catch(() => {});
       api.get('/geografia/municipios').then(setMunicipios).catch(() => {});
     }
   }
   useEffect(cargar, []);
+  useEffect(cargarCursos, [cursoInst]);
+
+  async function crearCurso(e) {
+    e.preventDefault();
+    setError(''); setOk('');
+    try {
+      const payload = esSuper ? { ...nuevoCurso, institucion_id: cursoInst } : nuevoCurso;
+      if (esSuper && !cursoInst) { setError('Elige una institución para el curso.'); return; }
+      await api.post('/cursos', payload);
+      setOk('Curso agregado.');
+      cargarCursos();
+    } catch (err) { setError(err.message); }
+  }
+  async function eliminarCurso(id) {
+    try { await api.del(`/cursos/${id}`); cargarCursos(); } catch (err) { setError(err.message); }
+  }
 
   async function crearUsuario(e) {
     e.preventDefault();
@@ -88,7 +115,57 @@ export default function Admin() {
         </table>
       </div>
 
+      {/* Cursos: sedes, jornadas, grados y grupos del colegio */}
       <div className="card">
+        <h2>Cursos del colegio (sedes, jornadas, grados y grupos)</h2>
+        <p style={{ color: 'var(--gris-600)', fontSize: 13, marginTop: 0 }}>
+          Un colegio puede tener varias sedes, jornadas, grados y cursos. Cada estudiante se asigna a uno.
+        </p>
+        {esSuper && (
+          <div className="campo" style={{ maxWidth: 360 }}>
+            <label>Institución</label>
+            <select value={cursoInst} onChange={(e) => setCursoInst(e.target.value)}>
+              <option value="">— Elegir institución —</option>
+              {instituciones.map((i) => <option key={i.id} value={i.id}>{i.nombre} ({i.municipio_nombre})</option>)}
+            </select>
+          </div>
+        )}
+        <table>
+          <thead><tr><th>Sede</th><th>Jornada</th><th>Grado</th><th>Grupo</th><th></th></tr></thead>
+          <tbody>
+            {cursos.map((c) => (
+              <tr key={c.id}>
+                <td>{c.sede}</td><td>{c.jornada}</td><td>{c.grado}</td><td>{c.grupo}</td>
+                <td><button className="btn sec sm" onClick={() => eliminarCurso(c.id)}>Eliminar</button></td>
+              </tr>
+            ))}
+            {cursos.length === 0 && <tr><td colSpan="5" style={{ color: 'var(--gris-500)' }}>
+              {esSuper && !cursoInst ? 'Elige una institución para ver sus cursos.' : 'Aún no hay cursos. Agrega el primero abajo.'}
+            </td></tr>}
+          </tbody>
+        </table>
+        {(!esSuper || cursoInst) && (
+          <form onSubmit={crearCurso} style={{ marginTop: 10 }}>
+            <div className="fila">
+              <div className="campo"><label>Sede</label>
+                <input value={nuevoCurso.sede} onChange={(e) => setNuevoCurso({ ...nuevoCurso, sede: e.target.value })} placeholder="Principal" /></div>
+              <div className="campo"><label>Jornada</label>
+                <select value={nuevoCurso.jornada} onChange={(e) => setNuevoCurso({ ...nuevoCurso, jornada: e.target.value })}>
+                  {JORNADAS.map((j) => <option key={j} value={j}>{j}</option>)}
+                </select></div>
+              <div className="campo"><label>Grado</label>
+                <select value={nuevoCurso.grado} onChange={(e) => setNuevoCurso({ ...nuevoCurso, grado: e.target.value })}>
+                  {GRADOS.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select></div>
+              <div className="campo"><label>Grupo</label>
+                <input value={nuevoCurso.grupo} onChange={(e) => setNuevoCurso({ ...nuevoCurso, grupo: e.target.value })} placeholder="A" /></div>
+            </div>
+            <button className="btn">+ Agregar curso</button>
+          </form>
+        )}
+      </div>
+
+      {puedeUsuarios && <div className="card">
         <h2>Usuarios {esSuper ? 'de toda la plataforma' : 'de la institución'}</h2>
         <table>
           <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th>{esSuper && <th>Institución</th>}<th>Activo</th><th></th></tr></thead>
@@ -103,9 +180,9 @@ export default function Admin() {
             ))}
           </tbody>
         </table>
-      </div>
+      </div>}
 
-      <form className="card" onSubmit={crearUsuario}>
+      {puedeUsuarios && <form className="card" onSubmit={crearUsuario}>
         <h2>Crear usuario</h2>
         <div className="fila">
           <div className="campo"><label>Nombres</label>
@@ -129,7 +206,7 @@ export default function Admin() {
           )}
         </div>
         <button className="btn">Crear usuario</button>
-      </form>
+      </form>}
 
       {esSuper && (
         <form className="card" onSubmit={crearInstitucion}>

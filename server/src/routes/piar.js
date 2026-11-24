@@ -24,7 +24,7 @@ router.get('/', async (req, res, next) => {
 });
 
 // GET /api/piar/avance/listado  (control: % de avance de cada PIAR, para supervisión)
-router.get('/avance/listado', autorizar('superadmin', 'rector', 'psicoorientador', 'administrador'), async (req, res, next) => {
+router.get('/avance/listado', autorizar('superadmin', 'rector', 'coordinador', 'psicoorientador', 'administrador'), async (req, res, next) => {
   try {
     const esSuper = req.usuario.rol === 'superadmin';
     const { rows } = await query(
@@ -89,7 +89,7 @@ router.get('/:id', async (req, res, next) => {
 });
 
 // POST /api/piar  (crear PIAR)
-router.post('/', autorizar('docente', 'psicoorientador', 'administrador'), async (req, res, next) => {
+router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector'), async (req, res, next) => {
   try {
     const { estudiante_id, periodo, valoracion, aspectos_generales, recomendaciones_pmi } = req.body;
     if (!estudiante_id || !periodo) {
@@ -105,7 +105,7 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador'), async
 });
 
 // PUT /api/piar/:id
-router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador'), async (req, res, next) => {
+router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector'), async (req, res, next) => {
   try {
     const { periodo, valoracion, aspectos_generales, recomendaciones_pmi, estado } = req.body;
     const { rows } = await query(

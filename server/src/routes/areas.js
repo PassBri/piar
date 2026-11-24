@@ -17,7 +17,7 @@ router.get('/', async (req, res, next) => {
 });
 
 // POST /api/areas  (agregar asignatura; disponible para el equipo pedagógico)
-router.post('/', autorizar('administrador', 'rector', 'docente', 'psicoorientador', 'superadmin'), async (req, res, next) => {
+router.post('/', autorizar('administrador', 'rector', 'coordinador', 'docente', 'psicoorientador', 'superadmin'), async (req, res, next) => {
   try {
     const { nombre, institucion_id } = req.body;
     const inst = req.usuario.rol === 'superadmin' ? (institucion_id || null) : req.usuario.institucion_id;

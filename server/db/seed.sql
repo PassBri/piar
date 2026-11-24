@@ -219,3 +219,12 @@ INSERT INTO estudiante (institucion_id, nombres, grado) VALUES (10, 'Estudiante 
 INSERT INTO estudiante (institucion_id, nombres, grado) VALUES (10, 'Estudiante 10-7', '8') ON CONFLICT DO NOTHING;
 INSERT INTO estudiante (institucion_id, nombres, grado) VALUES (10, 'Estudiante 10-8', '9') ON CONFLICT DO NOTHING;
 SELECT setval('institucion_id_seq', 10, true);
+
+-- Cursos de ejemplo para la Institución 1 (varias sedes, jornadas, grados y grupos)
+INSERT INTO curso (institucion_id, sede, jornada, grado, grupo) VALUES
+  (1, 'Principal', 'Mañana', '4°', 'A'),
+  (1, 'Principal', 'Mañana', '5°', 'A'),
+  (1, 'Principal', 'Tarde', '6°', 'B'),
+  (1, 'Sede B', 'Mañana', 'Preescolar', 'A'),
+  (1, 'Sede B', 'Tarde', '3°', 'A')
+ON CONFLICT DO NOTHING;

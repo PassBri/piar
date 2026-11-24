@@ -24,7 +24,7 @@ DROP TYPE IF EXISTS decision_seguimiento CASCADE;
 -- -------- Tipos enumerados --------
 -- superadmin = administrador general de toda la plataforma;
 -- administrador = administrador de una institución.
-CREATE TYPE rol_usuario        AS ENUM ('superadmin', 'rector', 'psicoorientador', 'docente', 'padre', 'administrador');
+CREATE TYPE rol_usuario        AS ENUM ('superadmin', 'rector', 'coordinador', 'psicoorientador', 'docente', 'padre', 'administrador');
 CREATE TYPE intensidad_apoyo   AS ENUM ('generalizado', 'extenso', 'limitado', 'intermitente');
 CREATE TYPE tipo_ajuste        AS ENUM ('actividades', 'materiales', 'espacios', 'comunicacion', 'apoyos_humanos', 'tecnologias');
 CREATE TYPE estado_piar        AS ENUM ('borrador', 'vigente', 'cerrado');
@@ -61,6 +61,19 @@ CREATE TABLE institucion (
 CREATE INDEX idx_municipio_departamento ON municipio(departamento_id);
 CREATE INDEX idx_institucion_municipio ON institucion(municipio_id);
 
+-- -------- Curso (grupo): una institución tiene varias sedes, jornadas, grados y cursos --------
+CREATE TABLE curso (
+    id             SERIAL PRIMARY KEY,
+    institucion_id INTEGER NOT NULL REFERENCES institucion(id) ON DELETE CASCADE,
+    sede           VARCHAR(160) NOT NULL DEFAULT 'Principal',
+    jornada        VARCHAR(40)  NOT NULL DEFAULT 'Única',   -- Mañana, Tarde, Única, Nocturna, Fin de semana
+    grado          VARCHAR(40)  NOT NULL,                   -- Preescolar, 1°…11°
+    grupo          VARCHAR(20)  NOT NULL DEFAULT 'A',       -- A, B, C…
+    creado_en      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (institucion_id, sede, jornada, grado, grupo)
+);
+CREATE INDEX idx_curso_institucion ON curso(institucion_id);
+
 -- -------- Usuario --------
 CREATE TABLE usuario (
     id             SERIAL PRIMARY KEY,
@@ -89,6 +102,7 @@ CREATE TABLE estudiante (
     nombres          VARCHAR(200) NOT NULL,
     fecha_nacimiento DATE,
     grado            VARCHAR(40),
+    curso_id         INTEGER REFERENCES curso(id) ON DELETE SET NULL,
     -- Identificación ampliada del Anexo 1 (sede, jornada, lugar de nacimiento,
     -- género, edad, sexo, grupo étnico, etc.)
     identificacion   JSONB NOT NULL DEFAULT '{}'::jsonb,

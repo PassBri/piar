@@ -81,7 +81,7 @@ router.post('/instituciones', autorizar('superadmin', 'administrador'), async (r
 });
 
 // Configuración de periodos del colegio (cuántos periodos maneja y si usa promoción)
-router.put('/instituciones/:id/periodos', autorizar('superadmin', 'administrador', 'rector'), async (req, res, next) => {
+router.put('/instituciones/:id/periodos', autorizar('superadmin', 'administrador', 'rector', 'coordinador'), async (req, res, next) => {
   try {
     const { num_periodos, usa_promocion } = req.body;
     // El rector solo puede configurar su propia institución

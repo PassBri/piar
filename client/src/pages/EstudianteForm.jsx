@@ -58,7 +58,7 @@ const CAMPOS = {
 };
 const GRUPOS = Object.keys(CAMPOS);
 const vacio = {
-  nombres: '', documento_tipo: 'TI', documento_numero: '', grado: '', fecha_nacimiento: '',
+  nombres: '', documento_tipo: 'TI', documento_numero: '', grado: '', fecha_nacimiento: '', curso_id: '',
   identificacion: {}, entorno_personal: {}, entorno_salud: {}, entorno_hogar: {}, entorno_educativo: {},
 };
 
@@ -69,13 +69,15 @@ export default function EstudianteForm() {
   const editable = ['docente', 'psicoorientador', 'administrador', 'superadmin'].includes(usuario.rol);
   const [form, setForm] = useState(vacio);
   const [piars, setPiars] = useState([]);
+  const [cursos, setCursos] = useState([]);
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
 
   useEffect(() => {
+    api.get('/cursos').then(setCursos).catch(() => {});
     if (id) {
       api.get(`/estudiantes/${id}`).then((e) => setForm({
-        ...vacio, ...e,
+        ...vacio, ...e, curso_id: e.curso_id || '',
         fecha_nacimiento: e.fecha_nacimiento ? e.fecha_nacimiento.slice(0, 10) : '',
         identificacion: e.identificacion || {}, entorno_personal: e.entorno_personal || {},
         entorno_salud: e.entorno_salud || {}, entorno_hogar: e.entorno_hogar || {},
@@ -84,6 +86,11 @@ export default function EstudianteForm() {
       api.get(`/piar?estudiante_id=${id}`).then(setPiars).catch(() => {});
     }
   }, [id]);
+
+  function elegirCurso(cid) {
+    const c = cursos.find((x) => String(x.id) === String(cid));
+    setForm((f) => ({ ...f, curso_id: cid, grado: c ? c.grado : f.grado }));
+  }
 
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
   const setG = (grupo, campo, valor) => setForm((f) => ({ ...f, [grupo]: { ...f[grupo], [campo]: valor } }));
@@ -185,6 +192,15 @@ export default function EstudianteForm() {
                 <td className="val"><input value={form.grado || ''} onChange={(e) => set('grado', e.target.value)} disabled={!editable} /></td>
                 <td className="lbl">Fecha de nacimiento</td>
                 <td className="val"><input type="date" value={form.fecha_nacimiento || ''} onChange={(e) => set('fecha_nacimiento', e.target.value)} disabled={!editable} /></td>
+              </tr>
+              <tr>
+                <td className="lbl">Curso (sede · jornada · grado · grupo)</td>
+                <td className="val" colSpan={3}>
+                  <select value={form.curso_id || ''} onChange={(e) => elegirCurso(e.target.value)} disabled={!editable}>
+                    <option value="">— Sin asignar —</option>
+                    {cursos.map((c) => <option key={c.id} value={c.id}>{c.sede} · {c.jornada} · {c.grado} · Grupo {c.grupo}</option>)}
+                  </select>
+                </td>
               </tr>
               {GRUPOS.map((g) => filasSeccion(g))}
             </tbody>

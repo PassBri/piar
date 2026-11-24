@@ -19,7 +19,7 @@ function celdaPct(v) {
 
 export default function Seguimiento() {
   const { usuario } = useAuth();
-  const supervisa = ['rector', 'psicoorientador', 'administrador', 'superadmin'].includes(usuario.rol);
+  const supervisa = ['rector', 'coordinador', 'psicoorientador', 'administrador', 'superadmin'].includes(usuario.rol);
   const [pendientes, setPendientes] = useState([]);
   const [avances, setAvances] = useState([]);
   const [error, setError] = useState('');
