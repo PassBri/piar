@@ -15,6 +15,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const [escala, setEscala] = useState(() => Number(localStorage.getItem('piar_escala')) || 1);
   const [contraste, setContraste] = useState(() => localStorage.getItem('piar_contraste') === '1');
+  const [menu, setMenu] = useState(false);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--zoom', escala);
@@ -40,7 +41,8 @@ export default function Layout() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <div className={`overlay-menu ${menu ? 'visible' : ''}`} onClick={() => setMenu(false)} />
+      <aside className={`sidebar ${menu ? 'abierto' : ''}`} onClick={() => setMenu(false)}>
         <div className="brand">
           <img src={logo} alt="PIAR" />
           <span>PIAR</span>
@@ -68,7 +70,10 @@ export default function Layout() {
       </aside>
       <div className="main">
         <header className="topbar">
-          <h1>Plan Individual de Ajustes Razonables</h1>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <button className="menu-btn" aria-label="Abrir menú" onClick={() => setMenu(!menu)}>☰</button>
+            <h1>Plan Individual de Ajustes Razonables</h1>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div className="a11y" role="group" aria-label="Accesibilidad">
               <button className="btn sec sm" aria-label="Disminuir tamaño de letra" title="Letra más pequeña" onClick={() => cambiarEscala(-1)}>A−</button>
