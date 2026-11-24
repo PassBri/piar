@@ -49,4 +49,13 @@ export const api = {
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
   },
+  // Descarga cualquier archivo del backend (JSON de respaldo, etc.)
+  async descargarArchivo(path, filename) {
+    const b = await request(path, { blob: true });
+    const url = URL.createObjectURL(b);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename || 'archivo';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  },
 };

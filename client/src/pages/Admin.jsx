@@ -128,6 +128,16 @@ export default function Admin() {
         </table>
       </div>
 
+      {esSuper && (
+        <div className="card">
+          <h2 style={{ marginTop: 0 }}>Respaldo de datos</h2>
+          <p style={{ color: 'var(--gris-600)', fontSize: 13, marginTop: 0 }}>
+            Descarga una copia de seguridad de toda la información en formato JSON. Guárdala en un lugar seguro.
+          </p>
+          <button className="btn sec" onClick={() => api.descargarArchivo('/respaldo', `respaldo_piar_${new Date().toISOString().slice(0, 10)}.json`)}>Descargar respaldo ↓</button>
+        </div>
+      )}
+
       {/* Cursos: sedes, jornadas, grados y grupos del colegio */}
       <div className="card">
         <h2>Cursos del colegio (sedes, jornadas, grados y grupos)</h2>

@@ -35,6 +35,15 @@ los datos de ejemplo (instituciones, áreas, cursos y estudiantes de demostraci�
 - Cada vez que subas cambios a GitHub (rama `main`), Render vuelve a publicar
   la aplicación solo. No se pierden los datos ya cargados.
 
+## Respaldos (backups)
+
+- **En línea (Render):** en el panel de la base de datos `piar-db`, activa los
+  *backups* automáticos (Render guarda copias diarias según el plan).
+- **En tu equipo:** ejecuta `respaldo.bat` para crear una copia `.sql` con la
+  fecha del día; guárdala en un USB o la nube.
+- **Desde la aplicación:** el administrador general puede descargar un respaldo
+  en JSON desde Administración → "Descargar respaldo".
+
 ## Variables que usa el servicio (las configura el `render.yaml` solo)
 
 | Variable       | Para qué sirve                                   |
