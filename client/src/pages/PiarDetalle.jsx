@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import Guardado from '../components/Guardado.jsx';
 
 const TIPOS = [
   ['actividades', 'Actividades'], ['materiales', 'Materiales'], ['espacios', 'Espacios'],
@@ -100,10 +101,13 @@ export default function PiarDetalle() {
     e.preventDefault();
     try { await api.put(`/apoyos/promocion/${id}`, promocion); cargarBitacora(); } catch (err) { setError(err.message); }
   }
-  async function guardarAnexo4(e) {
-    e.preventDefault();
-    try { await api.put(`/anexo4/${id}`, anexo4); cargar(); cargarBitacora(); } catch (err) { setError(err.message); }
+  const [guardadoA4, setGuardadoA4] = useState('idle');
+  const timerA4 = useRef(null);
+  async function guardarAnexo4() {
+    setGuardadoA4('saving');
+    try { await api.put(`/anexo4/${id}`, anexo4); setGuardadoA4('saved'); cargarBitacora(); } catch (err) { setError(err.message); setGuardadoA4('error'); }
   }
+  function autosaveA4() { clearTimeout(timerA4.current); timerA4.current = setTimeout(guardarAnexo4, 700); }
   function subirFirmaA4(campo, file) {
     if (!file) return;
     const reader = new FileReader();
@@ -128,10 +132,13 @@ export default function PiarDetalle() {
     reader.onload = () => setActa((a) => ({ ...a, [campo]: reader.result }));
     reader.readAsDataURL(file);
   }
-  async function guardarActa(e) {
-    e.preventDefault();
-    try { await api.put(`/actas/${id}`, acta); cargar(); } catch (err) { setError(err.message); }
+  const [guardadoActa, setGuardadoActa] = useState('idle');
+  const timerActa = useRef(null);
+  async function guardarActa() {
+    setGuardadoActa('saving');
+    try { await api.put(`/actas/${id}`, acta); setGuardadoActa('saved'); } catch (err) { setError(err.message); setGuardadoActa('error'); }
   }
+  function autosaveActa() { clearTimeout(timerActa.current); timerActa.current = setTimeout(guardarActa, 700); }
   // Familia del acta (nombre + parentesco); al menos 2 filas visibles
   const famRows = (acta.familia && acta.familia.length) ? acta.familia : [{ nombre: '', parentesco: '' }, { nombre: '', parentesco: '' }];
   const setFam = (i, campo, val) => {
@@ -156,18 +163,24 @@ export default function PiarDetalle() {
     try { await api.put(`/geografia/instituciones/${piar.institucion_id}/periodos`, { num_periodos: numPeriodos, usa_promocion: usaPromocion, sistema_evaluacion: sis }); cargar(); }
     catch (err) { setError(err.message); }
   }
-  async function guardarCabecera(e) {
-    e.preventDefault();
-    await api.put(`/piar/${id}`, {
-      periodo: piar.periodo, valoracion: piar.valoracion,
-      aspectos_generales: piar.aspectos_generales, estado: piar.estado,
-      pmi: piar.pmi, grado: piar.grado, director_grupo: piar.director_grupo,
-      fecha_elaboracion: piar.fecha_elaboracion,
-      caracteristicas: piar.caracteristicas || {},
-      recomendaciones_pmi: piar.recomendaciones_pmi || {},
-    });
-    cargar();
+  const [guardadoPiar, setGuardadoPiar] = useState('idle');
+  const timerPiar = useRef(null);
+  async function guardarCabecera() {
+    if (!editable) return;
+    setGuardadoPiar('saving');
+    try {
+      await api.put(`/piar/${id}`, {
+        periodo: piar.periodo, valoracion: piar.valoracion,
+        aspectos_generales: piar.aspectos_generales, estado: piar.estado,
+        pmi: piar.pmi, grado: piar.grado, director_grupo: piar.director_grupo,
+        fecha_elaboracion: piar.fecha_elaboracion,
+        caracteristicas: piar.caracteristicas || {},
+        recomendaciones_pmi: piar.recomendaciones_pmi || {},
+      });
+      setGuardadoPiar('saved');
+    } catch (err) { setError(err.message); setGuardadoPiar('error'); }
   }
+  function autosavePiar() { if (!editable) return; clearTimeout(timerPiar.current); timerPiar.current = setTimeout(guardarCabecera, 700); }
   const setCarac = (campo, valor) => setPiar((p) => ({ ...p, caracteristicas: { ...(p.caracteristicas || {}), [campo]: valor } }));
   function edadDe(fecha) {
     if (!fecha) return '';
@@ -258,12 +271,13 @@ export default function PiarDetalle() {
             <input type="checkbox" checked={conPortada} style={{ width: 'auto' }} onChange={(e) => setConPortada(e.target.checked)} />
             Con portada
           </label>
-          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/competencias/${id}/pdf${pp}`)}>Informe anual</button>
-          <button className="btn sec sm" title="Descargar informe anual de competencias" onClick={() => api.descargarPdf(`/informes/competencias/${id}/pdf${pp}`, 'Informe_anual_competencias.pdf')}>↓</button>
-          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/seguimiento/${id}/pdf${pp}`)}>Seguimiento</button>
-          <button className="btn sec sm" title="Descargar seguimiento" onClick={() => api.descargarPdf(`/informes/seguimiento/${id}/pdf${pp}`, 'Seguimiento.pdf')}>↓</button>
-          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/acta/${id}/pdf${pp}`)}>Acta</button>
-          <button className="btn sec sm" title="Descargar acta" onClick={() => api.descargarPdf(`/informes/acta/${id}/pdf${pp}`, 'Acta.pdf')}>↓</button>
+          <span style={{ fontSize: 12, color: 'var(--gris-600)', alignSelf: 'center' }}>Imprimir:</span>
+          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/estudiante/${piar.estudiante_id}/pdf${pp}`)}>Anexo 1</button>
+          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/piar/${id}/pdf?periodo=all${ppAmp}`)} title="Imprime todos los periodos del Anexo 2">Anexo 2 (todo)</button>
+          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/acta/${id}/pdf${pp}`)}>Anexo 3</button>
+          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/anexo4/${id}/pdf${pp}`)}>Anexo 4</button>
+          <button className="btn sec sm" title="Informe anual de competencias" onClick={() => api.abrirPdf(`/informes/competencias/${id}/pdf${pp}`)}>Informe anual</button>
+          <button className="btn sec sm" title="Seguimiento de ajustes" onClick={() => api.abrirPdf(`/informes/seguimiento/${id}/pdf${pp}`)}>Seguimiento</button>
         </div>
       </div>
       {error && <div className="mensaje-error">{error}</div>}
@@ -298,7 +312,7 @@ export default function PiarDetalle() {
           </div>
           <div className="formato-sello"><b>PIAR</b><span>Decreto 1421/2017</span></div>
         </div>
-        <form onSubmit={guardarCabecera}>
+        <form onSubmit={(e) => { e.preventDefault(); guardarCabecera(); }} onBlur={autosavePiar}>
           <table className="ftabla">
             <tbody>
               <tr><td className="banda" colSpan={4}>Datos de elaboración</td></tr>
@@ -333,7 +347,7 @@ export default function PiarDetalle() {
                   </select></td></tr>
             </tbody>
           </table>
-          {editable && <div style={{ padding: 10 }}><button className="btn">Guardar datos y características</button></div>}
+          {editable && <div style={{ padding: 10 }}><Guardado estado={guardadoPiar} /></div>}
         </form>
         <div className="formato-pie">Ministerio de Educación Nacional – Decreto 1421 de 2017 – Anexo 2</div>
       </div>
@@ -519,7 +533,7 @@ export default function PiarDetalle() {
       </div>
 
       {/* 7. PMI por actores — va después de los ajustes razonables (orden oficial) */}
-      <form className="formato" onSubmit={guardarCabecera}>
+      <form className="formato" onSubmit={(e) => { e.preventDefault(); guardarCabecera(); }} onBlur={autosavePiar}>
         <div className="formato-cab">
           <div><h3>7. Recomendaciones para el Plan de Mejoramiento Institucional</h3>
             <div className="sub">Eliminación de barreras y creación de procesos para la participación, el aprendizaje y el progreso</div></div>
@@ -540,13 +554,13 @@ export default function PiarDetalle() {
             })}
           </tbody>
         </table>
-        {editable && <div style={{ padding: 10 }}><button className="btn">Guardar PMI</button></div>}
+        {editable && <div style={{ padding: 10 }}><Guardado estado={guardadoPiar} /></div>}
         <div className="formato-pie">Firma y cargo de quienes realizan el proceso de valoración: docentes, coordinadores, docente de apoyo u otro profesional. Si hay varios docentes a cargo del curso, cada uno aporta su valoración y los ajustes de su área.</div>
       </form>
       </>}
 
       {vista === 'anexo3' && (
-      <form className="card" id="anexo3" onSubmit={guardarActa}>
+      <form className="card" id="anexo3" onSubmit={(e) => { e.preventDefault(); guardarActa(); }} onBlur={() => !esPadre && autosaveActa()}>
         <h2>Acta de Acuerdo — Anexo 3</h2>
 
         {/* Encabezado heredado del estudiante */}
@@ -643,15 +657,15 @@ export default function PiarDetalle() {
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn">{esPadre ? 'Firmar acta' : 'Guardar acta'}</button>
-          <button type="button" className="btn sec" onClick={() => api.descargarPdf(`/informes/acta/${id}/pdf`, 'Acta.pdf')}>Descargar acta ↓</button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {esPadre ? <button className="btn" type="submit">Firmar acta</button> : <Guardado estado={guardadoActa} />}
+          <button type="button" className="btn sec" onClick={() => api.descargarPdf(`/informes/acta/${id}/pdf${pp}`, 'Acta.pdf')}>Descargar acta ↓</button>
         </div>
       </form>
       )}
 
       {vista === 'anexo4' && (
-      <form className="card" onSubmit={guardarAnexo4}>
+      <form className="card" onSubmit={(e) => { e.preventDefault(); guardarAnexo4(); }} onBlur={() => editable && autosaveA4()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <h2 style={{ margin: 0 }}>Anexo 4 · Seguimiento, entrega y transición</h2>
           <button type="button" className="btn sec sm" onClick={() => api.descargarPdf(`/informes/anexo4/${id}/pdf`, 'Anexo4.pdf')}>Descargar ↓</button>
@@ -692,7 +706,7 @@ export default function PiarDetalle() {
             onChange={(e) => setAnexo4({ ...anexo4, firmada_entrega: e.target.checked })} />
           Entrega formalizada
         </label>
-        {editable && <button className="btn">Guardar Anexo 4</button>}
+        {editable && <Guardado estado={guardadoA4} />}
       </form>
       )}
 

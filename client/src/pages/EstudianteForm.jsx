@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { NOMBRES_DISCAPACIDAD } from '../data/discapacidades.js';
+import Guardado from '../components/Guardado.jsx';
 
 // Campos oficiales del Anexo 1 (Formato PIAR - Decreto 1421). t: 'area' = textarea.
 const CAMPOS = {
@@ -152,10 +153,14 @@ export default function EstudianteForm() {
     catch (err) { setError(err.message); }
   }
 
-  async function guardarAutorizacion(e) {
-    e.preventDefault();
-    try { await api.put(`/autorizacion/${id}`, autoriz); setOk('Autorización guardada.'); } catch (err) { setError(err.message); }
+  const [guardadoAut, setGuardadoAut] = useState('idle');
+  const timerAut = useRef(null);
+  async function guardarAutorizacion() {
+    if (!id) return;
+    setGuardadoAut('saving');
+    try { await api.put(`/autorizacion/${id}`, autoriz); setGuardadoAut('saved'); } catch (err) { setError(err.message); setGuardadoAut('error'); }
   }
+  function autosaveAut() { clearTimeout(timerAut.current); timerAut.current = setTimeout(guardarAutorizacion, 700); }
   function subirFirmaAut(file) {
     if (!file) return;
     const reader = new FileReader();
@@ -171,14 +176,26 @@ export default function EstudianteForm() {
   const set = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
   const setG = (grupo, campo, valor) => setForm((f) => ({ ...f, [grupo]: { ...f[grupo], [campo]: valor } }));
 
-  async function guardar(e) {
-    e.preventDefault();
-    setError(''); setOk('');
+  const [guardado, setGuardado] = useState('idle'); // idle|saving|saved|error
+  const timerRef = useRef(null);
+  const guardandoRef = useRef(false);
+  async function guardar() {
+    if (!editable) return;
+    if (!form.nombres?.trim()) return;         // el nombre es obligatorio para guardar
+    if (guardandoRef.current) return;
+    guardandoRef.current = true;
+    setGuardado('saving'); setError('');
     try {
       const saved = id ? await api.put(`/estudiantes/${id}`, form) : await api.post('/estudiantes', form);
-      setOk('Anexo 1 guardado correctamente.');
+      setGuardado('saved');
       if (!id) navigate(`/estudiantes/${saved.id}`);
-    } catch (err) { setError(err.message); }
+    } catch (err) { setError(err.message); setGuardado('error'); }
+    finally { guardandoRef.current = false; }
+  }
+  function autosave() {
+    if (!editable) return;
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(guardar, 700);
   }
   async function crearPiar() {
     const p = await api.post('/piar', { estudiante_id: Number(id), periodo: String(new Date().getFullYear()) });
@@ -253,7 +270,41 @@ export default function EstudianteForm() {
       {error && <div className="mensaje-error">{error}</div>}
       {ok && <div style={{ color: 'var(--ok)', fontSize: 14, margin: '6px 0' }}>{ok}</div>}
 
-      {(puedeReservar || form.reservado) && (
+      {!id && (
+        <form className="card" onSubmit={(e) => { e.preventDefault(); guardar(); }} style={{ maxWidth: 600 }}>
+          <h2 style={{ marginTop: 0 }}>Nuevo estudiante</h2>
+          <p style={{ color: 'var(--gris-600)', fontSize: 13, marginTop: 0 }}>
+            Registra los datos básicos. El Anexo 1 completo y los demás anexos se diligencian después, al abrir el estudiante.
+          </p>
+          <div className="campo"><label>Nombres y apellidos</label>
+            <input value={form.nombres} onChange={(e) => set('nombres', e.target.value)} required autoFocus /></div>
+          <div className="fila">
+            <div className="campo" style={{ maxWidth: 120 }}><label>Tipo doc.</label>
+              <select value={form.documento_tipo} onChange={(e) => set('documento_tipo', e.target.value)}>
+                <option>RC</option><option>TI</option><option>CC</option><option>PEP</option><option>PPT</option><option>Otro</option>
+              </select></div>
+            <div className="campo"><label>N.º de documento</label>
+              <input value={form.documento_numero || ''} onChange={(e) => set('documento_numero', e.target.value)} /></div>
+          </div>
+          <div className="fila">
+            <div className="campo"><label>Grado</label>
+              <input value={form.grado || ''} onChange={(e) => set('grado', e.target.value)} placeholder="Ej. 6" /></div>
+            <div className="campo"><label>Curso (opcional)</label>
+              <select value={form.curso_id || ''} onChange={(e) => elegirCurso(e.target.value)}>
+                <option value="">— Sin asignar —</option>
+                {cursos.map((c) => <option key={c.id} value={c.id}>{c.sede} · {c.jornada} · {c.grado} · Grupo {c.grupo}</option>)}
+              </select></div>
+          </div>
+          <div className="campo"><label>Discapacidad</label>
+            <select value={form.entorno_salud.discapacidad || ''} onChange={(e) => setG('entorno_salud', 'discapacidad', e.target.value)}>
+              <option value="">— Sin discapacidad / no aplica —</option>
+              {NOMBRES_DISCAPACIDAD.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select></div>
+          <button className="btn" type="submit">Crear estudiante</button>
+        </form>
+      )}
+
+      {id && (puedeReservar || form.reservado) && (
         <div className="config-periodos" style={{ borderColor: form.reservado ? '#c62828' : 'var(--gris-200)', background: form.reservado ? '#FBE3E3' : 'var(--gris-100)' }}>
           {puedeReservar ? (
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, margin: 0 }}>
@@ -267,7 +318,8 @@ export default function EstudianteForm() {
         </div>
       )}
 
-      <form onSubmit={guardar}>
+      {id && (
+      <form onSubmit={(e) => { e.preventDefault(); guardar(); }} onBlur={autosave}>
         <div className="formato">
           <div className="formato-cab">
             <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
@@ -328,11 +380,12 @@ export default function EstudianteForm() {
           </table>
           <div className="formato-pie">Ministerio de Educación Nacional – Viceministerio de Educación Preescolar, Básica y Media – Decreto 1421 de 2017</div>
         </div>
-        {editable && <button className="btn">Guardar Anexo 1</button>}
+        {editable && <div style={{ marginTop: 8 }}><Guardado estado={guardado} /></div>}
       </form>
+      )}
 
       {id && (
-        <form className="card" onSubmit={guardarAutorizacion} style={{ marginTop: 18, borderLeft: autoriz.autoriza ? '4px solid var(--ok)' : '4px solid #c62828' }}>
+        <form className="card" onSubmit={(e) => { e.preventDefault(); guardarAutorizacion(); }} onBlur={autosaveAut} style={{ marginTop: 18, borderLeft: autoriz.autoriza ? '4px solid var(--ok)' : '4px solid #c62828' }}>
           <h2 style={{ marginTop: 0 }}>Autorización de tratamiento de datos (Habeas data · Ley 1581)</h2>
           {!autoriz.autoriza && <div className="mensaje-error" style={{ background: '#FBE3E3' }}>Falta la autorización de la familia para tratar los datos sensibles (salud y discapacidad) del estudiante.</div>}
           <p style={{ fontSize: 13, color: 'var(--gris-600)' }}>
@@ -351,7 +404,7 @@ export default function EstudianteForm() {
           </div>
           <label style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0' }}>
             <input type="checkbox" checked={!!autoriz.autoriza} style={{ width: 'auto' }}
-              onChange={(e) => setAutoriz({ ...autoriz, autoriza: e.target.checked })} />
+              onChange={(e) => { setAutoriz({ ...autoriz, autoriza: e.target.checked }); autosaveAut(); }} />
             La familia autoriza el tratamiento de los datos
           </label>
           <div className="campo">
@@ -361,8 +414,8 @@ export default function EstudianteForm() {
               : <div style={{ fontSize: 13, color: 'var(--gris-500)' }}>Sin firma</div>}
             <input type="file" accept="image/*" style={{ marginTop: 6 }} onChange={(e) => subirFirmaAut(e.target.files[0])} />
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn">Guardar autorización</button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Guardado estado={guardadoAut} />
             <button type="button" className="btn sec" onClick={() => api.descargarPdf(`/informes/autorizacion/${id}/pdf`, 'Autorizacion_datos.pdf')}>Descargar formato ↓</button>
           </div>
         </form>
