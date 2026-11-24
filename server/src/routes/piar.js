@@ -26,22 +26,23 @@ router.get('/', async (req, res, next) => {
 });
 
 // GET /api/piar/avance/listado  (control: % de avance de cada PIAR, para supervisión)
-router.get('/avance/listado', autorizar('superadmin', 'rector', 'coordinador', 'psicoorientador', 'administrador'), async (req, res, next) => {
+router.get('/avance/listado', autorizar('superadmin', 'rector', 'coordinador', 'psicoorientador', 'administrador', 'docente'), async (req, res, next) => {
   try {
     const esSuper = req.usuario.rol === 'superadmin';
+    const veReservados = ['psicoorientador', 'coordinador', 'rector', 'administrador', 'superadmin'].includes(req.usuario.rol);
     const { rows } = await query(
       `SELECT p.id AS piar_id, p.periodo, p.estado, p.valoracion, p.aspectos_generales, e.*,
               i.nombre AS institucion_nombre,
               (SELECT count(*) FROM ajuste_razonable a WHERE a.piar_id = p.id)::int AS num_ajustes,
-              (SELECT count(DISTINCT area_id) FROM valoracion_area v WHERE v.piar_id = p.id)::int AS areas_val,
+              (SELECT count(*) FROM ajuste_razonable a WHERE a.piar_id = p.id AND COALESCE(a.desempeno,'') <> '')::int AS areas_val,
               row_to_json(ac.*) AS acta
        FROM piar p
        JOIN estudiante e ON e.id = p.estudiante_id
        LEFT JOIN institucion i ON i.id = e.institucion_id
        LEFT JOIN acta_acuerdo ac ON ac.piar_id = p.id
-       WHERE ($1::boolean OR e.institucion_id = $2)
+       WHERE ($1::boolean OR e.institucion_id = $2) AND ($3::boolean OR e.reservado = FALSE)
        ORDER BY e.nombres`,
-      [esSuper, req.usuario.institucion_id]
+      [esSuper, req.usuario.institucion_id, veReservados]
     );
     const lista = rows.map((r) => ({
       piar_id: r.piar_id, estudiante_id: r.id, estudiante_nombre: r.nombres,

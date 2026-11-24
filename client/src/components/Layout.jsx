@@ -18,13 +18,13 @@ const CONFIG = ['administrador', 'rector', 'coordinador', 'psicoorientador', 'su
 const MENU = [
   { items: [{ to: '/', end: true, label: 'Panel' }] },
   { titulo: 'Estudiantes', items: [
-    { to: '/estudiantes', label: 'Estudiantes' },
+    { to: '/seguimiento', label: 'Estudiantes', roles: GESTOR },
+    { to: '/estudiantes', label: 'Mi hijo/a', roles: ['padre'] },
     { to: '/mosaico', label: 'Mosaico', roles: GESTOR },
   ] },
   { titulo: 'Proceso PIAR', items: [
     { to: '/deteccion', label: 'Detección', roles: GESTOR },
     { to: '/remisiones', label: 'Remisiones', roles: GESTOR },
-    { to: '/seguimiento', label: 'Seguimiento', roles: GESTOR },
     { to: '/apoyos', label: 'Apoyos', roles: GESTOR },
     { to: '/pmi', label: 'PMI', roles: DIRECTIVO },
   ] },
