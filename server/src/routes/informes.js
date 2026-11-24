@@ -572,6 +572,46 @@ router.get('/asistencia/pdf', autorizar('superadmin', 'rector', 'coordinador', '
   } catch (err) { next(err); }
 });
 
+// ====== Estadísticas sociodemográficas (agregadas, anónimas) ======
+router.get('/estadisticas', async (req, res, next) => {
+  try {
+    const esSuper = req.usuario.rol === 'superadmin';
+    // Confidencialidad: quien no es superadmin solo ve agregados de su institución.
+    const cond = []; const params = [];
+    if (!esSuper) { params.push(req.usuario.institucion_id); cond.push(`e.institucion_id = $${params.length}`); }
+    else if (req.query.institucion_id) { params.push(req.query.institucion_id); cond.push(`e.institucion_id = $${params.length}`); }
+    if (req.query.departamento) { params.push(req.query.departamento); cond.push(`d.nombre = $${params.length}`); }
+    if (req.query.discapacidad) { params.push(req.query.discapacidad); cond.push(`e.entorno_salud->>'discapacidad' = $${params.length}`); }
+    // Ocultar reservados a quien no sea del equipo de orientación
+    if (!ROLES_RESERVADO.includes(req.usuario.rol)) cond.push('e.reservado = FALSE');
+    const where = cond.length ? `WHERE ${cond.join(' AND ')}` : '';
+    const base = `FROM estudiante e
+       LEFT JOIN institucion i ON i.id = e.institucion_id
+       LEFT JOIN municipio m ON m.id = i.municipio_id
+       LEFT JOIN departamento d ON d.id = m.departamento_id ${where}`;
+    const grupo = async (expr, alias) => (await query(
+      `SELECT COALESCE(${expr}, 'Sin dato') AS ${alias}, COUNT(*)::int AS total ${base} GROUP BY 1 ORDER BY total DESC`, params)).rows;
+
+    const por_discapacidad = await grupo("NULLIF(e.entorno_salud->>'discapacidad','')", 'etiqueta');
+    const por_genero = await grupo("NULLIF(e.identificacion->>'sexo','')", 'etiqueta');
+    const por_departamento = await grupo('d.nombre', 'etiqueta');
+    const por_municipio = await grupo('m.nombre', 'etiqueta');
+    const por_institucion = await grupo('i.nombre', 'etiqueta');
+    // Rangos de edad
+    const edades = (await query(
+      `SELECT CASE
+          WHEN date_part('year', age(e.fecha_nacimiento)) < 6 THEN '0-5'
+          WHEN date_part('year', age(e.fecha_nacimiento)) < 11 THEN '6-10'
+          WHEN date_part('year', age(e.fecha_nacimiento)) < 16 THEN '11-15'
+          WHEN e.fecha_nacimiento IS NULL THEN 'Sin dato'
+          ELSE '16+' END AS etiqueta, COUNT(*)::int AS total ${base}
+        GROUP BY 1 ORDER BY 1`, params)).rows;
+    const total = (await query(`SELECT COUNT(*)::int AS n ${base}`, params)).rows[0].n;
+
+    res.json({ total, por_discapacidad, por_genero, por_edad: edades, por_departamento, por_municipio, por_institucion, ambito: esSuper ? 'nacional' : 'institucion' });
+  } catch (err) { next(err); }
+});
+
 // ====== Indicadores por territorio ======
 router.get('/indicadores', async (req, res, next) => {
   try {
