@@ -27,6 +27,9 @@ ALTER TABLE institucion ALTER COLUMN num_periodos SET DEFAULT 3;
 -- Sistema de evaluación del colegio (SIEE): cualitativo, numerico5 (1-5) o numerico10 (1-10).
 ALTER TABLE institucion ADD COLUMN IF NOT EXISTS sistema_evaluacion VARCHAR(20) NOT NULL DEFAULT 'cualitativo';
 
+-- Desempeño del estudiante por ajuste razonable (según el SIEE del colegio).
+ALTER TABLE ajuste_razonable ADD COLUMN IF NOT EXISTS desempeno TEXT;
+
 -- Anexo 3 (Acta de acuerdo): campos del formato oficial.
 ALTER TABLE acta_acuerdo ADD COLUMN IF NOT EXISTS nombres_directivos TEXT;              -- equipo directivo y docentes
 ALTER TABLE acta_acuerdo ADD COLUMN IF NOT EXISTS familia JSONB NOT NULL DEFAULT '[]'::jsonb;        -- [{nombre, parentesco}]

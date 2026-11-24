@@ -246,7 +246,7 @@ export default function PiarDetalle() {
       await api.put(`/ajustes/${a.id}`, {
         area_id: a.area_id, periodo: a.periodo, objetivo: a.objetivo, barrera: a.barrera,
         tipo: a.tipo, descripcion: a.descripcion, apoyo: a.apoyo, intensidad: a.intensidad,
-        evaluacion: a.evaluacion, ...cambios,
+        evaluacion: a.evaluacion, desempeno: a.desempeno, ...cambios,
       });
       cargar();
     } catch (err) { setError(err.message); }
@@ -446,14 +446,12 @@ export default function PiarDetalle() {
                   {editable ? <textarea key={`e${a.id}`} rows={2} defaultValue={a.evaluacion || ''} onBlur={(e) => { if ((a.evaluacion || '') !== e.target.value) actualizarAjuste(a, { evaluacion: e.target.value }); }} /> : (a.evaluacion || '—')}
                 </td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top', textAlign: 'center' }}>
-                  {a.area_id
-                    ? (editable
-                        ? <select value={valorDe(a.area_id, a.periodo)} onChange={(e) => guardarValoracion(a.area_id, a.periodo, e.target.value)} style={{ fontSize: 11 }}>
-                            <option value="">—</option>
-                            {opcionesDesempeno.map((d) => <option key={d} value={d}>{d}</option>)}
-                          </select>
-                        : (valorDe(a.area_id, a.periodo) || '—'))
-                    : <span style={{ color: 'var(--gris-400)', fontSize: 11 }}>—</span>}
+                  {editable
+                    ? <select value={a.desempeno || ''} onChange={(e) => actualizarAjuste(a, { desempeno: e.target.value })} style={{ fontSize: 11 }}>
+                        <option value="">—</option>
+                        {opcionesDesempeno.map((d) => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    : (a.desempeno || '—')}
                 </td>
                 {editable && <td className="val" style={{ textAlign: 'center', verticalAlign: 'top' }}><button type="button" className="btn sec sm" title="Eliminar fila" onClick={() => eliminarAjuste(a.id)}>×</button></td>}
               </tr>
@@ -485,7 +483,12 @@ export default function PiarDetalle() {
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.barrera} onChange={(e) => setNuevo({ ...nuevo, barrera: e.target.value })} placeholder="Barrera…" /></td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} placeholder="Ajuste razonable…" /></td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.evaluacion} onChange={(e) => setNuevo({ ...nuevo, evaluacion: e.target.value })} placeholder="Evaluación…" /></td>
-                <td className="val" style={{ textAlign: 'center', verticalAlign: 'top', color: 'var(--gris-400)', fontSize: 11 }}>al guardar</td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top', textAlign: 'center' }}>
+                  <select value={nuevo.desempeno || ''} onChange={(e) => setNuevo({ ...nuevo, desempeno: e.target.value })} style={{ fontSize: 11 }}>
+                    <option value="">—</option>
+                    {opcionesDesempeno.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </td>
                 <td className="val" style={{ textAlign: 'center', verticalAlign: 'top' }}><button type="button" className="btn sm" title="Agregar esta fila" onClick={() => agregarAjuste()}>+</button></td>
               </tr>
             )}

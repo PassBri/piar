@@ -251,11 +251,6 @@ async function cargarPiar(id) {
   const ajustes = await query(
     `SELECT a.*, ar.nombre AS area_nombre FROM ajuste_razonable a
      LEFT JOIN area ar ON ar.id = a.area_id WHERE a.piar_id = $1 ORDER BY a.periodo, a.id`, [id]);
-  // Desempeño por área y periodo (valoracion_area), para la columna del Anexo 2
-  const vals = await query('SELECT area_id, periodo, desempeno FROM valoracion_area WHERE piar_id = $1', [id]);
-  const mapaVal = {};
-  vals.rows.forEach((v) => { mapaVal[`${v.area_id}-${v.periodo}`] = v.desempeno; });
-  ajustes.rows.forEach((a) => { a.desempeno = mapaVal[`${a.area_id}-${a.periodo}`] || ''; });
   return { piar: rows[0], ajustes: ajustes.rows };
 }
 

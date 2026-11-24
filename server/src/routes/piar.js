@@ -83,11 +83,10 @@ router.get('/:id', async (req, res, next) => {
       `SELECT nombres, documento_numero, grado, fecha_nacimiento,
               identificacion, entorno_salud, entorno_hogar, entorno_educativo
        FROM estudiante WHERE id = $1`, [piar.estudiante_id]);
-    const areasVal = await query(
-      'SELECT COUNT(DISTINCT area_id)::int AS n FROM valoracion_area WHERE piar_id = $1', [req.params.id]);
+    const conDesempeno = ajustes.rows.filter((a) => (a.desempeno || '').trim()).length;
     const avance = avancePiar({
       estudiante: est.rows[0], piar, numAjustes: ajustes.rows.length,
-      numAreasValoradas: areasVal.rows[0].n, acta: acta.rows[0],
+      numAreasValoradas: conDesempeno, acta: acta.rows[0],
     });
     res.json({ ...piar, ajustes: ajustes.rows, acta: acta.rows[0] || null, avance });
   } catch (err) { next(err); }
