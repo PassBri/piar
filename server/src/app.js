@@ -24,6 +24,7 @@ import auditoriaRoutes from './routes/auditoria.js';
 import anexo4Routes from './routes/anexo4.js';
 import tamizajeRoutes from './routes/tamizaje.js';
 import apoyosRoutes from './routes/apoyos.js';
+import autorizacionRoutes from './routes/autorizacion.js';
 
 export function createApp() {
   const app = express();
@@ -52,6 +53,7 @@ export function createApp() {
   app.use('/api/anexo4', anexo4Routes);
   app.use('/api/tamizaje', tamizajeRoutes);
   app.use('/api/apoyos', apoyosRoutes);
+  app.use('/api/autorizacion', autorizacionRoutes);
 
   // En producción, el mismo servicio entrega el frontend compilado (SPA).
   if (process.env.NODE_ENV === 'production') {

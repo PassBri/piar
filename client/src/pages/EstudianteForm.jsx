@@ -92,6 +92,7 @@ export default function EstudianteForm() {
   const [form, setForm] = useState(vacio);
   const [piars, setPiars] = useState([]);
   const [cursos, setCursos] = useState([]);
+  const [autoriz, setAutoriz] = useState({ autoriza: false, nombre_acudiente: '', documento_acudiente: '', parentesco: '', fecha: '', firma_img: '' });
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
 
@@ -106,8 +107,20 @@ export default function EstudianteForm() {
         entorno_educativo: e.entorno_educativo || {},
       })).catch((err) => setError(err.message));
       api.get(`/piar?estudiante_id=${id}`).then(setPiars).catch(() => {});
+      api.get(`/autorizacion/${id}`).then((d) => d && setAutoriz({ ...d, fecha: d.fecha ? d.fecha.slice(0, 10) : '' })).catch(() => {});
     }
   }, [id]);
+
+  async function guardarAutorizacion(e) {
+    e.preventDefault();
+    try { await api.put(`/autorizacion/${id}`, autoriz); setOk('Autorización guardada.'); } catch (err) { setError(err.message); }
+  }
+  function subirFirmaAut(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setAutoriz((a) => ({ ...a, firma_img: reader.result }));
+    reader.readAsDataURL(file);
+  }
 
   function elegirCurso(cid) {
     const c = cursos.find((x) => String(x.id) === String(cid));
@@ -270,6 +283,43 @@ export default function EstudianteForm() {
         </div>
         {editable && <button className="btn">Guardar Anexo 1</button>}
       </form>
+
+      {id && (
+        <form className="card" onSubmit={guardarAutorizacion} style={{ marginTop: 18, borderLeft: autoriz.autoriza ? '4px solid var(--ok)' : '4px solid #c62828' }}>
+          <h2 style={{ marginTop: 0 }}>Autorización de tratamiento de datos (Habeas data · Ley 1581)</h2>
+          {!autoriz.autoriza && <div className="mensaje-error" style={{ background: '#FBE3E3' }}>Falta la autorización de la familia para tratar los datos sensibles (salud y discapacidad) del estudiante.</div>}
+          <p style={{ fontSize: 13, color: 'var(--gris-600)' }}>
+            La familia autoriza a la institución a recolectar y tratar los datos del estudiante, incluidos los de salud y
+            discapacidad, con la única finalidad de elaborar y hacer seguimiento al PIAR (Decreto 1421).
+          </p>
+          <div className="fila">
+            <div className="campo"><label>Nombre del acudiente</label>
+              <input value={autoriz.nombre_acudiente || ''} onChange={(e) => setAutoriz({ ...autoriz, nombre_acudiente: e.target.value })} /></div>
+            <div className="campo"><label>Documento del acudiente</label>
+              <input value={autoriz.documento_acudiente || ''} onChange={(e) => setAutoriz({ ...autoriz, documento_acudiente: e.target.value })} /></div>
+            <div className="campo"><label>Parentesco</label>
+              <input value={autoriz.parentesco || ''} onChange={(e) => setAutoriz({ ...autoriz, parentesco: e.target.value })} /></div>
+            <div className="campo"><label>Fecha</label>
+              <input type="date" value={autoriz.fecha || ''} onChange={(e) => setAutoriz({ ...autoriz, fecha: e.target.value })} /></div>
+          </div>
+          <label style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0' }}>
+            <input type="checkbox" checked={!!autoriz.autoriza} style={{ width: 'auto' }}
+              onChange={(e) => setAutoriz({ ...autoriz, autoriza: e.target.checked })} />
+            La familia autoriza el tratamiento de los datos
+          </label>
+          <div className="campo">
+            <label>Firma del acudiente (imagen)</label>
+            {autoriz.firma_img
+              ? <img src={autoriz.firma_img} alt="firma" style={{ height: 46, border: '1px solid var(--gris-200)', borderRadius: 6, background: '#fff' }} />
+              : <div style={{ fontSize: 13, color: 'var(--gris-500)' }}>Sin firma</div>}
+            <input type="file" accept="image/*" style={{ marginTop: 6 }} onChange={(e) => subirFirmaAut(e.target.files[0])} />
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn">Guardar autorización</button>
+            <button type="button" className="btn sec" onClick={() => api.descargarPdf(`/informes/autorizacion/${id}/pdf`, 'Autorizacion_datos.pdf')}>Descargar formato ↓</button>
+          </div>
+        </form>
+      )}
 
       {id && (
         <div className="card" style={{ marginTop: 18 }}>

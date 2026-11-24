@@ -718,6 +718,35 @@ router.get('/promocion/:piarId/pdf', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ====== Autorización de tratamiento de datos (habeas data, Ley 1581) ======
+router.get('/autorizacion/:estudianteId/pdf', async (req, res, next) => {
+  try {
+    const e = await cargarEstudianteInforme(req.params.estudianteId);
+    const neg = negarAcceso(req.usuario, e);
+    if (neg) return res.status(neg.status).json({ error: neg.error });
+    const a = (await query('SELECT * FROM autorizacion_datos WHERE estudiante_id=$1', [req.params.estudianteId])).rows[0] || {};
+    const doc = iniciar(res, req, `Autorizacion_datos_${e.id}.pdf`);
+    titulo(doc, 'AUTORIZACIÓN DE TRATAMIENTO DE DATOS PERSONALES', 'Ley 1581 de 2012 y Decreto 1377 de 2013 — datos sensibles de menores',
+      { logo: e.inst_logo, nombre: e.inst_nombre, nit: e.inst_nit });
+    campos(doc, [['Estudiante', e.estudiante], ['Documento', `${e.documento_tipo || ''} ${e.documento_numero || ''}`]]);
+    doc.moveDown(0.3);
+    const texto = `Yo, ${a.nombre_acudiente || '____________________'}, identificado(a) con documento ${a.documento_acudiente || '____________'}, en calidad de ${a.parentesco || 'acudiente'} del estudiante ${e.estudiante}, autorizo de manera libre, previa, expresa e informada a ${e.inst_nombre || 'la institución educativa'} para recolectar, almacenar y tratar los datos personales del estudiante, incluidos datos sensibles de salud y discapacidad, con la única finalidad de elaborar y hacer seguimiento al Plan Individual de Ajustes Razonables (PIAR) en el marco del Decreto 1421 de 2017. Conozco que puedo ejercer los derechos de acceso, corrección, actualización y supresión de los datos, y que estos no serán compartidos con terceros sin autorización, salvo obligación legal.`;
+    doc.font('Helvetica').fontSize(10).fillColor('#000').text(texto, X0, doc.y, { width: ANCHO, align: 'justify', lineGap: 2 });
+    doc.moveDown(0.6);
+    campos(doc, [['¿Autoriza el tratamiento de datos?', a.autoriza ? 'SÍ AUTORIZO' : 'Pendiente de autorización']]);
+    campos(doc, [['Fecha', a.fecha ? new Date(a.fecha).toLocaleDateString('es-CO') : '—']]);
+    doc.moveDown(1.5);
+    const y = doc.y;
+    if (a.firma_img && a.firma_img.startsWith('data:image')) {
+      try { doc.image(Buffer.from(a.firma_img.split(',')[1], 'base64'), X0, y, { fit: [180, 46] }); } catch { /* ignora */ }
+    }
+    doc.moveTo(X0, y + 50).lineTo(X0 + 200, y + 50).stroke(BORDE);
+    doc.font('Helvetica').fontSize(8.5).fillColor(GRIS_MEDIO).text(`Firma: ${a.nombre_acudiente || 'acudiente'}`, X0, y + 53, { width: 220, lineBreak: false });
+    doc.y = y + 70;
+    finalizar(doc);
+  } catch (err) { next(err); }
+});
+
 // ====== Formato de tamizaje (detección en el aula) ======
 router.get('/tamizaje/:id/pdf', async (req, res, next) => {
   try {

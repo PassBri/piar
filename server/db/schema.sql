@@ -237,6 +237,19 @@ CREATE TABLE usuario_curso (
 );
 CREATE INDEX idx_usuario_curso_usuario ON usuario_curso(usuario_id);
 
+-- -------- Habeas data: autorización de tratamiento de datos (Ley 1581) --------
+CREATE TABLE autorizacion_datos (
+    id                  SERIAL PRIMARY KEY,
+    estudiante_id       INTEGER NOT NULL UNIQUE REFERENCES estudiante(id) ON DELETE CASCADE,
+    autoriza            BOOLEAN NOT NULL DEFAULT FALSE,
+    nombre_acudiente    VARCHAR(200),
+    documento_acudiente VARCHAR(40),
+    parentesco          VARCHAR(60),
+    fecha               DATE,
+    firma_img           TEXT,
+    creado_en           TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- -------- Detección en el aula (tamizaje de caracterización) --------
 CREATE TABLE tamizaje (
     id              SERIAL PRIMARY KEY,
