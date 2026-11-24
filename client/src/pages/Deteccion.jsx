@@ -22,13 +22,22 @@ export default function Deteccion() {
     setRespuestas((r) => ({ ...r, [dom]: { ...(r[dom] || {}), [idx]: val } }));
   }
   const alertas = calcularAlertas(respuestas);
+  const est = estudiantes.find((x) => String(x.id) === String(estId));
+
+  function edad(fecha) {
+    if (!fecha) return null;
+    const d = new Date(fecha), h = new Date();
+    let a = h.getFullYear() - d.getFullYear();
+    if (h.getMonth() < d.getMonth() || (h.getMonth() === d.getMonth() && h.getDate() < d.getDate())) a--;
+    return a >= 0 && a < 120 ? a : null;
+  }
 
   async function guardar(e) {
     e.preventDefault();
     setError(''); setOk('');
     try {
       await api.post('/tamizaje', { estudiante_id: Number(estId), respuestas, dominios_alerta: alertas, observaciones });
-      setOk('Tamizaje guardado.');
+      setOk('Detección guardada en el expediente del estudiante. Queda en "Tamizajes anteriores", con su PDF.');
       setRespuestas({}); setObservaciones('');
       cargarHistorial(estId);
     } catch (err) { setError(err.message); }
@@ -53,6 +62,18 @@ export default function Deteccion() {
           </select>
         </div>
       </div>
+
+      {est && (
+        <div className="card" style={{ borderLeft: '4px solid var(--azul, #1565c0)' }}>
+          <h2 style={{ marginTop: 0, marginBottom: 8 }}>{est.nombres}</h2>
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', fontSize: 14, color: 'var(--gris-700)' }}>
+            <span><strong>Documento:</strong> {est.documento_tipo || 'TI'} {est.documento_numero || '—'}</span>
+            <span><strong>Grado / curso:</strong> {est.curso_grado ? `${est.curso_grado}${est.curso_grupo || ''}${est.curso_sede ? ' · ' + est.curso_sede : ''}` : (est.grado || '—')}</span>
+            <span><strong>Edad:</strong> {edad(est.fecha_nacimiento) != null ? `${edad(est.fecha_nacimiento)} años` : '—'}</span>
+            <span><strong>Discapacidad:</strong> {est.discapacidad || 'Sin registrar'}</span>
+          </div>
+        </div>
+      )}
 
       {estId && (
         <>
