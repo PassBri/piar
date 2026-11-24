@@ -26,6 +26,15 @@ export default function Seguimiento() {
   const [error, setError] = useState('');
   const [registro, setRegistro] = useState(null); // ajuste en edición
   const [datos, setDatos] = useState({ impacto: '', decision: 'mantener' });
+  const [filtro, setFiltro] = useState({ sede: '', grado: '', curso: '', edad: '', discapacidad: '' });
+
+  function edadDe(f) {
+    if (!f) return null;
+    const d = new Date(f), h = new Date();
+    let a = h.getFullYear() - d.getFullYear();
+    if (h.getMonth() < d.getMonth() || (h.getMonth() === d.getMonth() && h.getDate() < d.getDate())) a--;
+    return a >= 0 && a < 120 ? a : null;
+  }
 
   function cargar() {
     api.get('/seguimientos/pendientes').then(setPendientes).catch((e) => setError(e.message));
@@ -93,19 +102,52 @@ export default function Seguimiento() {
       </p>
       {error && <div className="mensaje-error">{error}</div>}
 
-      {supervisa && (
+      {supervisa && (() => {
+        const sedes = [...new Set(avances.map((a) => a.curso_sede).filter(Boolean))].sort();
+        const grados = [...new Set(avances.map((a) => a.curso_grado || a.grado).filter(Boolean))].sort();
+        const cursos = [...new Set(avances.map((a) => a.curso_grupo).filter(Boolean))].sort();
+        const edades = [...new Set(avances.map((a) => edadDe(a.fecha_nacimiento)).filter((x) => x != null))].sort((x, y) => x - y);
+        const visibles = avances.filter((a) => {
+          if (filtro.sede && a.curso_sede !== filtro.sede) return false;
+          if (filtro.grado && (a.curso_grado || a.grado) !== filtro.grado) return false;
+          if (filtro.curso && a.curso_grupo !== filtro.curso) return false;
+          if (filtro.edad && String(edadDe(a.fecha_nacimiento)) !== String(filtro.edad)) return false;
+          if (filtro.discapacidad && !(a.discapacidad || '').toLowerCase().includes(filtro.discapacidad.toLowerCase())) return false;
+          return true;
+        });
+        return (
         <div className="card">
           <h2 style={{ marginTop: 0 }}>Estudiantes · avance de diligenciamiento</h2>
+          <div className="fila" style={{ marginBottom: 12 }}>
+            <div className="campo" style={{ marginBottom: 0 }}><label>Sede</label>
+              <select value={filtro.sede} onChange={(e) => setFiltro({ ...filtro, sede: e.target.value })}>
+                <option value="">— Todas —</option>{sedes.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select></div>
+            <div className="campo" style={{ marginBottom: 0 }}><label>Grado</label>
+              <select value={filtro.grado} onChange={(e) => setFiltro({ ...filtro, grado: e.target.value })}>
+                <option value="">— Todos —</option>{grados.map((g) => <option key={g} value={g}>{g}</option>)}
+              </select></div>
+            <div className="campo" style={{ marginBottom: 0 }}><label>Curso</label>
+              <select value={filtro.curso} onChange={(e) => setFiltro({ ...filtro, curso: e.target.value })}>
+                <option value="">— Todos —</option>{cursos.map((c) => <option key={c} value={c}>Grupo {c}</option>)}
+              </select></div>
+            <div className="campo" style={{ marginBottom: 0 }}><label>Edad</label>
+              <select value={filtro.edad} onChange={(e) => setFiltro({ ...filtro, edad: e.target.value })}>
+                <option value="">— Todas —</option>{edades.map((ed) => <option key={ed} value={ed}>{ed} años</option>)}
+              </select></div>
+            <div className="campo" style={{ marginBottom: 0 }}><label>Discapacidad</label>
+              <input value={filtro.discapacidad} onChange={(e) => setFiltro({ ...filtro, discapacidad: e.target.value })} placeholder="Buscar…" /></div>
+          </div>
           <p style={{ color: 'var(--gris-600)', fontSize: 13, marginTop: 0 }}>
-            Abre cualquier estudiante para diligenciar sus anexos; el porcentaje muestra lo que lleva cada uno.
+            {visibles.length} de {avances.length} estudiante(s). Abre cualquiera para diligenciar sus anexos.
           </p>
           <table>
             <thead><tr><th>Estudiante</th><th>Grado</th><th>Anexo 1</th><th>Anexo 2</th><th>Anexo 3</th><th>Total</th><th></th></tr></thead>
             <tbody>
-              {avances.map((a) => (
+              {visibles.map((a) => (
                 <tr key={a.piar_id}>
                   <td>{a.estudiante_nombre}</td>
-                  <td>{a.grado || '—'}</td>
+                  <td>{a.curso_grado || a.grado || '—'}</td>
                   {celdaPct(a.avance.anexo1)}
                   {celdaPct(a.avance.anexo2)}
                   {celdaPct(a.avance.anexo3)}
@@ -113,11 +155,12 @@ export default function Seguimiento() {
                   <td><Link className="btn sec sm" to={`/estudiantes/${a.estudiante_id}`}>Abrir</Link></td>
                 </tr>
               ))}
-              {avances.length === 0 && <tr><td colSpan="7" style={{ color: 'var(--gris-500)' }}>Aún no hay PIAR para controlar.</td></tr>}
+              {visibles.length === 0 && <tr><td colSpan="7" style={{ color: 'var(--gris-500)' }}>Ningún estudiante con esos filtros.</td></tr>}
             </tbody>
           </table>
         </div>
-      )}
+        );
+      })()}
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Seguimientos pendientes</h2>

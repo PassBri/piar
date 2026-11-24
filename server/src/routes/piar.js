@@ -32,13 +32,16 @@ router.get('/avance/listado', autorizar('superadmin', 'rector', 'coordinador', '
     const veReservados = ['psicoorientador', 'coordinador', 'rector', 'administrador', 'superadmin'].includes(req.usuario.rol);
     const { rows } = await query(
       `SELECT p.id AS piar_id, p.periodo, p.estado, p.valoracion, p.aspectos_generales, e.*,
+              e.entorno_salud->>'discapacidad' AS discapacidad,
               i.nombre AS institucion_nombre,
+              c.sede AS curso_sede, c.jornada AS curso_jornada, c.grado AS curso_grado, c.grupo AS curso_grupo,
               (SELECT count(*) FROM ajuste_razonable a WHERE a.piar_id = p.id)::int AS num_ajustes,
               (SELECT count(*) FROM ajuste_razonable a WHERE a.piar_id = p.id AND COALESCE(a.desempeno,'') <> '')::int AS areas_val,
               row_to_json(ac.*) AS acta
        FROM piar p
        JOIN estudiante e ON e.id = p.estudiante_id
        LEFT JOIN institucion i ON i.id = e.institucion_id
+       LEFT JOIN curso c ON c.id = e.curso_id
        LEFT JOIN acta_acuerdo ac ON ac.piar_id = p.id
        WHERE ($1::boolean OR e.institucion_id = $2) AND ($3::boolean OR e.reservado = FALSE)
        ORDER BY e.nombres`,
@@ -48,6 +51,9 @@ router.get('/avance/listado', autorizar('superadmin', 'rector', 'coordinador', '
       piar_id: r.piar_id, estudiante_id: r.id, estudiante_nombre: r.nombres,
       grado: r.grado, periodo: r.periodo, estado: r.estado,
       institucion_nombre: r.institucion_nombre,
+      discapacidad: r.discapacidad || '', fecha_nacimiento: r.fecha_nacimiento,
+      curso_sede: r.curso_sede || '', curso_jornada: r.curso_jornada || '',
+      curso_grado: r.curso_grado || '', curso_grupo: r.curso_grupo || '',
       avance: avancePiar({
         estudiante: r, piar: { valoracion: r.valoracion, aspectos_generales: r.aspectos_generales },
         numAjustes: r.num_ajustes, numAreasValoradas: r.areas_val, acta: r.acta,
