@@ -83,6 +83,22 @@ function portada(doc, { tituloDoc, estudiante, documento, inst }) {
   // Fondo gris
   doc.save();
   doc.rect(0, 0, doc.page.width, doc.page.height).fill('#37474F');
+  // Patrón de pollitos tenue en escala de grises (como el fondo del login)
+  if (LOGO_PIAR) {
+    doc.save();
+    doc.opacity(0.05);
+    const paso = 74, tam = 32;
+    let fila = 0;
+    for (let yy = 8; yy < doc.page.height - 10; yy += paso) {
+      const offset = (fila % 2) * (paso / 2);
+      for (let xx = 8 + offset; xx < doc.page.width - 10; xx += paso) {
+        try { doc.image(LOGO_PIAR, xx, yy, { fit: [tam, tam] }); } catch { /* */ }
+      }
+      fila++;
+    }
+    doc.opacity(1);
+    doc.restore();
+  }
   // Logo del pollito centrado arriba
   const cx = doc.page.width / 2;
   if (LOGO_PIAR) { try { doc.image(LOGO_PIAR, cx - 55, 120, { fit: [110, 110] }); } catch { /* */ } }

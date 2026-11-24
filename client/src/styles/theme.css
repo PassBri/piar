@@ -194,6 +194,7 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
 .anexos-tabs {
   display: flex; gap: 4px; flex-wrap: wrap; margin: 16px 0 10px;
   background: var(--gris-100); padding: 4px; border-radius: 12px; border: 1px solid var(--gris-200);
+  position: sticky; top: 0; z-index: 30; box-shadow: 0 2px 8px rgba(0,0,0,.06);
 }
 .anexos-tabs a, .anexos-tabs button, .anexos-tabs span {
   border: none; background: transparent; color: var(--gris-600);
