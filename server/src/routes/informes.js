@@ -321,6 +321,112 @@ router.get('/seguimiento/:piarId/pdf', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ---- Tabla de competencias: Área × periodos (desempeño consolidado) ----
+function tablaCompetencias(doc, periodos, filas) {
+  const areaW = 170;
+  const pw = (ANCHO - areaW) / periodos.length;
+  const cabecera = () => {
+    saltoSi(doc, 22);
+    const y = doc.y; let x = X0;
+    doc.rect(x, y, areaW, 20).fillAndStroke(GRIS, BORDE);
+    doc.fillColor('#fff').font('Helvetica-Bold').fontSize(8).text('Área / Asignatura', x + 3, y + 6, { width: areaW - 6 });
+    x += areaW;
+    periodos.forEach((pe) => {
+      doc.rect(x, y, pw, 20).fillAndStroke(GRIS, BORDE);
+      doc.fillColor('#fff').font('Helvetica-Bold').fontSize(7).text(pe.label, x + 1, y + 6, { width: pw - 2, align: 'center' });
+      x += pw;
+    });
+    doc.fillColor('#000'); doc.y = y + 20;
+  };
+  cabecera();
+  filas.forEach((f) => {
+    const alto = Math.max(16, doc.heightOfString(f.area, { width: areaW - 6 }) + 6);
+    if (doc.y + alto > TOPE) { doc.addPage(); cabecera(); }
+    const y = doc.y; let x = X0;
+    doc.rect(x, y, areaW, alto).fillAndStroke(GRIS_CLARO, BORDE);
+    doc.fillColor('#000').font('Helvetica-Bold').fontSize(7.5).text(f.area, x + 3, y + 3, { width: areaW - 6 });
+    x += areaW;
+    periodos.forEach((pe) => {
+      doc.rect(x, y, pw, alto).stroke(BORDE);
+      doc.font('Helvetica').fontSize(7.5).fillColor('#000').text(f.valores[pe.p] || '—', x + 1, y + 3, { width: pw - 2, align: 'center' });
+      x += pw;
+    });
+    doc.y = y + alto;
+  });
+}
+
+// ====== Informe anual de competencias ======
+router.get('/competencias/:piarId/pdf', async (req, res, next) => {
+  try {
+    const data = await cargarPiar(req.params.piarId);
+    if (!data) return res.status(404).json({ error: 'PIAR no encontrado.' });
+    const { piar, ajustes } = data;
+    // institución (periodos/promoción) y curso del estudiante
+    const extra = await query(
+      `SELECT COALESCE(i.num_periodos,4) AS num_periodos, COALESCE(i.usa_promocion,true) AS usa_promocion,
+              c.sede AS curso_sede, c.jornada AS curso_jornada, c.grado AS curso_grado, c.grupo AS curso_grupo
+       FROM estudiante e LEFT JOIN institucion i ON i.id = e.institucion_id
+       LEFT JOIN curso c ON c.id = e.curso_id WHERE e.id = $1`, [piar.estudiante_id]);
+    const cfg = extra.rows[0] || { num_periodos: 4, usa_promocion: true };
+    // valoraciones por área y periodo
+    const val = await query(
+      `SELECT a.nombre AS area, v.periodo, v.desempeno
+       FROM valoracion_area v JOIN area a ON a.id = v.area_id
+       WHERE v.piar_id = $1 ORDER BY a.nombre, v.periodo`, [req.params.piarId]);
+
+    const periodos = [];
+    for (let p = 1; p <= cfg.num_periodos; p++) periodos.push({ p, label: `P${p}` });
+    if (cfg.usa_promocion) periodos.push({ p: 5, label: 'Promoción' });
+
+    const porArea = {};
+    val.rows.forEach((r) => {
+      porArea[r.area] = porArea[r.area] || { area: r.area, valores: {} };
+      porArea[r.area].valores[r.periodo] = r.desempeno || '—';
+    });
+    const filas = Object.values(porArea);
+
+    const doc = iniciar(res, req, `Informe_competencias_${piar.estudiante_id}.pdf`);
+    titulo(doc, 'INFORME ANUAL DE COMPETENCIAS', 'Consolidado del desempeño por área y periodo – PIAR');
+    campos(doc, [['Institución educativa', piar.inst_nombre], ['Año', piar.periodo]]);
+    campos(doc, [['Estudiante', piar.estudiante], ['Documento', `${piar.documento_tipo || ''} ${piar.documento_numero || ''}`]]);
+    campos(doc, [['Grado', piar.grado],
+      ['Curso', cfg.curso_sede ? `${cfg.curso_sede} · ${cfg.curso_jornada} · ${cfg.curso_grado} · Grupo ${cfg.curso_grupo}` : '—']]);
+
+    banda(doc, 'Desempeño por área y periodo');
+    if (filas.length === 0) {
+      doc.font('Helvetica-Oblique').fontSize(9).text('Aún no se han registrado valoraciones por área.', X0, doc.y + 4);
+      doc.moveDown(0.5);
+    } else {
+      doc.moveDown(0.2);
+      tablaCompetencias(doc, periodos, filas);
+    }
+
+    banda(doc, 'Ajustes razonables aplicados durante el año');
+    doc.moveDown(0.2);
+    if (ajustes.length === 0) {
+      doc.font('Helvetica-Oblique').fontSize(9).text('No se registraron ajustes razonables.', X0, doc.y + 2);
+    } else {
+      cabeceraAjustes(doc);
+      ajustes.forEach((a) => filaAjuste(doc, a));
+    }
+
+    banda(doc, 'Valoración y observaciones');
+    campos(doc, [['Síntesis de la valoración', piar.valoracion || '—']]);
+    campos(doc, [['Aspectos generales', piar.aspectos_generales || '—']]);
+
+    saltoSi(doc, 56);
+    doc.moveDown(1.2);
+    const yf = doc.y;
+    ['Docente / Director de grupo', 'Coordinación / Rectoría', 'Familia / Acudiente'].forEach((t, i) => {
+      const x = X0 + i * (ANCHO / 3) + 10;
+      doc.moveTo(x, yf + 22).lineTo(x + 150, yf + 22).stroke(BORDE);
+      doc.font('Helvetica').fontSize(8).fillColor(GRIS_MEDIO).text(t, x, yf + 25, { width: 150, lineBreak: false });
+    });
+    doc.y = yf + 40;
+    finalizar(doc);
+  } catch (err) { next(err); }
+});
+
 // ====== Indicadores por territorio ======
 router.get('/indicadores', async (req, res, next) => {
   try {

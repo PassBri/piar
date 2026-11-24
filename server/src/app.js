@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { config } from './config.js';
+
+const aqui = path.dirname(fileURLToPath(import.meta.url));
 
 import authRoutes from './routes/auth.js';
 import estudiantesRoutes from './routes/estudiantes.js';
@@ -41,7 +45,15 @@ export function createApp() {
   app.use('/api/valoraciones', valoracionesRoutes);
   app.use('/api/cursos', cursosRoutes);
 
-  // 404
+  // En producción, el mismo servicio entrega el frontend compilado (SPA).
+  if (process.env.NODE_ENV === 'production') {
+    const dist = path.resolve(aqui, '../../client/dist');
+    app.use(express.static(dist));
+    // Cualquier ruta que no sea /api devuelve el index.html del SPA
+    app.get(/^(?!\/api).*/, (req, res) => res.sendFile(path.join(dist, 'index.html')));
+  }
+
+  // 404 (rutas /api no encontradas)
   app.use((req, res) => res.status(404).json({ error: 'Recurso no encontrado.' }));
 
   // Manejo de errores

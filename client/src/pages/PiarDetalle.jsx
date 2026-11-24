@@ -135,6 +135,8 @@ export default function PiarDetalle() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '12px 0', flexWrap: 'wrap', gap: 8 }}>
         <h2 style={{ color: 'var(--gris-700)', margin: 0 }}>PIAR — {piar.estudiante_nombre} ({piar.periodo})</h2>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/competencias/${id}/pdf`)}>Informe anual</button>
+          <button className="btn sec sm" title="Descargar informe anual de competencias" onClick={() => api.descargarPdf(`/informes/competencias/${id}/pdf`, 'Informe_anual_competencias.pdf')}>↓</button>
           <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/seguimiento/${id}/pdf`)}>Seguimiento</button>
           <button className="btn sec sm" title="Descargar seguimiento" onClick={() => api.descargarPdf(`/informes/seguimiento/${id}/pdf`, 'Seguimiento.pdf')}>↓</button>
           <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/acta/${id}/pdf`)}>Acta</button>
