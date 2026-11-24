@@ -21,6 +21,7 @@ import estadisticasRoutes from './routes/estadisticas.js';
 import valoracionesRoutes from './routes/valoraciones.js';
 import cursosRoutes from './routes/cursos.js';
 import auditoriaRoutes from './routes/auditoria.js';
+import anexo4Routes from './routes/anexo4.js';
 
 export function createApp() {
   const app = express();
@@ -46,6 +47,7 @@ export function createApp() {
   app.use('/api/valoraciones', valoracionesRoutes);
   app.use('/api/cursos', cursosRoutes);
   app.use('/api/auditoria', auditoriaRoutes);
+  app.use('/api/anexo4', anexo4Routes);
 
   // En producción, el mismo servicio entrega el frontend compilado (SPA).
   if (process.env.NODE_ENV === 'production') {

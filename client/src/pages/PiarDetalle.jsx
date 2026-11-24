@@ -50,6 +50,9 @@ export default function PiarDetalle() {
   const [nuevaArea, setNuevaArea] = useState('');
   const [periodoActivo, setPeriodoActivo] = useState(1); // 1..5, o 0 = todos
   const [bitacora, setBitacora] = useState([]);
+  const [vista, setVista] = useState('anexo2'); // anexo2 | anexo3 | anexo4
+  const a4vacio = { logros: '', recomendaciones: '', grado_destino: '', institucion_destino: '', apoyos_transicion: '', observaciones: '', firmada_entrega: false };
+  const [anexo4, setAnexo4] = useState(a4vacio);
   const supervisa = ['rector', 'coordinador', 'psicoorientador', 'administrador', 'superadmin'].includes(usuario.rol);
 
   const numPeriodos = piar?.num_periodos || 4;
@@ -70,8 +73,21 @@ export default function PiarDetalle() {
   function cargarBitacora() {
     if (supervisa) api.get(`/auditoria?piar_id=${id}`).then(setBitacora).catch(() => {});
   }
+  function cargarAnexo4() {
+    api.get(`/anexo4/${id}`).then((d) => setAnexo4(d || a4vacio)).catch(() => {});
+  }
+  async function guardarAnexo4(e) {
+    e.preventDefault();
+    try { await api.put(`/anexo4/${id}`, anexo4); cargar(); cargarBitacora(); } catch (err) { setError(err.message); }
+  }
+  function subirFirmaA4(campo, file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setAnexo4((a) => ({ ...a, [campo]: reader.result }));
+    reader.readAsDataURL(file);
+  }
   useEffect(() => {
-    cargar(); cargarValoraciones(); cargarBitacora();
+    cargar(); cargarValoraciones(); cargarBitacora(); cargarAnexo4();
     api.get('/areas').then(setAreas).catch(() => {});
   }, [id]);
   useEffect(() => {
@@ -159,8 +175,9 @@ export default function PiarDetalle() {
 
       <div className="anexos-tabs">
         <Link to={`/estudiantes/${piar.estudiante_id}`}>Anexo 1 · Información</Link>
-        <button type="button" className="activo" onClick={() => document.getElementById('anexo2')?.scrollIntoView({ behavior: 'smooth' })}>Anexo 2 · Valoración y ajustes</button>
-        <button type="button" onClick={() => document.getElementById('anexo3')?.scrollIntoView({ behavior: 'smooth' })}>Anexo 3 · Acta de acuerdo</button>
+        <button type="button" className={vista === 'anexo2' ? 'activo' : ''} onClick={() => setVista('anexo2')}>Anexo 2 · Valoración y ajustes</button>
+        <button type="button" className={vista === 'anexo3' ? 'activo' : ''} onClick={() => setVista('anexo3')}>Anexo 3 · Acta de acuerdo</button>
+        <button type="button" className={vista === 'anexo4' ? 'activo' : ''} onClick={() => setVista('anexo4')}>Anexo 4 · Seguimiento y transición</button>
       </div>
 
       {/* Mecanismo de control: avance de diligenciamiento por anexo */}
@@ -176,6 +193,7 @@ export default function PiarDetalle() {
         </div>
       </div>
 
+      {vista === 'anexo2' && <>
       {/* ANEXO 2 — mismo aspecto que el formato impreso */}
       <div className="formato" id="anexo2">
         <div className="formato-cab">
@@ -350,7 +368,9 @@ export default function PiarDetalle() {
           <button className="btn">Agregar ajuste</button>
         </form>
       )}
+      </>}
 
+      {vista === 'anexo3' && (
       <form className="card" id="anexo3" onSubmit={guardarActa}>
         <h2>Acta de acuerdo con la familia (Anexo 3)</h2>
         <div className="campo"><label>Compromisos de la familia</label>
@@ -394,6 +414,53 @@ export default function PiarDetalle() {
           <button type="button" className="btn sec" onClick={() => api.descargarPdf(`/informes/acta/${id}/pdf`, 'Acta.pdf')}>Descargar acta ↓</button>
         </div>
       </form>
+      )}
+
+      {vista === 'anexo4' && (
+      <form className="card" onSubmit={guardarAnexo4}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <h2 style={{ margin: 0 }}>Anexo 4 · Seguimiento, entrega y transición</h2>
+          <button type="button" className="btn sec sm" onClick={() => api.descargarPdf(`/informes/anexo4/${id}/pdf`, 'Anexo4.pdf')}>Descargar ↓</button>
+        </div>
+        <p style={{ color: 'var(--gris-600)', fontSize: 13 }}>Cierre del año: logros, recomendaciones para el año siguiente y datos de transición.</p>
+        <div className="campo"><label>Logros y avances del estudiante durante el año</label>
+          <textarea value={anexo4.logros || ''} disabled={!editable} onChange={(e) => setAnexo4({ ...anexo4, logros: e.target.value })} /></div>
+        <div className="campo"><label>Ajustes que funcionaron y recomendaciones para el año siguiente</label>
+          <textarea value={anexo4.recomendaciones || ''} disabled={!editable} onChange={(e) => setAnexo4({ ...anexo4, recomendaciones: e.target.value })} /></div>
+        <div className="fila">
+          <div className="campo"><label>Grado al que transita</label>
+            <input value={anexo4.grado_destino || ''} disabled={!editable} onChange={(e) => setAnexo4({ ...anexo4, grado_destino: e.target.value })} /></div>
+          <div className="campo"><label>Institución destino (si cambia)</label>
+            <input value={anexo4.institucion_destino || ''} disabled={!editable} onChange={(e) => setAnexo4({ ...anexo4, institucion_destino: e.target.value })} /></div>
+        </div>
+        <div className="campo"><label>Apoyos requeridos para la transición</label>
+          <textarea value={anexo4.apoyos_transicion || ''} disabled={!editable} onChange={(e) => setAnexo4({ ...anexo4, apoyos_transicion: e.target.value })} /></div>
+        <div className="campo"><label>Observaciones</label>
+          <textarea value={anexo4.observaciones || ''} disabled={!editable} onChange={(e) => setAnexo4({ ...anexo4, observaciones: e.target.value })} /></div>
+        <div className="fila">
+          <div className="campo">
+            <label>Firma de quien entrega (docente / orientación)</label>
+            {anexo4.firma_entrega_img
+              ? <img src={anexo4.firma_entrega_img} alt="firma" style={{ height: 46, border: '1px solid var(--gris-200)', borderRadius: 6, background: '#fff' }} />
+              : <div style={{ fontSize: 13, color: 'var(--gris-500)' }}>Sin firma</div>}
+            {editable && <input type="file" accept="image/*" style={{ marginTop: 6 }} onChange={(e) => subirFirmaA4('firma_entrega_img', e.target.files[0])} />}
+          </div>
+          <div className="campo">
+            <label>Firma de quien recibe (familia / docente siguiente)</label>
+            {anexo4.firma_recibe_img
+              ? <img src={anexo4.firma_recibe_img} alt="firma" style={{ height: 46, border: '1px solid var(--gris-200)', borderRadius: 6, background: '#fff' }} />
+              : <div style={{ fontSize: 13, color: 'var(--gris-500)' }}>Sin firma</div>}
+            {editable && <input type="file" accept="image/*" style={{ marginTop: 6 }} onChange={(e) => subirFirmaA4('firma_recibe_img', e.target.files[0])} />}
+          </div>
+        </div>
+        <label style={{ fontWeight: 400, display: 'block', margin: '6px 0' }}>
+          <input type="checkbox" checked={!!anexo4.firmada_entrega} style={{ width: 'auto', marginRight: 6 }} disabled={!editable}
+            onChange={(e) => setAnexo4({ ...anexo4, firmada_entrega: e.target.checked })} />
+          Entrega formalizada
+        </label>
+        {editable && <button className="btn">Guardar Anexo 4</button>}
+      </form>
+      )}
 
       {supervisa && (
         <div className="card">

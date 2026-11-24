@@ -231,3 +231,20 @@ CREATE TABLE usuario_curso (
     PRIMARY KEY (usuario_id, curso_id)
 );
 CREATE INDEX idx_usuario_curso_usuario ON usuario_curso(usuario_id);
+
+-- -------- Anexo 4: acta de seguimiento/entrega e informe de transición --------
+CREATE TABLE anexo4 (
+    id                  SERIAL PRIMARY KEY,
+    piar_id             INTEGER NOT NULL UNIQUE REFERENCES piar(id) ON DELETE CASCADE,
+    logros              TEXT,   -- logros y avances del estudiante en el año
+    recomendaciones     TEXT,   -- ajustes que funcionaron y recomendaciones para el año siguiente
+    grado_destino       VARCHAR(60),
+    institucion_destino VARCHAR(200),
+    apoyos_transicion   TEXT,   -- apoyos requeridos para la transición
+    observaciones       TEXT,
+    firmada_entrega     BOOLEAN NOT NULL DEFAULT FALSE,
+    firma_entrega_img   TEXT,   -- firma de quien entrega (docente/orientación)
+    firma_recibe_img    TEXT,   -- firma de quien recibe / familia
+    fecha               DATE,
+    creado_en           TIMESTAMPTZ NOT NULL DEFAULT now()
+);

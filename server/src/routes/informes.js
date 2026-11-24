@@ -326,6 +326,42 @@ router.get('/acta/:piarId/pdf', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ====== Anexo 4: acta de seguimiento/entrega e informe de transición ======
+router.get('/anexo4/:piarId/pdf', async (req, res, next) => {
+  try {
+    const data = await cargarPiar(req.params.piarId);
+    if (!data) return res.status(404).json({ error: 'PIAR no encontrado.' });
+    { const neg = negarAcceso(req.usuario, await accesoPiar(data.piar.id)); if (neg) return res.status(neg.status).json({ error: neg.error }); }
+    const { piar } = data;
+    const a = (await query('SELECT * FROM anexo4 WHERE piar_id=$1', [req.params.piarId])).rows[0] || {};
+    const doc = iniciar(res, req, `Anexo4_${piar.estudiante_id}.pdf`);
+    titulo(doc, 'ACTA DE SEGUIMIENTO, ENTREGA Y TRANSICIÓN – ANEXO 4', 'Cierre del año y transición del estudiante', { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit });
+    campos(doc, [['Estudiante', piar.estudiante], ['Periodo / Año', piar.periodo]]);
+    banda(doc, 'Logros y avances durante el año');
+    campos(doc, [['Logros', a.logros || '—']]);
+    banda(doc, 'Ajustes que funcionaron y recomendaciones para el año siguiente');
+    campos(doc, [['Recomendaciones', a.recomendaciones || '—']]);
+    banda(doc, 'Transición');
+    campos(doc, [['Grado al que transita', a.grado_destino || '—'], ['Institución destino', a.institucion_destino || '—']]);
+    campos(doc, [['Apoyos requeridos para la transición', a.apoyos_transicion || '—']]);
+    campos(doc, [['Observaciones', a.observaciones || '—']]);
+
+    saltoSi(doc, 80);
+    doc.moveDown(2);
+    const y = doc.y;
+    const firma = (x, img, label) => {
+      if (img && img.startsWith('data:image')) {
+        try { doc.image(Buffer.from(img.split(',')[1], 'base64'), x, y, { fit: [180, 46] }); } catch { /* ignora */ }
+      }
+      doc.moveTo(x, y + 50).lineTo(x + 190, y + 50).stroke(BORDE);
+      doc.font('Helvetica').fontSize(8.5).fillColor(GRIS_MEDIO).text(label, x, y + 53, { width: 200, lineBreak: false });
+    };
+    firma(60, a.firma_entrega_img, 'Entrega: docente / orientación');
+    firma(320, a.firma_recibe_img, 'Recibe: familia / docente siguiente');
+    finalizar(doc);
+  } catch (err) { next(err); }
+});
+
 // ====== Informe de seguimiento ======
 router.get('/seguimiento/:piarId/pdf', async (req, res, next) => {
   try {
