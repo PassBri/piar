@@ -686,22 +686,47 @@ router.get('/asistencia/pdf', autorizar('superadmin', 'rector', 'coordinador', '
   } catch (err) { next(err); }
 });
 
+// Actores del PMI (orden del formato oficial)
+const ACTORES_PMI = [
+  ['familia', 'Familia, cuidadores o con quienes vive'], ['docentes', 'Docentes'],
+  ['directivos', 'Directivos'], ['administrativos', 'Administrativos'], ['pares', 'Pares (compañeros)'],
+];
+// Consolida las recomendaciones PMI (Anexo 2, punto 7) de todos los PIAR, agrupadas por actor
+function consolidarPmi(piars) {
+  const dedup = (arr) => [...new Set(arr.map((s) => s.trim()).filter(Boolean))];
+  return ACTORES_PMI.map(([clave, nombre]) => {
+    const items = [];
+    piars.forEach((p) => {
+      const x = (p.recomendaciones_pmi || {})[clave];
+      if (x && ((x.acciones || '').trim() || (x.estrategias || '').trim())) {
+        items.push({ estudiante: p.nombres, grado: p.grado_piar || p.grado, periodo: p.periodo, acciones: x.acciones || '', estrategias: x.estrategias || '' });
+      }
+    });
+    return {
+      clave, nombre, items,
+      resumen_acciones: dedup(items.map((i) => i.acciones)),
+      resumen_estrategias: dedup(items.map((i) => i.estrategias)),
+    };
+  });
+}
+
 // Datos del PMI consolidado (para la pantalla)
 router.get('/pmi', autorizar('superadmin', 'rector', 'coordinador', 'administrador'), async (req, res, next) => {
   try {
     const esSuper = req.usuario.rol === 'superadmin';
     const inst = esSuper ? (req.query.institucion_id || null) : req.usuario.institucion_id;
-    const recomendaciones = (await query(
-      `SELECT p.id AS piar_id, p.periodo, p.pmi, p.grado AS grado_piar, e.nombres, e.grado
+    const piars = (await query(
+      `SELECT p.id AS piar_id, p.periodo, p.grado AS grado_piar, e.nombres, e.grado, p.recomendaciones_pmi
        FROM piar p JOIN estudiante e ON e.id = p.estudiante_id
-       WHERE ($1::int IS NULL OR e.institucion_id = $1) AND COALESCE(p.pmi,'') <> ''
+       WHERE ($1::int IS NULL OR e.institucion_id = $1)
        ORDER BY e.nombres`, [inst || null])).rows;
+    const actores = consolidarPmi(piars);
     const barreras = (await query(
       `SELECT a.barrera, COUNT(*)::int AS n
        FROM ajuste_razonable a JOIN piar p ON p.id = a.piar_id JOIN estudiante e ON e.id = p.estudiante_id
        WHERE ($1::int IS NULL OR e.institucion_id = $1) AND COALESCE(a.barrera,'') <> ''
        GROUP BY a.barrera ORDER BY n DESC LIMIT 20`, [inst || null])).rows;
-    res.json({ recomendaciones, barreras });
+    res.json({ actores, barreras });
   } catch (err) { next(err); }
 });
 
@@ -871,10 +896,10 @@ router.get('/pmi/pdf', autorizar('superadmin', 'rector', 'coordinador', 'adminis
   try {
     const esSuper = req.usuario.rol === 'superadmin';
     const inst = esSuper ? (req.query.institucion_id || null) : req.usuario.institucion_id;
-    // PIAR del colegio con recomendaciones PMI o barreras
+    // PIAR del colegio con recomendaciones PMI (por actor) o barreras
     const { rows } = await query(
-      `SELECT p.id, p.periodo, p.pmi, p.grado AS grado_piar, e.nombres, e.grado, i.nombre AS institucion_nombre,
-              i.logo AS inst_logo, i.nit AS inst_nit
+      `SELECT p.id, p.periodo, p.grado AS grado_piar, e.nombres, e.grado, p.recomendaciones_pmi,
+              i.nombre AS institucion_nombre, i.logo AS inst_logo, i.nit AS inst_nit
        FROM piar p JOIN estudiante e ON e.id = p.estudiante_id
        LEFT JOIN institucion i ON i.id = e.institucion_id
        WHERE ($1::int IS NULL OR e.institucion_id = $1)
@@ -904,17 +929,24 @@ router.get('/pmi/pdf', autorizar('superadmin', 'rector', 'coordinador', 'adminis
       });
     }
 
-    banda(doc, 'Recomendaciones para el Plan de Mejoramiento Institucional');
+    banda(doc, 'Resumen por actor (insumo para el plan de mejoramiento)');
     doc.moveDown(0.2);
-    const conPmi = rows.filter((r) => (r.pmi || '').trim());
-    if (conPmi.length === 0) {
-      doc.font('Helvetica-Oblique').fontSize(9).text('Aún no se han registrado recomendaciones PMI en los PIAR. Se diligencian en el Anexo 2 de cada estudiante.', X0, doc.y + 2, { width: ANCHO });
+    const actores = consolidarPmi(rows);
+    const hayAlgo = actores.some((a) => a.items.length > 0);
+    if (!hayAlgo) {
+      doc.font('Helvetica-Oblique').fontSize(9).text('Aún no se han registrado recomendaciones PMI en los PIAR. Se diligencian en el Anexo 2 (punto 7) de cada estudiante.', X0, doc.y + 2, { width: ANCHO });
     } else {
-      conPmi.forEach((r) => {
-        saltoSi(doc, 30);
-        doc.font('Helvetica-Bold').fontSize(9).fillColor(GRIS).text(`${r.nombres}  ·  ${r.grado_piar || r.grado || ''}  ·  ${r.periodo}`, X0, doc.y);
-        doc.font('Helvetica').fontSize(9).fillColor('#000').text(r.pmi, X0, doc.y, { width: ANCHO });
-        doc.moveDown(0.4);
+      actores.filter((a) => a.items.length > 0).forEach((a) => {
+        saltoSi(doc, 40);
+        doc.font('Helvetica-Bold').fontSize(9.5).fillColor(GRIS).text(`${a.nombre}  (${a.items.length} PIAR)`, X0, doc.y + 4);
+        doc.fillColor('#000').moveDown(0.2);
+        doc.font('Helvetica-Bold').fontSize(8.5).text('Acciones:', X0 + 6, doc.y, { continued: false });
+        a.resumen_acciones.forEach((t) => { saltoSi(doc, 12); doc.font('Helvetica').fontSize(8.5).text(`•  ${t}`, X0 + 12, doc.y, { width: ANCHO - 18 }); });
+        if (!a.resumen_acciones.length) doc.font('Helvetica-Oblique').fontSize(8.5).text('—', X0 + 12, doc.y);
+        doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#000').text('Estrategias a implementar:', X0 + 6, doc.y + 2);
+        a.resumen_estrategias.forEach((t) => { saltoSi(doc, 12); doc.font('Helvetica').fontSize(8.5).text(`•  ${t}`, X0 + 12, doc.y, { width: ANCHO - 18 }); });
+        if (!a.resumen_estrategias.length) doc.font('Helvetica-Oblique').fontSize(8.5).text('—', X0 + 12, doc.y);
+        doc.moveDown(0.5);
       });
     }
     finalizar(doc);
