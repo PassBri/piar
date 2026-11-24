@@ -10,6 +10,36 @@ const ROLES_LABEL = {
   psicoorientador: 'Psicoorientador', docente: 'Docente', padre: 'Padre de familia', administrador: 'Administrador',
 };
 
+const GESTOR = ['docente', 'psicoorientador', 'administrador', 'rector', 'coordinador', 'superadmin'];
+const DIRECTIVO = ['administrador', 'rector', 'coordinador', 'superadmin'];
+const CONFIG = ['administrador', 'rector', 'coordinador', 'psicoorientador', 'superadmin'];
+
+// Menú ordenado por el flujo del proceso PIAR, en secciones
+const MENU = [
+  { items: [{ to: '/', end: true, label: 'Panel' }] },
+  { titulo: 'Estudiantes', items: [
+    { to: '/estudiantes', label: 'Estudiantes' },
+    { to: '/mosaico', label: 'Mosaico', roles: GESTOR },
+  ] },
+  { titulo: 'Proceso PIAR', items: [
+    { to: '/deteccion', label: 'Detección', roles: GESTOR },
+    { to: '/seguimiento', label: 'Seguimiento', roles: GESTOR },
+    { to: '/apoyos', label: 'Apoyos', roles: GESTOR },
+    { to: '/pmi', label: 'PMI', roles: DIRECTIVO },
+  ] },
+  { titulo: 'Análisis', items: [
+    { to: '/estadisticas', label: 'Estadísticas', roles: GESTOR },
+  ] },
+  { titulo: 'Recursos', items: [
+    { to: '/aprendizaje', label: 'Aprendizaje' },
+    { to: '/discapacidades', label: 'Discapacidades' },
+  ] },
+  { titulo: 'Configuración', items: [
+    { to: '/mi-colegio', label: 'Mi colegio', roles: CONFIG },
+    { to: '/admin', label: 'Administración', roles: DIRECTIVO },
+  ] },
+];
+
 export default function Layout() {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
@@ -37,7 +67,7 @@ export default function Layout() {
     navigate('/login');
   }
 
-  const esGestor = ['docente', 'psicoorientador', 'administrador', 'rector', 'coordinador', 'superadmin'].includes(usuario.rol);
+  const puede = (roles) => !roles || roles.includes(usuario.rol);
 
   return (
     <div className="app-shell">
@@ -48,20 +78,20 @@ export default function Layout() {
           <span>PIAR</span>
         </div>
         <nav>
-          <NavLink to="/" end className={({ isActive }) => isActive ? 'activo' : ''}>Panel</NavLink>
-          <NavLink to="/estudiantes" className={({ isActive }) => isActive ? 'activo' : ''}>Estudiantes</NavLink>
-          {esGestor && <NavLink to="/mosaico" className={({ isActive }) => isActive ? 'activo' : ''}>Mosaico</NavLink>}
-          {esGestor && <NavLink to="/deteccion" className={({ isActive }) => isActive ? 'activo' : ''}>Detección</NavLink>}
-          {esGestor && <NavLink to="/apoyos" className={({ isActive }) => isActive ? 'activo' : ''}>Apoyos</NavLink>}
-          {esGestor && <NavLink to="/seguimiento" className={({ isActive }) => isActive ? 'activo' : ''}>Seguimiento</NavLink>}
-          {esGestor && <NavLink to="/estadisticas" className={({ isActive }) => isActive ? 'activo' : ''}>Estadísticas</NavLink>}
-          {['rector', 'coordinador', 'administrador', 'superadmin'].includes(usuario.rol) && <NavLink to="/pmi" className={({ isActive }) => isActive ? 'activo' : ''}>PMI</NavLink>}
-          <NavLink to="/aprendizaje" className={({ isActive }) => isActive ? 'activo' : ''}>Aprendizaje</NavLink>
-          <NavLink to="/discapacidades" className={({ isActive }) => isActive ? 'activo' : ''}>Discapacidades</NavLink>
-          {['administrador', 'rector', 'coordinador', 'psicoorientador', 'superadmin'].includes(usuario.rol) &&
-            <NavLink to="/mi-colegio" className={({ isActive }) => isActive ? 'activo' : ''}>Mi colegio</NavLink>}
-          {['administrador', 'rector', 'coordinador', 'superadmin'].includes(usuario.rol) &&
-            <NavLink to="/admin" className={({ isActive }) => isActive ? 'activo' : ''}>Administración</NavLink>}
+          {MENU.map((grupo, gi) => {
+            const items = grupo.items.filter((it) => puede(it.roles));
+            if (!items.length) return null;
+            return (
+              <div className="nav-grupo" key={gi}>
+                {grupo.titulo && <div className="nav-titulo">{grupo.titulo}</div>}
+                {items.map((it) => (
+                  <NavLink key={it.to} to={it.to} end={it.end} className={({ isActive }) => isActive ? 'activo' : ''}>
+                    {it.label}
+                  </NavLink>
+                ))}
+              </div>
+            );
+          })}
         </nav>
         <div className="rol">
           {usuario.nombres}<br />
