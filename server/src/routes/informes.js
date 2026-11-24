@@ -189,10 +189,17 @@ router.get('/estudiante/:id/pdf', async (req, res, next) => {
     campos(doc, [['Institución educativa', e.inst_nombre], ['Sede', e.inst_sede]]);
     campos(doc, [['Municipio', e.municipio_nombre], ['Departamento', e.departamento_nombre]]);
 
+    banda(doc, 'Diligenciamiento del Anexo 1');
+    seccionJson(doc, e.identificacion, [
+      ['fecha_diligenciamiento', 'Fecha de diligenciamiento'], ['lugar_diligenciamiento', 'Lugar de diligenciamiento'],
+      ['nombre_diligencia', 'Nombre de quien diligencia'], ['rol_diligencia', 'Rol en la SE o la IE'],
+    ]);
+
     banda(doc, '1) Información general del estudiante');
     campos(doc, [['Nombres y apellidos', e.nombres], ['Documento', `${e.documento_tipo || ''} ${e.documento_numero || ''}`]]);
     campos(doc, [['Fecha de nacimiento', e.fecha_nacimiento ? new Date(e.fecha_nacimiento).toLocaleDateString('es-CO') : '—'], ['Grado actual', e.grado]]);
     seccionJson(doc, e.identificacion, [
+      ['edad', 'Edad'],
       ['sede', 'Sede'], ['jornada', 'Jornada'], ['grado_ingreso', 'Grado al que aspira ingresar'],
       ['lugar_nacimiento', 'Lugar de nacimiento'], ['sexo', 'Sexo'],
       ['departamento_vive', 'Departamento donde vive'], ['municipio_vive', 'Municipio'],
@@ -265,8 +272,10 @@ router.get('/piar/:id/pdf', async (req, res, next) => {
     campos(doc, [['Grado', piar.grado], ['Fecha de nacimiento', piar.fecha_nacimiento ? new Date(piar.fecha_nacimiento).toLocaleDateString('es-CO') : '—']]);
 
     banda(doc, '1. Características del estudiante');
-    campos(doc, [['Valoración pedagógica', piar.valoracion || '—']]);
-    campos(doc, [['Aspectos generales (gustos, habilidades, apoyos)', piar.aspectos_generales || '—']]);
+    const car = piar.caracteristicas || {};
+    campos(doc, [['Gustos, intereses, aspectos que le desagradan y expectativas del estudiante y la familia', car.gustos || piar.aspectos_generales || '—']]);
+    campos(doc, [['Lo que hace, puede hacer o requiere apoyo para favorecer su proceso educativo', car.desempeno || piar.valoracion || '—']]);
+    campos(doc, [['Habilidades, competencias, cualidades y aprendizajes con los que cuenta para el grado', car.habilidades || '—']]);
 
     // ?periodo=1..5 imprime un solo periodo (5 = promoción); 'all'/vacío imprime todos
     const NOMBRE_PERIODO = ['PRIMER PERIODO', 'SEGUNDO PERIODO', 'TERCER PERIODO', 'CUARTO PERIODO', 'PROMOCIÓN (CONSOLIDADO ANUAL)'];
@@ -291,8 +300,20 @@ router.get('/piar/:id/pdf', async (req, res, next) => {
     });
     if (impresos === 0) doc.font('Helvetica-Oblique').fontSize(9).text('No se han registrado ajustes razonables para esta selección.');
     if (!soloP) {
-      banda(doc, '7. Recomendaciones para el Plan de Mejoramiento Institucional (PMI)');
-      campos(doc, [['Acciones para eliminar barreras a nivel institucional', piar.pmi || '—']]);
+      banda(doc, '7. Recomendaciones para el Plan de Mejoramiento Institucional (eliminación de barreras)');
+      const rp = piar.recomendaciones_pmi || {};
+      const ACTORES = [['familia', 'Familia, cuidadores o con quienes vive'], ['docentes', 'Docentes'],
+        ['directivos', 'Directivos'], ['administrativos', 'Administrativos'], ['pares', 'Pares (compañeros)']];
+      let algo = false;
+      ACTORES.forEach(([clave, nombre]) => {
+        const a = rp[clave] || {};
+        if ((a.acciones || '').trim() || (a.estrategias || '').trim()) {
+          algo = true;
+          campos(doc, [[nombre, `Acciones: ${a.acciones || '—'}\nEstrategias: ${a.estrategias || '—'}`]]);
+        }
+      });
+      if (!algo && (piar.pmi || '').trim()) campos(doc, [['Acciones para eliminar barreras a nivel institucional', piar.pmi]]);
+      if (!algo && !(piar.pmi || '').trim()) campos(doc, [['Recomendaciones', '—']]);
     }
     finalizar(doc);
   } catch (err) { next(err); }

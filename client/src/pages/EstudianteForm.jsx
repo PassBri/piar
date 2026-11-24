@@ -6,9 +6,20 @@ import { NOMBRES_DISCAPACIDAD } from '../data/discapacidades.js';
 
 // Campos oficiales del Anexo 1 (Formato PIAR - Decreto 1421). t: 'area' = textarea.
 const CAMPOS = {
+  diligenciamiento: {
+    titulo: 'Diligenciamiento del Anexo 1',
+    store: 'identificacion',
+    campos: [
+      ['fecha_diligenciamiento', 'Fecha de diligenciamiento (DD/MM/AAAA)'],
+      ['lugar_diligenciamiento', 'Lugar de diligenciamiento'],
+      ['nombre_diligencia', 'Nombre de la persona que diligencia'],
+      ['rol_diligencia', 'Rol que desempeña en la SE o la IE'],
+    ],
+  },
   identificacion: {
     titulo: '1) Información general del estudiante',
     campos: [
+      ['edad', 'Edad'],
       ['sede', 'Sede'], ['jornada', 'Jornada'], ['grado_ingreso', 'Grado al que aspira ingresar'],
       ['lugar_nacimiento', 'Lugar de nacimiento'], ['sexo', 'Sexo'],
       ['departamento_vive', 'Departamento donde vive'], ['municipio_vive', 'Municipio'],
@@ -145,17 +156,18 @@ export default function EstudianteForm() {
   }
 
   const campoInput = (grupo, k, tipo) => {
+    const store = CAMPOS[grupo].store || grupo;
     if (k === 'discapacidad') {
       return (
-        <select value={form[grupo][k] || ''} onChange={(e) => setG(grupo, k, e.target.value)} disabled={!editable}>
+        <select value={form[store][k] || ''} onChange={(e) => setG(store, k, e.target.value)} disabled={!editable}>
           <option value="">— Sin discapacidad / no aplica —</option>
           {NOMBRES_DISCAPACIDAD.map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
       );
     }
     return tipo === 'area'
-      ? <textarea value={form[grupo][k] || ''} onChange={(e) => setG(grupo, k, e.target.value)} disabled={!editable} />
-      : <input value={form[grupo][k] || ''} onChange={(e) => setG(grupo, k, e.target.value)} disabled={!editable} />;
+      ? <textarea value={form[store][k] || ''} onChange={(e) => setG(store, k, e.target.value)} disabled={!editable} />
+      : <input value={form[store][k] || ''} onChange={(e) => setG(store, k, e.target.value)} disabled={!editable} />;
   };
 
   function filasSeccion(grupo) {
