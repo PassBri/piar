@@ -32,11 +32,51 @@ export default function Estudiantes() {
 
   const sedes = [...new Set(cursos.map((c) => c.sede))];
 
+  // Importa estudiantes desde un CSV: columnas Tipo documento, Documento, Nombres, Grado
+  function importarCSV(ev) {
+    const file = ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const lineas = reader.result.replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim());
+        const parseLinea = (l) => {
+          const out = []; let cur = ''; let q = false;
+          for (let i = 0; i < l.length; i++) {
+            const c = l[i];
+            if (c === '"') { if (q && l[i + 1] === '"') { cur += '"'; i++; } else q = !q; }
+            else if (c === ',' && !q) { out.push(cur); cur = ''; }
+            else cur += c;
+          }
+          out.push(cur); return out;
+        };
+        const filas = lineas.slice(1).map(parseLinea).map((c) => ({
+          documento_tipo: c[0]?.trim(), documento_numero: c[1]?.trim(), nombres: c[2]?.trim(), grado: c[3]?.trim(),
+        })).filter((f) => f.nombres);
+        if (filas.length === 0) { setError('El archivo no tiene filas válidas (se espera: Tipo documento, Documento, Nombres, Grado).'); return; }
+        const r = await api.post('/estudiantes/importar', { estudiantes: filas });
+        setError(''); cargar();
+        alert(`Se importaron ${r.creados} estudiante(s).`);
+      } catch (e) { setError(e.message); }
+      finally { ev.target.value = ''; }
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ color: 'var(--gris-700)' }}>Estudiantes</h2>
-        {puedeCrear && <Link className="btn" to="/estudiantes/nuevo">+ Nuevo estudiante</Link>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        <h2 style={{ color: 'var(--gris-700)', margin: 0 }}>Estudiantes</h2>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <button className="btn sec sm" onClick={() => api.descargarArchivo('/estudiantes/exportar/csv', 'estudiantes.csv')}>Exportar CSV ↓</button>
+          {puedeCrear && (
+            <label className="btn sec sm" style={{ cursor: 'pointer' }}>
+              Importar CSV ↑
+              <input type="file" accept=".csv" style={{ display: 'none' }} onChange={importarCSV} />
+            </label>
+          )}
+          {puedeCrear && <Link className="btn" to="/estudiantes/nuevo">+ Nuevo estudiante</Link>}
+        </div>
       </div>
       {error && <div className="mensaje-error">{error}</div>}
 

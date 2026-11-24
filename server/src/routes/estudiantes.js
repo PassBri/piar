@@ -66,6 +66,43 @@ router.get('/mosaico/datos', autorizar('superadmin', 'rector', 'coordinador', 'p
   } catch (err) { next(err); }
 });
 
+// GET /api/estudiantes/exportar/csv  — exporta los estudiantes del colegio
+router.get('/exportar/csv', async (req, res, next) => {
+  try {
+    const inst = req.usuario.rol === 'superadmin' ? (req.query.institucion_id || null) : req.usuario.institucion_id;
+    const extra = ROLES_RESERVADO.includes(req.usuario.rol) ? '' : ' AND reservado = FALSE';
+    const { rows } = await query(
+      `SELECT documento_tipo, documento_numero, nombres, grado, entorno_salud->>'discapacidad' AS discapacidad
+       FROM estudiante WHERE ($1::int IS NULL OR institucion_id = $1)${extra} ORDER BY nombres`, [inst || null]);
+    const esc = (s) => `"${String(s ?? '').replace(/"/g, '""')}"`;
+    const cab = 'Tipo documento,Documento,Nombres,Grado,Discapacidad';
+    const lineas = rows.map((r) => [r.documento_tipo, r.documento_numero, r.nombres, r.grado, r.discapacidad].map(esc).join(','));
+    const csv = '﻿' + [cab, ...lineas].join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="estudiantes.csv"');
+    res.send(csv);
+  } catch (err) { next(err); }
+});
+
+// POST /api/estudiantes/importar  — crea estudiantes en lote (desde CSV/Excel)
+router.post('/importar', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
+  try {
+    const inst = req.usuario.rol === 'superadmin' ? (req.body.institucion_id || null) : req.usuario.institucion_id;
+    const filas = Array.isArray(req.body.estudiantes) ? req.body.estudiantes : [];
+    let creados = 0;
+    for (const f of filas) {
+      if (!f.nombres || !String(f.nombres).trim()) continue;
+      await query(
+        `INSERT INTO estudiante (institucion_id, documento_tipo, documento_numero, nombres, grado, creado_por)
+         VALUES ($1,$2,$3,$4,$5,$6)`,
+        [inst, (f.documento_tipo || 'TI').trim(), f.documento_numero || null, String(f.nombres).trim(), f.grado || null, req.usuario.id]);
+      creados += 1;
+    }
+    await auditar(req, { entidad: 'estudiante', accion: 'crear', descripcion: `Importó ${creados} estudiante(s) en lote` });
+    res.json({ creados });
+  } catch (err) { next(err); }
+});
+
 // GET /api/estudiantes/:id  (detalle con Anexo 1)
 router.get('/:id', async (req, res, next) => {
   try {
