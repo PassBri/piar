@@ -374,14 +374,18 @@ export default function PiarDetalle() {
               Escoge el área de la lista. Si falta una asignatura, el coordinador o el psicoorientador debe agregarla.
             </p>
           )}
-          <div className="campo"><label>Objetivo / propósito (según EBC y DBA)</label>
-            <textarea value={nuevo.objetivo} onChange={(e) => setNuevo({ ...nuevo, objetivo: e.target.value })} /></div>
-          <div className="campo"><label>Barrera para el aprendizaje, el desarrollo o la participación</label>
-            <textarea value={nuevo.barrera} onChange={(e) => setNuevo({ ...nuevo, barrera: e.target.value })} required /></div>
-          <div className="campo"><label>Ajuste razonable (apoyos / estrategias)</label>
-            <textarea value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} required /></div>
-          <div className="campo"><label>Evaluación de los ajustes (observaciones)</label>
-            <textarea value={nuevo.evaluacion} onChange={(e) => setNuevo({ ...nuevo, evaluacion: e.target.value })} /></div>
+          <div className="fila">
+            <div className="campo"><label>Objetivo / propósito (según EBC y DBA)</label>
+              <textarea rows={3} value={nuevo.objetivo} onChange={(e) => setNuevo({ ...nuevo, objetivo: e.target.value })} /></div>
+            <div className="campo"><label>Barrera para el aprendizaje, el desarrollo o la participación</label>
+              <textarea rows={3} value={nuevo.barrera} onChange={(e) => setNuevo({ ...nuevo, barrera: e.target.value })} required /></div>
+          </div>
+          <div className="fila">
+            <div className="campo"><label>Ajuste razonable (apoyos / estrategias)</label>
+              <textarea rows={3} value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} required /></div>
+            <div className="campo"><label>Evaluación de los ajustes (observaciones)</label>
+              <textarea rows={3} value={nuevo.evaluacion} onChange={(e) => setNuevo({ ...nuevo, evaluacion: e.target.value })} /></div>
+          </div>
           {catalogo.length > 0 && (
             <div className="campo">
               <label>Sugerencias del catálogo (MEN) — clic para usar</label>
