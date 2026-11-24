@@ -8,8 +8,12 @@ const TIPOS = [
   ['comunicacion', 'Comunicación'], ['apoyos_humanos', 'Apoyos humanos'], ['tecnologias', 'Tecnologías'],
 ];
 const INTENSIDADES = ['generalizado', 'extenso', 'limitado', 'intermitente'];
-// Escala de valoración: cualitativa nacional o nota numérica (1-5, 1-10) según el SIEE del colegio
-const ESCALA_DESEMPENO = ['Superior', 'Alto', 'Básico', 'Bajo', '5', '4', '3', '2', '1', '10', '9', '8', '7', '6'];
+// Sistema de evaluación (SIEE) del colegio: define las opciones de desempeño
+const OPCIONES_EVAL = {
+  cualitativo: ['Superior', 'Alto', 'Básico', 'Bajo'],
+  numerico5: ['5', '4', '3', '2', '1'],
+  numerico10: ['10', '9', '8', '7', '6', '5', '4', '3', '2', '1'],
+};
 
 // Actores del Plan de Mejoramiento Institucional (punto 7 del formato oficial)
 const ACTORES_PMI = [
@@ -145,6 +149,10 @@ export default function PiarDetalle() {
     await api.put('/valoraciones', { piar_id: Number(id), area_id, periodo, desempeno });
     cargarValoraciones();
   }
+  async function guardarSistemaEval(sis) {
+    try { await api.put(`/geografia/instituciones/${piar.institucion_id}/periodos`, { num_periodos: numPeriodos, usa_promocion: usaPromocion, sistema_evaluacion: sis }); cargar(); }
+    catch (err) { setError(err.message); }
+  }
   async function guardarCabecera(e) {
     e.preventDefault();
     await api.put(`/piar/${id}`, {
@@ -233,6 +241,7 @@ export default function PiarDetalle() {
 
   const av = piar.avance || { anexo1: 0, anexo2: 0, anexo3: 0, total: 0 };
   const ajustesVisibles = piar.ajustes.filter((a) => periodoActivo === 0 || a.periodo === periodoActivo);
+  const opcionesDesempeno = OPCIONES_EVAL[piar.sistema_evaluacion] || OPCIONES_EVAL.cualitativo;
   const sufijoPdf = periodoActivo === 0 ? 'all' : periodoActivo;
   const nombrePdf = periodoActivo === 0 ? 'Anexo2_todos' : (periodoActivo === 5 ? 'Anexo2_promocion' : `Anexo2_P${periodoActivo}`);
 
@@ -336,6 +345,14 @@ export default function PiarDetalle() {
                 onChange={(e) => guardarPeriodos(numPeriodos, e.target.checked)} />
               Usar promoción (consolidado anual)
             </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8, fontWeight: 400 }}>
+              Evaluación:
+              <select value={piar.sistema_evaluacion || 'cualitativo'} onChange={(e) => guardarSistemaEval(e.target.value)} style={{ width: 'auto' }}>
+                <option value="cualitativo">Superior / Alto / Básico / Bajo</option>
+                <option value="numerico5">Nota de 1 a 5</option>
+                <option value="numerico10">Nota de 1 a 10</option>
+              </select>
+            </label>
           </div>
         )}
         <div className="periodos-scroll">
@@ -353,48 +370,24 @@ export default function PiarDetalle() {
           <button className="btn sec sm" title="Descargar" onClick={() => api.descargarPdf(`/informes/piar/${id}/pdf?periodo=${sufijoPdf}`, `${nombrePdf}.pdf`)}>↓</button>
         </div>
 
-        {/* Valoración por área */}
-        <datalist id="escala-desempeno">{ESCALA_DESEMPENO.map((d) => <option key={d} value={d} />)}</datalist>
-        <h3 style={{ marginBottom: 2 }}>Valoración por área {periodoActivo === 0 ? '(todos los periodos)' : `· ${nombrePeriodo(periodoActivo)}`}</h3>
-        <p style={{ fontSize: 12, color: 'var(--gris-500)', margin: '0 0 6px' }}>Desempeño según el SIEE del colegio: Superior/Alto/Básico/Bajo, o una nota (1 a 5, o 1 a 10).</p>
-        <table className="ftabla" style={{ marginBottom: 16 }}>
-          <thead>
-            {periodoActivo === 0
-              ? <tr><th>Área</th>{periodosDisponibles.map((p) => <th key={p}>{nombrePeriodo(p)}</th>)}</tr>
-              : <tr><th>Área</th><th style={{ width: '30%' }}>Desempeño</th></tr>}
-          </thead>
-          <tbody>
-            {areas.map((a) => (
-              <tr key={a.id}>
-                <td className="lbl">{a.nombre}</td>
-                {(periodoActivo === 0 ? periodosDisponibles : [periodoActivo]).map((p) => (
-                  <td className="val" key={p}>
-                    <input list="escala-desempeno" key={`des-${a.id}-${p}`} defaultValue={valorDe(a.id, p)} disabled={!editable}
-                      onBlur={(e) => { if ((valorDe(a.id, p) || '') !== e.target.value) guardarValoracion(a.id, p, e.target.value); }}
-                      placeholder="—" style={{ textAlign: 'center' }} />
-                  </td>
-                ))}
-              </tr>
-            ))}
-            {areas.length === 0 && <tr><td className="val" colSpan={periodoActivo === 0 ? periodosDisponibles.length + 1 : 2} style={{ color: 'var(--gris-500)', padding: 8 }}>No hay áreas configuradas.</td></tr>}
-          </tbody>
-        </table>
-
         {/* Barreras y ajustes razonables del periodo — se diligencia por filas, una por área */}
         <h3 style={{ marginBottom: 2 }}>2. Ajustes razonables {periodoActivo === 0 ? '(todos)' : `· ${nombrePeriodo(periodoActivo)}`}</h3>
         <p style={{ fontSize: 12, color: 'var(--gris-500)', margin: '0 0 6px' }}>
           Escribe directamente en cada fila. Los cambios se guardan al salir del campo. La última fila agrega un ajuste nuevo.
+          Desliza la tabla a los lados si no cabe en la pantalla.
         </p>
-        <table className="ftabla">
+        <div style={{ overflowX: 'auto', border: '1px solid var(--gris-200)', borderRadius: 8 }}>
+        <table className="ftabla" style={{ minWidth: 1020, margin: 0 }}>
           <thead>
             <tr>
-              {periodoActivo === 0 && <th style={{ width: '6%' }}>Per.</th>}
-              <th style={{ width: '16%' }}>Área</th>
-              <th>Objetivos / propósitos<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(para el grado, según EBC y DBA)</span></th>
-              <th>Barreras<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(en el contexto)</span></th>
-              <th>Ajustes razonables<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(apoyos/estrategias)</span></th>
-              <th>Evaluación de los ajustes</th>
-              {editable && <th style={{ width: '4%' }}></th>}
+              {periodoActivo === 0 && <th style={{ minWidth: 58 }}>Per.</th>}
+              <th style={{ minWidth: 150 }}>Área</th>
+              <th style={{ minWidth: 170 }}>Objetivos / propósitos<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(para el grado, según EBC y DBA)</span></th>
+              <th style={{ minWidth: 170 }}>Barreras<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(en el contexto)</span></th>
+              <th style={{ minWidth: 180 }}>Ajustes razonables<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(apoyos/estrategias)</span></th>
+              <th style={{ minWidth: 170 }}>Evaluación de los ajustes</th>
+              <th style={{ minWidth: 110 }}>Desempeño</th>
+              {editable && <th style={{ minWidth: 40 }}></th>}
             </tr>
           </thead>
           <tbody>
@@ -431,6 +424,16 @@ export default function PiarDetalle() {
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
                   {editable ? <textarea key={`e${a.id}`} rows={2} defaultValue={a.evaluacion || ''} onBlur={(e) => { if ((a.evaluacion || '') !== e.target.value) actualizarAjuste(a, { evaluacion: e.target.value }); }} /> : (a.evaluacion || '—')}
                 </td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top', textAlign: 'center' }}>
+                  {a.area_id
+                    ? (editable
+                        ? <select value={valorDe(a.area_id, a.periodo)} onChange={(e) => guardarValoracion(a.area_id, a.periodo, e.target.value)} style={{ fontSize: 11 }}>
+                            <option value="">—</option>
+                            {opcionesDesempeno.map((d) => <option key={d} value={d}>{d}</option>)}
+                          </select>
+                        : (valorDe(a.area_id, a.periodo) || '—'))
+                    : <span style={{ color: 'var(--gris-400)', fontSize: 11 }}>—</span>}
+                </td>
                 {editable && <td className="val" style={{ textAlign: 'center', verticalAlign: 'top' }}><button type="button" className="btn sec sm" title="Eliminar fila" onClick={() => eliminarAjuste(a.id)}>×</button></td>}
               </tr>
             ))}
@@ -461,12 +464,14 @@ export default function PiarDetalle() {
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.barrera} onChange={(e) => setNuevo({ ...nuevo, barrera: e.target.value })} placeholder="Barrera…" /></td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} placeholder="Ajuste razonable…" /></td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.evaluacion} onChange={(e) => setNuevo({ ...nuevo, evaluacion: e.target.value })} placeholder="Evaluación…" /></td>
+                <td className="val" style={{ textAlign: 'center', verticalAlign: 'top', color: 'var(--gris-400)', fontSize: 11 }}>al guardar</td>
                 <td className="val" style={{ textAlign: 'center', verticalAlign: 'top' }}><button type="button" className="btn sm" title="Agregar esta fila" onClick={() => agregarAjuste()}>+</button></td>
               </tr>
             )}
-            {ajustesVisibles.length === 0 && !editable && <tr><td className="val" colSpan={periodoActivo === 0 ? 6 : 5} style={{ color: 'var(--gris-500)', padding: 8 }}>Sin ajustes en esta selección.</td></tr>}
+            {ajustesVisibles.length === 0 && !editable && <tr><td className="val" colSpan={periodoActivo === 0 ? 7 : 6} style={{ color: 'var(--gris-500)', padding: 8 }}>Sin ajustes en esta selección.</td></tr>}
           </tbody>
         </table>
+        </div>
 
         {editable && (
           <div style={{ marginTop: 10 }}>

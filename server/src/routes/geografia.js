@@ -113,15 +113,16 @@ router.put('/instituciones/:id/datos', autorizar('superadmin', 'administrador', 
 // Configuración de periodos del colegio (cuántos periodos maneja y si usa promoción)
 router.put('/instituciones/:id/periodos', autorizar('superadmin', 'administrador', 'rector', 'coordinador'), async (req, res, next) => {
   try {
-    const { num_periodos, usa_promocion } = req.body;
+    const { num_periodos, usa_promocion, sistema_evaluacion } = req.body;
     // El rector solo puede configurar su propia institución
     if (req.usuario.rol === 'rector' && Number(req.params.id) !== req.usuario.institucion_id) {
       return res.status(403).json({ error: 'Solo puede configurar su propia institución.' });
     }
     const n = Math.min(4, Math.max(1, Number(num_periodos) || 4));
+    const sis = ['cualitativo', 'numerico5', 'numerico10'].includes(sistema_evaluacion) ? sistema_evaluacion : null;
     const { rows } = await query(
-      'UPDATE institucion SET num_periodos=$1, usa_promocion=$2 WHERE id=$3 RETURNING *',
-      [n, usa_promocion !== false, req.params.id]
+      'UPDATE institucion SET num_periodos=$1, usa_promocion=$2, sistema_evaluacion=COALESCE($3, sistema_evaluacion) WHERE id=$4 RETURNING *',
+      [n, usa_promocion !== false, sis, req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Institución no encontrada.' });
     res.json(rows[0]);

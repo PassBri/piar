@@ -118,8 +118,8 @@ function seccionJson(doc, obj, listado) {
 
 // ---- Tabla de ajustes razonables (Anexo 2), estilo oficial ----
 const COLS_AJ = [
-  ['Área/Aprendizaje', 68], ['Objetivos/Propósitos', 108], ['Barreras', 104],
-  ['Ajustes razonables', 120], ['Evaluación de los ajustes', 123],
+  ['Área/Aprendizaje', 62], ['Objetivos/Propósitos', 100], ['Barreras', 98],
+  ['Ajustes razonables', 112], ['Evaluación de los ajustes', 108], ['Desempeño', 43],
 ];
 function cabeceraAjustes(doc) {
   saltoSi(doc, 26);
@@ -133,7 +133,7 @@ function cabeceraAjustes(doc) {
 }
 function filaAjuste(doc, a) {
   const vals = [a.area_nombre || '—', a.objetivo || '—', a.barrera || '—', a.descripcion || '—',
-                a.evaluacion || (a.apoyo ? `Apoyo: ${a.apoyo}` : '—')];
+                a.evaluacion || (a.apoyo ? `Apoyo: ${a.apoyo}` : '—'), a.desempeno || '—'];
   let alto = 18;
   vals.forEach((v, i) => {
     doc.font('Helvetica').fontSize(7.5);
@@ -161,6 +161,11 @@ async function cargarPiar(id) {
   const ajustes = await query(
     `SELECT a.*, ar.nombre AS area_nombre FROM ajuste_razonable a
      LEFT JOIN area ar ON ar.id = a.area_id WHERE a.piar_id = $1 ORDER BY a.periodo, a.id`, [id]);
+  // Desempeño por área y periodo (valoracion_area), para la columna del Anexo 2
+  const vals = await query('SELECT area_id, periodo, desempeno FROM valoracion_area WHERE piar_id = $1', [id]);
+  const mapaVal = {};
+  vals.rows.forEach((v) => { mapaVal[`${v.area_id}-${v.periodo}`] = v.desempeno; });
+  ajustes.rows.forEach((a) => { a.desempeno = mapaVal[`${a.area_id}-${a.periodo}`] || ''; });
   return { piar: rows[0], ajustes: ajustes.rows };
 }
 
