@@ -237,6 +237,59 @@ CREATE TABLE usuario_curso (
 );
 CREATE INDEX idx_usuario_curso_usuario ON usuario_curso(usuario_id);
 
+-- -------- Detección en el aula (tamizaje de caracterización) --------
+CREATE TABLE tamizaje (
+    id              SERIAL PRIMARY KEY,
+    estudiante_id   INTEGER NOT NULL REFERENCES estudiante(id) ON DELETE CASCADE,
+    fecha           DATE NOT NULL DEFAULT CURRENT_DATE,
+    aplicado_por    INTEGER REFERENCES usuario(id) ON DELETE SET NULL,
+    respuestas      JSONB NOT NULL DEFAULT '{}'::jsonb,  -- { dominio: { indicador: 1-4 } }
+    dominios_alerta JSONB NOT NULL DEFAULT '[]'::jsonb,  -- dominios con señal de alerta
+    observaciones   TEXT,
+    creado_en       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_tamizaje_estudiante ON tamizaje(estudiante_id);
+
+-- -------- Adaptaciones para pruebas de Estado (ICFES/Saber) --------
+CREATE TABLE prueba_estado (
+    id            SERIAL PRIMARY KEY,
+    estudiante_id INTEGER NOT NULL REFERENCES estudiante(id) ON DELETE CASCADE,
+    tipo          VARCHAR(60),                      -- Saber 11, Saber 3°5°9°, etc.
+    apoyos        JSONB NOT NULL DEFAULT '[]'::jsonb, -- apoyos solicitados
+    otros_apoyos  TEXT,
+    observaciones TEXT,
+    fecha         DATE DEFAULT CURRENT_DATE,
+    creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_prueba_estudiante ON prueba_estado(estudiante_id);
+
+-- -------- Promoción, egreso y titulación --------
+CREATE TABLE promocion (
+    id              SERIAL PRIMARY KEY,
+    piar_id         INTEGER NOT NULL UNIQUE REFERENCES piar(id) ON DELETE CASCADE,
+    decision        VARCHAR(30),   -- promovido, no_promovido, promocion_anticipada, egresado, titulado
+    grado_cursado   VARCHAR(40),
+    grado_siguiente VARCHAR(40),
+    criterios       TEXT,
+    observaciones   TEXT,
+    fecha           DATE DEFAULT CURRENT_DATE
+);
+
+-- -------- Remisiones y articulación intersectorial (salud, ICBF, etc.) --------
+CREATE TABLE remision (
+    id            SERIAL PRIMARY KEY,
+    estudiante_id INTEGER NOT NULL REFERENCES estudiante(id) ON DELETE CASCADE,
+    sector        VARCHAR(40),    -- Salud, Protección, Rehabilitación, Otro
+    entidad       VARCHAR(140),   -- EPS/IPS/ICBF/fundación
+    motivo        TEXT,
+    fecha         DATE DEFAULT CURRENT_DATE,
+    estado        VARCHAR(30) NOT NULL DEFAULT 'enviada',  -- enviada, en_proceso, respondida
+    respuesta     TEXT,           -- síntesis del informe recibido
+    creado_por    INTEGER REFERENCES usuario(id) ON DELETE SET NULL,
+    creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_remision_estudiante ON remision(estudiante_id);
+
 -- -------- Anexo 4: acta de seguimiento/entrega e informe de transición --------
 CREATE TABLE anexo4 (
     id                  SERIAL PRIMARY KEY,

@@ -634,6 +634,54 @@ router.get('/pmi', autorizar('superadmin', 'rector', 'coordinador', 'administrad
   } catch (err) { next(err); }
 });
 
+// ====== Formato de tamizaje (detección en el aula) ======
+router.get('/tamizaje/:id/pdf', async (req, res, next) => {
+  try {
+    const { DOMINIOS_NOMBRE } = await import('../lib/tamizaje.js');
+    const { rows } = await query(
+      `SELECT t.*, u.nombres AS aplicado_nombre, e.nombres AS estudiante, e.grado, e.institucion_id, e.reservado,
+              i.nombre AS inst_nombre, i.logo AS inst_logo, i.nit AS inst_nit
+       FROM tamizaje t JOIN estudiante e ON e.id = t.estudiante_id
+       LEFT JOIN usuario u ON u.id = t.aplicado_por
+       LEFT JOIN institucion i ON i.id = e.institucion_id WHERE t.id = $1`, [req.params.id]);
+    const t = rows[0];
+    const neg = negarAcceso(req.usuario, t && { institucion_id: t.institucion_id, reservado: t.reservado });
+    if (neg) return res.status(neg.status).json({ error: neg.error });
+    const alerta = Array.isArray(t.dominios_alerta) ? t.dominios_alerta : [];
+
+    const doc = iniciar(res, req, `Tamizaje_${t.estudiante_id}.pdf`);
+    titulo(doc, 'DETECCIÓN EN EL AULA – TAMIZAJE DE CARACTERIZACIÓN', 'Escalas de observación (MEN). Valoración 1 a 4.',
+      { logo: t.inst_logo, nombre: t.inst_nombre, nit: t.inst_nit });
+    campos(doc, [['Estudiante', t.estudiante], ['Grado', t.grado]]);
+    campos(doc, [['Fecha', t.fecha ? new Date(t.fecha).toLocaleDateString('es-CO') : '—'], ['Aplicado por', t.aplicado_nombre || '—']]);
+
+    banda(doc, 'Resultado por dominio');
+    doc.moveDown(0.2);
+    Object.entries(DOMINIOS_NOMBRE).forEach(([clave, nombre]) => {
+      const resp = t.respuestas?.[clave] || {};
+      const vals = Object.values(resp).filter((v) => v >= 1 && v <= 4);
+      const prom = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : '—';
+      const enAlerta = alerta.includes(clave);
+      saltoSi(doc, 16);
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(enAlerta ? '#c62828' : '#2e7d32')
+        .text(enAlerta ? 'ALERTA   ' : 'OK       ', X0, doc.y, { continued: true });
+      doc.font('Helvetica').fillColor('#000').text(`${nombre}  —  promedio ${prom}`, { width: ANCHO - 20 });
+    });
+
+    doc.moveDown(0.5);
+    banda(doc, 'Conclusión');
+    if (alerta.length === 0) {
+      campos(doc, [['Observación', 'No se identificaron señales de alerta. Continuar la observación regular en el aula.']]);
+    } else {
+      const nombres = alerta.map((c) => DOMINIOS_NOMBRE[c]).join('; ');
+      campos(doc, [['Dominios con señal de alerta', nombres]]);
+      campos(doc, [['Recomendación', 'Se sugiere remitir al equipo de orientación / valoración pedagógica para profundizar en estos dominios. Este tamizaje es una observación de aula, no un diagnóstico.']]);
+    }
+    if (t.observaciones) campos(doc, [['Observaciones del docente', t.observaciones]]);
+    finalizar(doc);
+  } catch (err) { next(err); }
+});
+
 // ====== Formato de Plan de Mejoramiento Institucional (PMI) desde los PIAR ======
 router.get('/pmi/pdf', autorizar('superadmin', 'rector', 'coordinador', 'administrador'), async (req, res, next) => {
   try {
