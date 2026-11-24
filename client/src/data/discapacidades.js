@@ -1,0 +1,218 @@
+// Catálogo de discapacidades según las orientaciones del MEN (Decreto 1421 de 2017)
+// y estrategias pedagógicas generales y por asignatura.
+// La propiedad `nombre` es el valor canónico que se guarda en el Anexo 1 y con el que se agrupan las estadísticas.
+
+export const CATEGORIAS_DISCAPACIDAD = [
+  {
+    nombre: 'Discapacidad intelectual',
+    categoria: 'Cognitiva',
+    descripcion: 'Limitaciones significativas en el funcionamiento intelectual (razonamiento, aprendizaje, resolución de problemas) y en la conducta adaptativa, que se manifiestan antes de los 18 años.',
+    estrategias: [
+      'Fragmentar las tareas en pasos cortos y secuenciales.',
+      'Usar apoyos visuales, ejemplos concretos y material manipulable.',
+      'Dar más tiempo y repetir las instrucciones con lenguaje sencillo.',
+      'Reforzar los logros de inmediato y de forma positiva.',
+    ],
+    porAsignatura: {
+      'Lenguaje': 'Lecturas cortas con pictogramas; vocabulario básico funcional; preguntas literales antes que inferenciales.',
+      'Matemáticas': 'Material concreto (ábaco, fichas); operaciones ligadas a situaciones cotidianas (dinero, compras).',
+      'Ciencias Naturales': 'Experimentos sencillos y observables; relacionar conceptos con el cuerpo y el entorno.',
+      'Ciencias Sociales': 'Mapas e imágenes; rutinas y referencias cercanas (mi casa, mi barrio) antes que lo abstracto.',
+      'Educación Física': 'Instrucciones demostradas; juegos con reglas simples y progresivas.',
+      'Artes': 'Actividades libres y sensoriales; valorar el proceso más que el resultado.',
+    },
+  },
+  {
+    nombre: 'Discapacidad auditiva',
+    categoria: 'Sensorial',
+    descripcion: 'Pérdida auditiva (hipoacusia o sordera) que afecta la comunicación oral. Algunos estudiantes usan Lengua de Señas Colombiana (LSC) como primera lengua.',
+    estrategias: [
+      'Ubicar al estudiante de frente y con buena iluminación; hablar claro sin exagerar.',
+      'Apoyar todo con material visual, textos y subtítulos.',
+      'Contar con intérprete de LSC cuando sea su lengua, y favorecer el español escrito.',
+      'Verificar la comprensión con preguntas, no solo con el gesto de asentir.',
+    ],
+    porAsignatura: {
+      'Lenguaje': 'Trabajar español escrito como segunda lengua; apoyos visuales y LSC; evitar dictados orales.',
+      'Matemáticas': 'Enunciados escritos y con imágenes; evitar explicaciones solo verbales.',
+      'Ciencias Naturales': 'Videos con subtítulos; esquemas e infografías.',
+      'Ciencias Sociales': 'Líneas de tiempo e imágenes; glosarios visuales.',
+      'Educación Física': 'Señales visuales y gestuales para iniciar/detener; demostración previa.',
+      'Artes': 'Aprovechar lo visual y lo plástico; vibración y ritmo en música.',
+    },
+  },
+  {
+    nombre: 'Discapacidad visual',
+    categoria: 'Sensorial',
+    descripcion: 'Disminución (baja visión) o ausencia (ceguera) de la visión. Puede requerir Braille, macrotipo o lectores de pantalla.',
+    estrategias: [
+      'Describir en voz alta lo que se escribe o muestra en el tablero.',
+      'Entregar material en Braille, macrotipo o digital accesible según el caso.',
+      'Dar contraste y buena iluminación; permitir acercarse al material.',
+      'Mantener el orden del aula y avisar los cambios de ubicación.',
+    ],
+    porAsignatura: {
+      'Lenguaje': 'Audiolibros, lectores de pantalla y Braille; descripción de imágenes.',
+      'Matemáticas': 'Ábaco Cranmer, material en relieve, calculadora parlante.',
+      'Ciencias Naturales': 'Maquetas y modelos táctiles; experiencias con olor, tacto y sonido.',
+      'Ciencias Sociales': 'Mapas en relieve; descripciones verbales detalladas.',
+      'Educación Física': 'Guías verbales y físicas; balones sonoros; espacios despejados y seguros.',
+      'Artes': 'Modelado, texturas y relieve; música y expresión sonora.',
+    },
+  },
+  {
+    nombre: 'Sordoceguera',
+    categoria: 'Sensorial',
+    descripcion: 'Combinación de discapacidad visual y auditiva que limita el acceso a la información y requiere apoyos y mediadores específicos.',
+    estrategias: [
+      'Trabajar con mediador y sistemas de comunicación táctil (dactilología en palma, señas táctiles).',
+      'Anticipar rutinas con objetos de referencia.',
+      'Aprovechar los restos visuales y auditivos si los hay.',
+      'Garantizar un entorno predecible y seguro al tacto.',
+    ],
+    porAsignatura: {
+      'Lenguaje': 'Comunicación táctil y objetos de referencia; textos en Braille.',
+      'Matemáticas': 'Material concreto y táctil; conteo con apoyo del mediador.',
+      'Ciencias Naturales': 'Exploración táctil guiada; experiencias multisensoriales.',
+      'Ciencias Sociales': 'Referentes concretos y cercanos mediados por el tacto.',
+      'Educación Física': 'Guía física directa; recorridos conocidos.',
+      'Artes': 'Modelado y texturas; vibración.',
+    },
+  },
+  {
+    nombre: 'Discapacidad física (motora)',
+    categoria: 'Física',
+    descripcion: 'Limitaciones en la movilidad o en el control de movimientos (por ejemplo parálisis cerebral, lesiones medulares). No implica compromiso intelectual.',
+    estrategias: [
+      'Garantizar accesibilidad física: rampas, mobiliario y rutas despejadas.',
+      'Adaptar el puesto de trabajo y los útiles (agarres, atriles, teclados).',
+      'Dar más tiempo para las actividades que exigen motricidad.',
+      'Ofrecer formas alternativas de responder (oral, digital, señalando).',
+    ],
+    porAsignatura: {
+      'Lenguaje': 'Escritura con computador o dictado; sujetadores de lápiz; evaluación oral.',
+      'Matemáticas': 'Material grande y manipulable; calculadora; plantillas.',
+      'Ciencias Naturales': 'Rol activo en experimentos con apoyos; material adaptado.',
+      'Ciencias Sociales': 'Trabajo colaborativo; recursos digitales accesibles.',
+      'Educación Física': 'Actividades adaptadas e inclusivas (deporte adaptado, roles de arbitraje/estrategia).',
+      'Artes': 'Herramientas adaptadas; técnicas que no exijan motricidad fina si no es posible.',
+    },
+  },
+  {
+    nombre: 'Discapacidad psicosocial',
+    categoria: 'Mental',
+    descripcion: 'Derivada de trastornos mentales (ansiedad, depresión, trastorno bipolar, esquizofrenia, entre otros) que afectan la participación y el aprendizaje.',
+    estrategias: [
+      'Crear un clima de aula seguro, predecible y libre de estigma.',
+      'Acordar pausas y estrategias de autorregulación.',
+      'Flexibilizar plazos en momentos de crisis y articular con orientación escolar.',
+      'Cuidar el lenguaje y evitar la sobreexposición ante el grupo.',
+    ],
+    porAsignatura: {
+      'Lenguaje': 'Temas que permitan la expresión emocional; evitar la lectura en voz alta obligada.',
+      'Matemáticas': 'Reducir la presión del tiempo; evaluación por procesos.',
+      'Ciencias Naturales': 'Trabajo en equipo con roles claros; proyectos de interés.',
+      'Ciencias Sociales': 'Debates con reglas de respeto; temas de bienestar y convivencia.',
+      'Educación Física': 'Actividades de relajación y manejo del estrés; participación sin competencia forzada.',
+      'Artes': 'Arte como canal de expresión y regulación emocional.',
+    },
+  },
+  {
+    nombre: 'Trastorno del espectro autista (TEA)',
+    categoria: 'Neurodesarrollo',
+    descripcion: 'Condición del neurodesarrollo que afecta la comunicación, la interacción social y se acompaña de intereses específicos y necesidad de rutinas.',
+    estrategias: [
+      'Mantener rutinas y anticipar los cambios con agendas visuales.',
+      'Dar instrucciones concretas, literales y una a la vez.',
+      'Cuidar los estímulos sensoriales (ruido, luz) y permitir pausas.',
+      'Aprovechar los intereses particulares como puente para aprender.',
+    ],
+    porAsignatura: {
+      'Lenguaje': 'Lenguaje literal; apoyos visuales; evitar ironías y dobles sentidos sin explicar.',
+      'Matemáticas': 'Aprovechar fortalezas en patrones y secuencias; enunciados claros.',
+      'Ciencias Naturales': 'Partir de sus temas de interés; experimentos estructurados.',
+      'Ciencias Sociales': 'Normas sociales explícitas; historias sociales.',
+      'Educación Física': 'Anticipar la actividad; cuidar el contacto y el ruido; reglas visuales.',
+      'Artes': 'Espacios de calma; respeto por sus intereses y estilos.',
+    },
+  },
+  {
+    nombre: 'Discapacidad múltiple',
+    categoria: 'Múltiple',
+    descripcion: 'Presencia de dos o más discapacidades que requieren apoyos combinados y un plan altamente individualizado.',
+    estrategias: [
+      'Construir un plan individual con el equipo interdisciplinar y la familia.',
+      'Combinar los apoyos de cada discapacidad presente.',
+      'Priorizar aprendizajes funcionales y para la vida.',
+      'Trabajar de forma multisensorial.',
+    ],
+    porAsignatura: {
+      'Lenguaje': 'Sistemas de comunicación alternativa y aumentativa (SAAC).',
+      'Matemáticas': 'Conceptos funcionales (tiempo, dinero) con material concreto.',
+      'Ciencias Naturales': 'Experiencias sensoriales guiadas.',
+      'Ciencias Sociales': 'Referentes concretos y rutinas.',
+      'Educación Física': 'Estimulación y movimiento asistido.',
+      'Artes': 'Exploración sensorial libre.',
+    },
+  },
+  {
+    nombre: 'Trastornos específicos del aprendizaje',
+    categoria: 'Neurodesarrollo',
+    descripcion: 'Dificultades persistentes en la lectura (dislexia), la escritura (disgrafía) o el cálculo (discalculia), sin relación con la capacidad intelectual.',
+    estrategias: [
+      'Permitir apoyos tecnológicos (lector de pantalla, corrector, calculadora).',
+      'Evaluar el contenido sin penalizar la ortografía o la caligrafía.',
+      'Dar más tiempo y reducir la cantidad de ejercicios repetitivos.',
+      'Usar organizadores gráficos y lectura multisensorial.',
+    ],
+    porAsignatura: {
+      'Lenguaje': 'Lectura guiada y audiolibros; no exigir lectura en voz alta sorpresiva; valorar ideas sobre ortografía.',
+      'Matemáticas': 'Tablas y calculadora para la discalculia; enunciados cortos y con apoyo visual.',
+      'Ciencias Naturales': 'Mapas conceptuales; informes orales o con esquemas.',
+      'Ciencias Sociales': 'Líneas de tiempo e infografías; resúmenes guiados.',
+      'Educación Física': 'Generalmente sin barreras; instrucciones claras.',
+      'Artes': 'Área de fortaleza: potenciar la expresión.',
+    },
+  },
+  {
+    nombre: 'Trastorno por déficit de atención e hiperactividad (TDAH)',
+    categoria: 'Neurodesarrollo',
+    descripcion: 'Patrón persistente de inatención y/o hiperactividad-impulsividad que interfiere con el funcionamiento y el aprendizaje.',
+    estrategias: [
+      'Dividir las tareas y dar instrucciones breves, de a una.',
+      'Ubicar al estudiante lejos de distractores y cerca del docente.',
+      'Permitir el movimiento y las pausas activas.',
+      'Usar recordatorios visuales, agendas y refuerzo positivo frecuente.',
+    ],
+    porAsignatura: {
+      'Lenguaje': 'Lecturas cortas; subrayar ideas clave; descansos entre actividades.',
+      'Matemáticas': 'Pocos ejercicios a la vez; comprobar atención antes de explicar.',
+      'Ciencias Naturales': 'Aprendizaje activo y experimental; roles con movimiento.',
+      'Ciencias Sociales': 'Actividades dinámicas y participativas; apoyos visuales.',
+      'Educación Física': 'Canalizar la energía; reglas claras y cortas.',
+      'Artes': 'Proyectos con metas cortas y variadas.',
+    },
+  },
+  {
+    nombre: 'Capacidades y talentos excepcionales',
+    categoria: 'Talentos excepcionales',
+    descripcion: 'Capacidad global o específica muy por encima de la media (intelectual, artística, deportiva). La educación inclusiva también atiende el enriquecimiento de estos estudiantes.',
+    estrategias: [
+      'Enriquecer y profundizar los contenidos; proponer retos y proyectos.',
+      'Permitir ritmos propios y aceleración en áreas de fortaleza.',
+      'Fomentar la investigación autónoma y el liderazgo.',
+      'Cuidar el desarrollo socioemocional y evitar el aburrimiento.',
+    ],
+    porAsignatura: {
+      'Lenguaje': 'Lecturas avanzadas; creación de textos propios; clubes de lectura.',
+      'Matemáticas': 'Problemas de mayor complejidad; olimpiadas; retos abiertos.',
+      'Ciencias Naturales': 'Proyectos de investigación; ferias de ciencia.',
+      'Ciencias Sociales': 'Análisis crítico; proyectos comunitarios.',
+      'Educación Física': 'Metas y roles de liderazgo; deporte de alto desempeño.',
+      'Artes': 'Portafolios y producciones de nivel avanzado.',
+    },
+  },
+];
+
+// Solo los nombres canónicos, para los selects y filtros.
+export const NOMBRES_DISCAPACIDAD = CATEGORIAS_DISCAPACIDAD.map((d) => d.nombre);

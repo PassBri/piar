@@ -10,6 +10,7 @@ import Seguimiento from './pages/Seguimiento.jsx';
 import Estadisticas from './pages/Estadisticas.jsx';
 import Aprendizaje from './pages/Aprendizaje.jsx';
 import Mosaico from './pages/Mosaico.jsx';
+import Discapacidades from './pages/Discapacidades.jsx';
 import Admin from './pages/Admin.jsx';
 
 function Privada({ children }) {
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="seguimiento" element={<Seguimiento />} />
         <Route path="estadisticas" element={<Estadisticas />} />
         <Route path="aprendizaje" element={<Aprendizaje />} />
+        <Route path="discapacidades" element={<Discapacidades />} />
         <Route path="admin" element={<Admin />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

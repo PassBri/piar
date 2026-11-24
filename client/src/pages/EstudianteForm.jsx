@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { NOMBRES_DISCAPACIDAD } from '../data/discapacidades.js';
 
 // Campos oficiales del Anexo 1 (Formato PIAR - Decreto 1421). t: 'area' = textarea.
 const CAMPOS = {
@@ -130,9 +131,19 @@ export default function EstudianteForm() {
     navigate(`/piar/${p.id}`);
   }
 
-  const campoInput = (grupo, k, tipo) => tipo === 'area'
-    ? <textarea value={form[grupo][k] || ''} onChange={(e) => setG(grupo, k, e.target.value)} disabled={!editable} />
-    : <input value={form[grupo][k] || ''} onChange={(e) => setG(grupo, k, e.target.value)} disabled={!editable} />;
+  const campoInput = (grupo, k, tipo) => {
+    if (k === 'discapacidad') {
+      return (
+        <select value={form[grupo][k] || ''} onChange={(e) => setG(grupo, k, e.target.value)} disabled={!editable}>
+          <option value="">— Sin discapacidad / no aplica —</option>
+          {NOMBRES_DISCAPACIDAD.map((n) => <option key={n} value={n}>{n}</option>)}
+        </select>
+      );
+    }
+    return tipo === 'area'
+      ? <textarea value={form[grupo][k] || ''} onChange={(e) => setG(grupo, k, e.target.value)} disabled={!editable} />
+      : <input value={form[grupo][k] || ''} onChange={(e) => setG(grupo, k, e.target.value)} disabled={!editable} />;
+  };
 
   function filasSeccion(grupo) {
     const def = CAMPOS[grupo];
