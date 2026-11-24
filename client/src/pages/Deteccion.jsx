@@ -48,7 +48,9 @@ export default function Deteccion() {
       <h1 style={{ marginBottom: 4 }}>Detección en el aula (tamizaje)</h1>
       <p style={{ color: 'var(--gris-600)', fontSize: 14, marginTop: 0 }}>
         Escalas de observación del MEN. Valore cada afirmación de 1 (nunca) a 4 (siempre). El sistema marca
-        señales de alerta cuando más del 40% de un dominio puntúa 1 o 2. Es una observación de aula, no un diagnóstico.
+        señales de alerta cuando más del 40% de un dominio puntúa 1 o 2. Es un <strong>tamizaje inicial de aula</strong>,
+        no una valoración total ni un diagnóstico: cuando hay alertas, se remite al equipo de orientación y la
+        valoración pedagógica completa se registra en el Anexo 2 del PIAR.
       </p>
       {error && <div className="mensaje-error">{error}</div>}
       {ok && <div style={{ color: 'var(--ok)', fontSize: 14, margin: '6px 0' }}>{ok}</div>}

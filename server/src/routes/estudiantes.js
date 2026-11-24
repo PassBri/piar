@@ -140,6 +140,14 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coord
        acudiente_id || null, req.usuario.id]
     );
     await auditar(req, { entidad: 'estudiante', entidad_id: rows[0].id, estudiante_id: rows[0].id, accion: 'crear', descripcion: 'Creó el expediente del estudiante (Anexo 1)' });
+    // Crea automáticamente el PIAR del año en curso (hereda el grado), para no repetir datos
+    try {
+      const anio = String(new Date().getFullYear());
+      await query(
+        `INSERT INTO piar (estudiante_id, periodo, grado, fecha_elaboracion, creado_por)
+         VALUES ($1,$2,$3,CURRENT_DATE,$4)`,
+        [rows[0].id, anio, grado || null, req.usuario.id]);
+    } catch { /* si ya existe o falla, el PIAR se puede crear luego manualmente */ }
     res.status(201).json(rows[0]);
   } catch (err) { next(err); }
 });

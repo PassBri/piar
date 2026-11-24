@@ -104,6 +104,8 @@ export default function EstudianteForm() {
   const [piars, setPiars] = useState([]);
   const [cursos, setCursos] = useState([]);
   const [autoriz, setAutoriz] = useState({ autoriza: false, nombre_acudiente: '', documento_acudiente: '', parentesco: '', fecha: '', firma_img: '' });
+  const [evidencias, setEvidencias] = useState([]);
+  const [tipoEvid, setTipoEvid] = useState('Estudio médico');
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
 
@@ -119,8 +121,34 @@ export default function EstudianteForm() {
       })).catch((err) => setError(err.message));
       api.get(`/piar?estudiante_id=${id}`).then(setPiars).catch(() => {});
       api.get(`/autorizacion/${id}`).then((d) => d && setAutoriz({ ...d, fecha: d.fecha ? d.fecha.slice(0, 10) : '' })).catch(() => {});
+      api.get(`/evidencias/${id}`).then(setEvidencias).catch(() => {});
     }
   }, [id]);
+
+  function subirEvidencia(file) {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { setError('El archivo supera los 10 MB permitidos.'); return; }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        setError('');
+        await api.post(`/evidencias/${id}`, { nombre: file.name, tipo: tipoEvid, mime: file.type, datos: reader.result });
+        setEvidencias(await api.get(`/evidencias/${id}`));
+        setOk('Documento adjuntado.');
+      } catch (err) { setError(err.message); }
+    };
+    reader.readAsDataURL(file);
+  }
+  async function descargarEvidencia(docId, nombre) {
+    try {
+      const d = await api.get(`/evidencias/archivo/${docId}`);
+      const a = document.createElement('a'); a.href = d.datos; a.download = d.nombre || nombre; a.click();
+    } catch (err) { setError(err.message); }
+  }
+  async function eliminarEvidencia(docId) {
+    try { await api.del(`/evidencias/archivo/${docId}`); setEvidencias(await api.get(`/evidencias/${id}`)); }
+    catch (err) { setError(err.message); }
+  }
 
   async function guardarAutorizacion(e) {
     e.preventDefault();
@@ -331,6 +359,49 @@ export default function EstudianteForm() {
             <button type="button" className="btn sec" onClick={() => api.descargarPdf(`/informes/autorizacion/${id}/pdf`, 'Autorizacion_datos.pdf')}>Descargar formato ↓</button>
           </div>
         </form>
+      )}
+
+      {id && (
+        <div className="card" style={{ marginTop: 18 }}>
+          <h2 style={{ marginTop: 0 }}>Documentos de soporte (evidencias)</h2>
+          <p style={{ color: 'var(--gris-600)', fontSize: 13, marginTop: 0 }}>
+            Estudios médicos, psicológicos, diagnósticos, informes y demás soportes del estudiante (PDF o imagen, hasta 10 MB).
+          </p>
+          {editable && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 10 }}>
+              <div className="campo" style={{ marginBottom: 0 }}>
+                <label>Tipo de documento</label>
+                <select value={tipoEvid} onChange={(e) => setTipoEvid(e.target.value)}>
+                  <option>Estudio médico</option><option>Estudio psicológico</option>
+                  <option>Diagnóstico</option><option>Informe pedagógico</option>
+                  <option>Historia clínica</option><option>Terapias</option><option>Otro</option>
+                </select>
+              </div>
+              <label className="btn sec" style={{ cursor: 'pointer' }}>
+                + Subir documento
+                <input type="file" accept="application/pdf,image/*" style={{ display: 'none' }}
+                  onChange={(e) => { subirEvidencia(e.target.files[0]); e.target.value = ''; }} />
+              </label>
+            </div>
+          )}
+          <table>
+            <thead><tr><th>Documento</th><th>Tipo</th><th>Subido por</th><th></th></tr></thead>
+            <tbody>
+              {evidencias.map((d) => (
+                <tr key={d.id}>
+                  <td>{d.nombre}</td>
+                  <td><span className="badge gris">{d.tipo || '—'}</span></td>
+                  <td style={{ fontSize: 13 }}>{d.subido_nombre || '—'} · {new Date(d.creado_en).toLocaleDateString('es-CO')}</td>
+                  <td style={{ display: 'flex', gap: 6 }}>
+                    <button type="button" className="btn sec sm" onClick={() => descargarEvidencia(d.id, d.nombre)}>Ver / descargar</button>
+                    {editable && <button type="button" className="btn sec sm" title="Eliminar" onClick={() => eliminarEvidencia(d.id)}>×</button>}
+                  </td>
+                </tr>
+              ))}
+              {evidencias.length === 0 && <tr><td colSpan="4" style={{ color: 'var(--gris-500)' }}>Sin documentos adjuntos todavía.</td></tr>}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {id && (

@@ -25,13 +25,14 @@ import anexo4Routes from './routes/anexo4.js';
 import tamizajeRoutes from './routes/tamizaje.js';
 import apoyosRoutes from './routes/apoyos.js';
 import autorizacionRoutes from './routes/autorizacion.js';
+import evidenciasRoutes from './routes/evidencias.js';
 import respaldoRoutes from './routes/respaldo.js';
 
 export function createApp() {
   const app = express();
 
   app.use(cors({ origin: config.clientOrigin, credentials: true }));
-  app.use(express.json({ limit: '2mb' }));
+  app.use(express.json({ limit: '14mb' }));
 
   // Salud del servicio
   app.get('/api/health', (req, res) => res.json({ ok: true, servicio: 'PIAR API' }));
@@ -55,6 +56,7 @@ export function createApp() {
   app.use('/api/tamizaje', tamizajeRoutes);
   app.use('/api/apoyos', apoyosRoutes);
   app.use('/api/autorizacion', autorizacionRoutes);
+  app.use('/api/evidencias', evidenciasRoutes);
   app.use('/api/respaldo', respaldoRoutes);
 
   // En producción, el mismo servicio entrega el frontend compilado (SPA).
