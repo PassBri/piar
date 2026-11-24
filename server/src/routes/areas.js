@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { autenticar, autorizar } from '../middleware/auth.js';
+import { auditar } from '../lib/auditoria.js';
 
 const router = Router();
 router.use(autenticar);
@@ -26,6 +27,7 @@ router.post('/', autorizar('administrador', 'rector', 'coordinador', 'psicoorien
       'INSERT INTO area (institucion_id, nombre) VALUES ($1,$2) RETURNING *',
       [inst, nombre]
     );
+    await auditar(req, { entidad: 'area', entidad_id: rows[0].id, accion: 'crear', descripcion: `Agregó la asignatura "${nombre}"` });
     res.status(201).json(rows[0]);
   } catch (err) { next(err); }
 });

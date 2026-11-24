@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { autenticar, autorizar } from '../middleware/auth.js';
 import { avancePiar } from '../lib/avance.js';
+import { auditar } from '../lib/auditoria.js';
 
 const router = Router();
 router.use(autenticar);
@@ -89,7 +90,7 @@ router.get('/:id', async (req, res, next) => {
 });
 
 // POST /api/piar  (crear PIAR)
-router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector'), async (req, res, next) => {
+router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
     const { estudiante_id, periodo, valoracion, aspectos_generales, recomendaciones_pmi } = req.body;
     if (!estudiante_id || !periodo) {
@@ -100,12 +101,13 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coord
        VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
       [estudiante_id, periodo, valoracion, aspectos_generales, recomendaciones_pmi || {}, req.usuario.id]
     );
+    await auditar(req, { entidad: 'piar', entidad_id: rows[0].id, piar_id: rows[0].id, estudiante_id, accion: 'crear', descripcion: `Creó el PIAR (${periodo})` });
     res.status(201).json(rows[0]);
   } catch (err) { next(err); }
 });
 
 // PUT /api/piar/:id
-router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector'), async (req, res, next) => {
+router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
     const { periodo, valoracion, aspectos_generales, recomendaciones_pmi, estado } = req.body;
     const { rows } = await query(
@@ -115,6 +117,7 @@ router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coo
       [periodo, valoracion, aspectos_generales, recomendaciones_pmi || {}, estado || null, req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'PIAR no encontrado.' });
+    await auditar(req, { entidad: 'piar', entidad_id: Number(req.params.id), piar_id: Number(req.params.id), accion: 'editar', descripcion: 'Actualizó la valoración del PIAR (Anexo 2)' });
     res.json(rows[0]);
   } catch (err) { next(err); }
 });

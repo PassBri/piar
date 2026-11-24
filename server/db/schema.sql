@@ -202,3 +202,21 @@ CREATE INDEX idx_piar_estudiante ON piar(estudiante_id);
 CREATE INDEX idx_ajuste_piar ON ajuste_razonable(piar_id);
 CREATE INDEX idx_seguimiento_ajuste ON seguimiento(ajuste_id);
 CREATE INDEX idx_usuario_rol ON usuario(rol);
+
+-- -------- Auditoría: control de cambios (quién registra/edita cada formato) --------
+CREATE TABLE auditoria (
+    id             SERIAL PRIMARY KEY,
+    usuario_id     INTEGER REFERENCES usuario(id) ON DELETE SET NULL,
+    usuario_nombre VARCHAR(200),          -- snapshot (persiste aunque cambie/borre el usuario)
+    usuario_rol    rol_usuario,
+    entidad        VARCHAR(30) NOT NULL,  -- estudiante, piar, ajuste, valoracion, acta, area, curso
+    entidad_id     INTEGER,
+    estudiante_id  INTEGER,               -- para agrupar la bitácora por expediente
+    piar_id        INTEGER,
+    accion         VARCHAR(20) NOT NULL,  -- crear, editar, eliminar, firmar
+    descripcion    TEXT,
+    creado_en      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_auditoria_estudiante ON auditoria(estudiante_id);
+CREATE INDEX idx_auditoria_piar ON auditoria(piar_id);
+CREATE INDEX idx_auditoria_fecha ON auditoria(creado_en DESC);

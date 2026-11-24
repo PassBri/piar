@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { autenticar } from '../middleware/auth.js';
+import { auditar } from '../lib/auditoria.js';
 
 const router = Router();
 router.use(autenticar);
@@ -32,6 +33,7 @@ router.put('/:piarId', async (req, res, next) => {
          RETURNING *`,
         [req.params.piarId, firma_familia_img || null, fecha_firma || null]
       );
+      await auditar(req, { entidad: 'acta', entidad_id: rows[0].id, piar_id: Number(req.params.piarId), accion: 'firmar', descripcion: 'La familia firmó el acta de acuerdo (Anexo 3)' });
       return res.json(rows[0]);
     }
 
@@ -53,6 +55,7 @@ router.put('/:piarId', async (req, res, next) => {
        !!firmada_familia, !!firmada_institucion,
        firma_familia_img || null, firma_institucion_img || null, fecha_firma || null]
     );
+    await auditar(req, { entidad: 'acta', entidad_id: rows[0].id, piar_id: Number(req.params.piarId), accion: 'editar', descripcion: 'Actualizó el acta de acuerdo (Anexo 3)' });
     res.json(rows[0]);
   } catch (err) { next(err); }
 });

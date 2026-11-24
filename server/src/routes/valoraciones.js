@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { autenticar, autorizar } from '../middleware/auth.js';
+import { auditar } from '../lib/auditoria.js';
 
 const router = Router();
 router.use(autenticar);
@@ -34,6 +35,7 @@ router.put('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordi
        RETURNING *`,
       [piar_id, area_id, periodo, desempeno || null, observacion || null]
     );
+    await auditar(req, { entidad: 'valoracion', entidad_id: rows[0].id, piar_id, accion: 'editar', descripcion: `Registró el desempeño de un área (${Number(periodo) === 5 ? 'Promoción' : `Periodo ${periodo}`})` });
     res.json(rows[0]);
   } catch (err) { next(err); }
 });

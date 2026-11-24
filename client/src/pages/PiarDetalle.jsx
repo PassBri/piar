@@ -11,6 +11,11 @@ const INTENSIDADES = ['generalizado', 'extenso', 'limitado', 'intermitente'];
 const DESEMPENOS = ['', 'Superior', 'Alto', 'Básico', 'Bajo'];
 
 const nombrePeriodo = (p) => (p === 5 ? 'Promoción' : `Periodo ${p}`);
+const ROLES_LABEL = {
+  superadmin: 'Administrador general', rector: 'Rector', coordinador: 'Coordinador',
+  psicoorientador: 'Psicoorientador', docente: 'Docente', padre: 'Padre de familia', administrador: 'Administrador',
+};
+const BADGE_ACCION = { crear: 'ok', editar: 'gris', eliminar: 'error', firmar: 'morado' };
 
 function Barra({ etiqueta, valor }) {
   const color = valor >= 80 ? '#2e7d32' : valor >= 40 ? '#f9a825' : '#c62828';
@@ -44,6 +49,8 @@ export default function PiarDetalle() {
   const [nuevo, setNuevo] = useState(ajusteVacio);
   const [nuevaArea, setNuevaArea] = useState('');
   const [periodoActivo, setPeriodoActivo] = useState(1); // 1..5, o 0 = todos
+  const [bitacora, setBitacora] = useState([]);
+  const supervisa = ['rector', 'coordinador', 'psicoorientador', 'administrador', 'superadmin'].includes(usuario.rol);
 
   const numPeriodos = piar?.num_periodos || 4;
   const usaPromocion = piar?.usa_promocion ?? true;
@@ -60,8 +67,11 @@ export default function PiarDetalle() {
   function cargarValoraciones() {
     api.get(`/valoraciones?piar_id=${id}`).then(setValoraciones).catch(() => {});
   }
+  function cargarBitacora() {
+    if (supervisa) api.get(`/auditoria?piar_id=${id}`).then(setBitacora).catch(() => {});
+  }
   useEffect(() => {
-    cargar(); cargarValoraciones();
+    cargar(); cargarValoraciones(); cargarBitacora();
     api.get('/areas').then(setAreas).catch(() => {});
   }, [id]);
   useEffect(() => {
@@ -384,6 +394,27 @@ export default function PiarDetalle() {
           <button type="button" className="btn sec" onClick={() => api.descargarPdf(`/informes/acta/${id}/pdf`, 'Acta.pdf')}>Descargar acta ↓</button>
         </div>
       </form>
+
+      {supervisa && (
+        <div className="card">
+          <h2 style={{ marginTop: 0 }}>Control de cambios</h2>
+          <p style={{ color: 'var(--gris-600)', fontSize: 13, marginTop: 0 }}>Quién registró o modificó cada formato, y cuándo.</p>
+          <table>
+            <thead><tr><th>Fecha y hora</th><th>Quién</th><th>Acción</th><th>Qué</th></tr></thead>
+            <tbody>
+              {bitacora.map((b) => (
+                <tr key={b.id}>
+                  <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{new Date(b.creado_en).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                  <td>{b.nombre_actual || 'Usuario'}<br /><span className="badge gris" style={{ fontSize: 10 }}>{ROLES_LABEL[b.usuario_rol] || b.usuario_rol || '—'}</span></td>
+                  <td><span className={`badge ${BADGE_ACCION[b.accion] || 'gris'}`}>{b.accion}</span></td>
+                  <td style={{ fontSize: 13 }}>{b.descripcion}</td>
+                </tr>
+              ))}
+              {bitacora.length === 0 && <tr><td colSpan="4" style={{ color: 'var(--gris-500)' }}>Sin movimientos registrados todavía.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

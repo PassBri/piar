@@ -20,6 +20,7 @@ import geografiaRoutes from './routes/geografia.js';
 import estadisticasRoutes from './routes/estadisticas.js';
 import valoracionesRoutes from './routes/valoraciones.js';
 import cursosRoutes from './routes/cursos.js';
+import auditoriaRoutes from './routes/auditoria.js';
 
 export function createApp() {
   const app = express();
@@ -44,6 +45,7 @@ export function createApp() {
   app.use('/api/estadisticas', estadisticasRoutes);
   app.use('/api/valoraciones', valoracionesRoutes);
   app.use('/api/cursos', cursosRoutes);
+  app.use('/api/auditoria', auditoriaRoutes);
 
   // En producción, el mismo servicio entrega el frontend compilado (SPA).
   if (process.env.NODE_ENV === 'production') {

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { autenticar, autorizar } from '../middleware/auth.js';
+import { auditar } from '../lib/auditoria.js';
 
 const router = Router();
 router.use(autenticar);
@@ -86,6 +87,7 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coord
        entorno_personal || {}, entorno_salud || {}, entorno_hogar || {}, entorno_educativo || {},
        acudiente_id || null, req.usuario.id]
     );
+    await auditar(req, { entidad: 'estudiante', entidad_id: rows[0].id, estudiante_id: rows[0].id, accion: 'crear', descripcion: 'Creó el expediente del estudiante (Anexo 1)' });
     res.status(201).json(rows[0]);
   } catch (err) { next(err); }
 });
@@ -105,6 +107,7 @@ router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coo
        acudiente_id || null, req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Estudiante no encontrado.' });
+    await auditar(req, { entidad: 'estudiante', entidad_id: Number(req.params.id), estudiante_id: Number(req.params.id), accion: 'editar', descripcion: 'Actualizó el Anexo 1 (información del estudiante)' });
     res.json(rows[0]);
   } catch (err) { next(err); }
 });

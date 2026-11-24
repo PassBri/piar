@@ -486,6 +486,70 @@ router.get('/mosaico/pdf', autorizar('superadmin', 'rector', 'coordinador', 'psi
   } catch (err) { next(err); }
 });
 
+// ====== Lista de asistencia con foto (por grupo) ======
+router.get('/asistencia/pdf', autorizar('superadmin', 'rector', 'coordinador', 'psicoorientador', 'administrador', 'docente'), async (req, res, next) => {
+  try {
+    const esSuper = req.usuario.rol === 'superadmin';
+    const inst = esSuper ? (req.query.institucion_id || null) : req.usuario.institucion_id;
+    const params = [inst || null];
+    let sql = `SELECT e.nombres, e.grado, e.foto, e.entorno_salud->>'discapacidad' AS discapacidad,
+                      c.sede AS curso_sede, c.jornada AS curso_jornada, c.grado AS curso_grado, c.grupo AS curso_grupo,
+                      i.nombre AS institucion_nombre
+               FROM estudiante e LEFT JOIN curso c ON c.id = e.curso_id
+               LEFT JOIN institucion i ON i.id = e.institucion_id
+               WHERE ($1::int IS NULL OR e.institucion_id = $1)`;
+    if (req.query.curso_id) { params.push(req.query.curso_id); sql += ` AND e.curso_id = $${params.length}`; }
+    if (req.query.sede) { params.push(req.query.sede); sql += ` AND c.sede = $${params.length}`; }
+    sql += ' ORDER BY e.nombres';
+    const { rows } = await query(sql, params);
+
+    const r0 = rows[0] || {};
+    const grupo = r0.curso_grado ? `${r0.curso_sede} · ${r0.curso_jornada} · ${r0.curso_grado} · Grupo ${r0.curso_grupo}` : (req.query.sede || 'Todos');
+    const doc = iniciar(res, req, 'Lista_asistencia.pdf');
+    titulo(doc, 'LISTA DE ASISTENCIA', `${r0.institucion_nombre || ''}  ·  ${grupo}`);
+    campos(doc, [['Mes', ' '], ['Docente', ' ']]);
+    doc.moveDown(0.3);
+
+    // Columnas: N° | Foto | Estudiante | Discapacidad | 12 casillas de días
+    const dias = 12;
+    const xNum = X0, wNum = 18, wFoto = 30, wNom = 150, wDisc = 85;
+    const xFoto = xNum + wNum, xNom = xFoto + wFoto, xDisc = xNom + wNom, xDias = xDisc + wDisc;
+    const wDia = (ANCHO - (wNum + wFoto + wNom + wDisc)) / dias;
+    const rowH = 34;
+    const cabecera = () => {
+      const y = doc.y;
+      doc.rect(xNum, y, ANCHO, 16).fillAndStroke(GRIS, BORDE);
+      doc.fillColor('#fff').font('Helvetica-Bold').fontSize(7);
+      doc.text('N°', xNum, y + 5, { width: wNum, align: 'center' });
+      doc.text('Foto', xFoto, y + 5, { width: wFoto, align: 'center' });
+      doc.text('Estudiante', xNom + 3, y + 5, { width: wNom - 6 });
+      doc.text('Discapacidad', xDisc + 2, y + 5, { width: wDisc - 4 });
+      for (let d = 0; d < dias; d++) doc.text(String(d + 1), xDias + d * wDia, y + 5, { width: wDia, align: 'center' });
+      doc.fillColor('#000'); doc.y = y + 16;
+    };
+    cabecera();
+    rows.forEach((r, idx) => {
+      if (doc.y + rowH > TOPE) { doc.addPage(); cabecera(); }
+      const y = doc.y;
+      doc.rect(xNum, y, wNum, rowH).stroke(BORDE);
+      doc.font('Helvetica').fontSize(8).fillColor('#000').text(String(idx + 1), xNum, y + rowH / 2 - 4, { width: wNum, align: 'center' });
+      doc.rect(xFoto, y, wFoto, rowH).stroke(BORDE);
+      if (r.foto && typeof r.foto === 'string' && r.foto.startsWith('data:image')) {
+        try { doc.image(Buffer.from(r.foto.split(',')[1], 'base64'), xFoto + 3, y + 2, { width: wFoto - 6, height: rowH - 4 }); } catch { /* omitir */ }
+      }
+      doc.rect(xNom, y, wNom, rowH).stroke(BORDE);
+      doc.font('Helvetica-Bold').fontSize(8).text(r.nombres || '—', xNom + 4, y + rowH / 2 - 5, { width: wNom - 8 });
+      doc.rect(xDisc, y, wDisc, rowH).stroke(BORDE);
+      doc.font('Helvetica').fontSize(6.8).fillColor(GRIS).text(r.discapacidad || '—', xDisc + 3, y + rowH / 2 - 6, { width: wDisc - 6 });
+      doc.fillColor('#000');
+      for (let d = 0; d < dias; d++) doc.rect(xDias + d * wDia, y, wDia, rowH).stroke(BORDE);
+      doc.y = y + rowH;
+    });
+    if (rows.length === 0) doc.font('Helvetica-Oblique').fontSize(10).text('No hay estudiantes para esta selección.', X0, doc.y + 10);
+    finalizar(doc);
+  } catch (err) { next(err); }
+});
+
 // ====== Indicadores por territorio ======
 router.get('/indicadores', async (req, res, next) => {
   try {

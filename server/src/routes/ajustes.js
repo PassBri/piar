@@ -1,9 +1,12 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { autenticar, autorizar } from '../middleware/auth.js';
+import { auditar } from '../lib/auditoria.js';
 
 const router = Router();
 router.use(autenticar);
+
+const PERIODO_NOMBRE = (p) => (Number(p) === 5 ? 'Promoción' : `Periodo ${p}`);
 
 // POST /api/ajustes  (añadir ajuste razonable a un PIAR)
 router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
@@ -18,6 +21,7 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coord
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
       [piar_id, area_id || null, periodo || 1, objetivo, barrera, tipo, descripcion, apoyo, intensidad || 'intermitente', evaluacion]
     );
+    await auditar(req, { entidad: 'ajuste', entidad_id: rows[0].id, piar_id, accion: 'crear', descripcion: `Agregó un ajuste razonable (${PERIODO_NOMBRE(periodo || 1)})` });
     res.status(201).json(rows[0]);
   } catch (err) { next(err); }
 });
@@ -35,6 +39,7 @@ router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coo
        retirado, justificacion_retiro, req.params.id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Ajuste no encontrado.' });
+    await auditar(req, { entidad: 'ajuste', entidad_id: Number(req.params.id), piar_id: rows[0].piar_id, accion: 'editar', descripcion: `Editó un ajuste razonable (${PERIODO_NOMBRE(rows[0].periodo)})` });
     res.json(rows[0]);
   } catch (err) { next(err); }
 });
@@ -42,8 +47,10 @@ router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coo
 // DELETE /api/ajustes/:id
 router.delete('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
+    const prev = await query('SELECT piar_id, periodo FROM ajuste_razonable WHERE id=$1', [req.params.id]);
     const { rowCount } = await query('DELETE FROM ajuste_razonable WHERE id=$1', [req.params.id]);
     if (!rowCount) return res.status(404).json({ error: 'Ajuste no encontrado.' });
+    await auditar(req, { entidad: 'ajuste', entidad_id: Number(req.params.id), piar_id: prev.rows[0]?.piar_id, accion: 'eliminar', descripcion: `Eliminó un ajuste razonable (${PERIODO_NOMBRE(prev.rows[0]?.periodo)})` });
     res.status(204).end();
   } catch (err) { next(err); }
 });

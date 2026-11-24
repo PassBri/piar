@@ -49,7 +49,10 @@ export default function Mosaico() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         <h1 style={{ margin: 0 }}>Mosaico de estudiantes</h1>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {(sede || cursoId) && (
+            <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/asistencia/pdf?${pdfQuery()}`)}>Lista de asistencia con foto</button>
+          )}
           <button className="btn sec sm" onClick={() => api.abrirPdf(`/informes/mosaico/pdf?${pdfQuery()}`)}>Imprimir mosaico</button>
           <button className="btn sec sm" title="Descargar mosaico" onClick={() => api.descargarPdf(`/informes/mosaico/pdf?${pdfQuery()}`, 'Mosaico.pdf')}>↓</button>
         </div>
@@ -87,16 +90,23 @@ export default function Mosaico() {
       </div>
 
       <div className="mosaico-grid">
-        {datos.map((e) => (
-          <div className="mosaico-tarjeta" key={e.id}>
-            {e.foto
-              ? <img src={e.foto} alt={e.nombres} />
-              : <div className="mosaico-sinfoto">Sin foto</div>}
-            <div className="mosaico-nombre">{e.nombres}</div>
-            <div className="mosaico-grado">{e.curso_grado || e.grado || '—'}{e.curso_grupo ? ` · Grupo ${e.curso_grupo}` : ''}</div>
-            <div className="mosaico-disc">{e.discapacidad || 'Sin discapacidad registrada'}</div>
-          </div>
-        ))}
+        {datos.map((e) => {
+          const inicial = (e.nombres || '?').trim().charAt(0).toUpperCase();
+          return (
+            <div className="mosaico-tarjeta" key={e.id}>
+              <div className="mosaico-media">
+                {e.foto
+                  ? <img src={e.foto} alt={e.nombres} />
+                  : <div className="mosaico-avatar" data-ini={inicial}>{inicial}</div>}
+              </div>
+              <div className="mosaico-cuerpo">
+                <div className="mosaico-nombre">{e.nombres}</div>
+                <div className="mosaico-grado">{e.curso_grado || e.grado || '—'}{e.curso_grupo ? ` · Grupo ${e.curso_grupo}` : ''}</div>
+                <span className={`mosaico-chip ${e.discapacidad ? '' : 'neutro'}`}>{e.discapacidad || 'Sin discapacidad'}</span>
+              </div>
+            </div>
+          );
+        })}
         {datos.length === 0 && <p style={{ color: 'var(--gris-500)' }}>No hay estudiantes para esta selección.</p>}
       </div>
     </div>

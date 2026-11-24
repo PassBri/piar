@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { autenticar, autorizar } from '../middleware/auth.js';
+import { auditar } from '../lib/auditoria.js';
 
 const router = Router();
 router.use(autenticar);
@@ -40,6 +41,7 @@ router.post('/', autorizar(...GESTION), async (req, res, next) => {
       [institucion_id, (sede || 'Principal').trim(), (jornada || 'Única').trim(), grado.trim(), (grupo || 'A').trim()]
     );
     if (!rows[0]) return res.status(409).json({ error: 'Ese curso ya existe.' });
+    await auditar(req, { entidad: 'curso', entidad_id: rows[0].id, accion: 'crear', descripcion: `Creó el curso ${rows[0].sede} · ${rows[0].jornada} · ${rows[0].grado} · Grupo ${rows[0].grupo}` });
     res.status(201).json(rows[0]);
   } catch (err) { next(err); }
 });
@@ -53,6 +55,7 @@ router.delete('/:id', autorizar(...GESTION), async (req, res, next) => {
       [req.params.id, esSuper, req.usuario.institucion_id]
     );
     if (!rows[0]) return res.status(404).json({ error: 'Curso no encontrado.' });
+    await auditar(req, { entidad: 'curso', entidad_id: Number(req.params.id), accion: 'eliminar', descripcion: 'Eliminó un curso' });
     res.status(204).end();
   } catch (err) { next(err); }
 });
