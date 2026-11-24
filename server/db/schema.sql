@@ -56,6 +56,8 @@ CREATE TABLE institucion (
     codigo_dane  VARCHAR(20),
     num_periodos SMALLINT NOT NULL DEFAULT 4 CHECK (num_periodos BETWEEN 1 AND 4),
     usa_promocion BOOLEAN NOT NULL DEFAULT TRUE,   -- consolidado anual (promoción)
+    nit          VARCHAR(30),
+    logo         TEXT,   -- logo del colegio (data URL base64)
     creado_en    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_municipio_departamento ON municipio(departamento_id);

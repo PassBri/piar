@@ -44,9 +44,23 @@ function finalizar(doc) {
   doc.end();
 }
 
-function titulo(doc, texto, sub) {
-  doc.fillColor('#000').font('Helvetica-Bold').fontSize(12).text(texto, X0, doc.y, { width: 400 });
-  if (sub) doc.font('Helvetica').fontSize(8.5).fillColor(GRIS_MEDIO).text(sub, X0, doc.y, { width: 400 });
+function titulo(doc, texto, sub, inst) {
+  // Logo del colegio a la izquierda (si existe), con el título corrido a la derecha.
+  let x = X0; let anchoTexto = 400;
+  if (inst && inst.logo && typeof inst.logo === 'string' && inst.logo.startsWith('data:image')) {
+    try {
+      doc.image(Buffer.from(inst.logo.split(',')[1], 'base64'), X0, doc.y, { fit: [42, 42] });
+      x = X0 + 50; anchoTexto = 360;
+    } catch { /* logo inválido */ }
+  }
+  const yTop = doc.y;
+  doc.fillColor('#000').font('Helvetica-Bold').fontSize(12).text(texto, x, yTop, { width: anchoTexto });
+  if (sub) doc.font('Helvetica').fontSize(8.5).fillColor(GRIS_MEDIO).text(sub, x, doc.y, { width: anchoTexto });
+  if (inst && (inst.nombre || inst.nit)) {
+    doc.font('Helvetica').fontSize(8).fillColor(GRIS_MEDIO)
+      .text(`${inst.nombre || ''}${inst.nit ? `  ·  NIT ${inst.nit}` : ''}`, x, doc.y, { width: anchoTexto });
+  }
+  if (x > X0 && doc.y < yTop + 44) doc.y = yTop + 44; // deja pasar el alto del logo
   doc.fillColor('#000').moveDown(0.6);
 }
 
@@ -138,7 +152,7 @@ function filaAjuste(doc, a) {
 async function cargarPiar(id) {
   const { rows } = await query(
     `SELECT p.*, e.nombres AS estudiante, e.documento_tipo, e.documento_numero, e.grado, e.fecha_nacimiento,
-            i.nombre AS inst_nombre, i.sede AS inst_sede, m.nombre AS municipio_nombre, d.nombre AS departamento_nombre
+            i.nombre AS inst_nombre, i.sede AS inst_sede, i.logo AS inst_logo, i.nit AS inst_nit, m.nombre AS municipio_nombre, d.nombre AS departamento_nombre
      FROM piar p JOIN estudiante e ON e.id = p.estudiante_id
      LEFT JOIN institucion i ON i.id = e.institucion_id
      LEFT JOIN municipio m ON m.id = i.municipio_id
@@ -154,7 +168,7 @@ async function cargarPiar(id) {
 router.get('/estudiante/:id/pdf', async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT e.*, i.nombre AS inst_nombre, i.sede AS inst_sede, m.nombre AS municipio_nombre, d.nombre AS departamento_nombre
+      `SELECT e.*, i.nombre AS inst_nombre, i.sede AS inst_sede, i.logo AS inst_logo, i.nit AS inst_nit, m.nombre AS municipio_nombre, d.nombre AS departamento_nombre
        FROM estudiante e LEFT JOIN institucion i ON i.id = e.institucion_id
        LEFT JOIN municipio m ON m.id = i.municipio_id LEFT JOIN departamento d ON d.id = m.departamento_id
        WHERE e.id = $1`, [req.params.id]);
@@ -162,7 +176,7 @@ router.get('/estudiante/:id/pdf', async (req, res, next) => {
     const neg = negarAcceso(req.usuario, e);
     if (neg) return res.status(neg.status).json({ error: neg.error });
     const doc = iniciar(res, req, `Anexo1_${e.id}.pdf`);
-    titulo(doc, 'INFORMACIÓN GENERAL DEL ESTUDIANTE', 'Información para la matrícula – Anexo 1 PIAR');
+    titulo(doc, 'INFORMACIÓN GENERAL DEL ESTUDIANTE', 'Información para la matrícula – Anexo 1 PIAR', { logo: e.inst_logo, nombre: e.inst_nombre, nit: e.inst_nit });
     if (e.foto && typeof e.foto === 'string' && e.foto.startsWith('data:image')) {
       try {
         const buf = Buffer.from(e.foto.split(',')[1], 'base64');
@@ -401,7 +415,7 @@ router.get('/competencias/:piarId/pdf', async (req, res, next) => {
     const filas = Object.values(porArea);
 
     const doc = iniciar(res, req, `Informe_competencias_${piar.estudiante_id}.pdf`);
-    titulo(doc, 'INFORME ANUAL DE COMPETENCIAS', 'Consolidado del desempeño por área y periodo – PIAR');
+    titulo(doc, 'INFORME ANUAL DE COMPETENCIAS', 'Consolidado del desempeño por área y periodo – PIAR', { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit });
     campos(doc, [['Institución educativa', piar.inst_nombre], ['Año', piar.periodo]]);
     campos(doc, [['Estudiante', piar.estudiante], ['Documento', `${piar.documento_tipo || ''} ${piar.documento_numero || ''}`]]);
     campos(doc, [['Grado', piar.grado],
