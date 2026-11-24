@@ -890,6 +890,29 @@ router.get('/estadisticas', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ====== Alertas / recordatorios para el panel ======
+router.get('/alertas', async (req, res, next) => {
+  try {
+    const esSuper = req.usuario.rol === 'superadmin';
+    const inst = esSuper ? null : req.usuario.institucion_id;
+    const p = [inst];
+    const seguimientos = (await query(
+      `SELECT COUNT(*)::int AS n FROM ajuste_razonable a
+       JOIN piar pi ON pi.id = a.piar_id JOIN estudiante e ON e.id = pi.estudiante_id
+       WHERE ($1::int IS NULL OR e.institucion_id = $1) AND a.retirado = FALSE
+         AND (SELECT COUNT(*) FROM seguimiento s WHERE s.ajuste_id = a.id) < 3`, p)).rows[0].n;
+    const piarSinAjustes = (await query(
+      `SELECT COUNT(*)::int AS n FROM piar pi JOIN estudiante e ON e.id = pi.estudiante_id
+       WHERE ($1::int IS NULL OR e.institucion_id = $1) AND pi.estado = 'vigente'
+         AND NOT EXISTS (SELECT 1 FROM ajuste_razonable a WHERE a.piar_id = pi.id)`, p)).rows[0].n;
+    const autorizaciones = (await query(
+      `SELECT COUNT(*)::int AS n FROM estudiante e
+       WHERE ($1::int IS NULL OR e.institucion_id = $1)
+         AND NOT EXISTS (SELECT 1 FROM autorizacion_datos ad WHERE ad.estudiante_id = e.id AND ad.autoriza = TRUE)`, p)).rows[0].n;
+    res.json({ seguimientos_pendientes: seguimientos, piar_sin_ajustes: piarSinAjustes, autorizaciones_faltantes: autorizaciones });
+  } catch (err) { next(err); }
+});
+
 // ====== Indicadores por territorio ======
 router.get('/indicadores', async (req, res, next) => {
   try {
