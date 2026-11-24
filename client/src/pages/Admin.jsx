@@ -103,9 +103,9 @@ export default function Admin() {
 
   return (
     <div>
-      <h2 style={{ color: 'var(--gris-700)' }}>
+      <h1>
         {esSuper ? 'Administración general de la plataforma' : 'Administración'}
-      </h2>
+      </h1>
       {esSuper && <p style={{ color: 'var(--gris-600)', fontSize: 14, marginTop: 0 }}>
         Como administrador general controlas todas las instituciones, los usuarios, las
         contraseñas y la información de toda la plataforma.

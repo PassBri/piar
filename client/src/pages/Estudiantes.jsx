@@ -66,7 +66,7 @@ export default function Estudiantes() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-        <h2 style={{ color: 'var(--gris-700)', margin: 0 }}>Estudiantes</h2>
+        <h1 style={{ margin: 0 }}>Estudiantes</h1>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <button className="btn sec sm" onClick={() => api.descargarArchivo('/estudiantes/exportar/csv', 'estudiantes.csv')}>Exportar CSV ↓</button>
           {puedeCrear && (

@@ -66,7 +66,7 @@ const DESCARGAS = [
 export default function Aprendizaje() {
   return (
     <div>
-      <h2 style={{ color: 'var(--gris-700)' }}>Aprendizaje — El PIAR según el Ministerio</h2>
+      <h1>Aprendizaje — El PIAR según el Ministerio</h1>
       <p style={{ color: 'var(--gris-600)', fontSize: 14, marginTop: 0 }}>
         Todo lo que necesitas saber para diligenciar el PIAR, con los documentos oficiales
         del Ministerio de Educación Nacional listos para descargar.

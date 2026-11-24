@@ -47,7 +47,7 @@ export default function Estadisticas() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-        <h2 style={{ color: 'var(--gris-700)', margin: 0 }}>Estadísticas de atención — PIAR</h2>
+        <h1 style={{ margin: 0 }}>Estadísticas de atención — PIAR</h1>
         <div className="campo" style={{ margin: 0, minWidth: 240 }}>
           <label>Filtrar por discapacidad</label>
           <select value={disc} onChange={(e) => setDisc(e.target.value)}>
