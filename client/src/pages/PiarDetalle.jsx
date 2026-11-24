@@ -124,6 +124,18 @@ export default function PiarDetalle() {
     e.preventDefault();
     try { await api.put(`/actas/${id}`, acta); cargar(); } catch (err) { setError(err.message); }
   }
+  // Familia del acta (nombre + parentesco); al menos 2 filas visibles
+  const famRows = (acta.familia && acta.familia.length) ? acta.familia : [{ nombre: '', parentesco: '' }, { nombre: '', parentesco: '' }];
+  const setFam = (i, campo, val) => {
+    const arr = famRows.map((f, j) => (j === i ? { ...f, [campo]: val } : f));
+    setActa((a) => ({ ...a, familia: arr }));
+  };
+  const addFam = () => setActa((a) => ({ ...a, familia: [...famRows, { nombre: '', parentesco: '' }] }));
+  // Actividades de apoyo en casa (actividad, estrategia, frecuencia D/S/P)
+  const actRows = acta.actividades || [];
+  const setAct = (i, campo, val) => setActa((a) => ({ ...a, actividades: (a.actividades || []).map((x, j) => (j === i ? { ...x, [campo]: val } : x)) }));
+  const addAct = () => setActa((a) => ({ ...a, actividades: [...(a.actividades || []), { actividad: '', estrategia: '', frecuencia: '' }] }));
+  const delAct = (i) => setActa((a) => ({ ...a, actividades: (a.actividades || []).filter((_, j) => j !== i) }));
   function valorDe(area_id, periodo) {
     const v = valoraciones.find((x) => x.area_id === area_id && x.periodo === periodo);
     return v ? v.desempeno || '' : '';
@@ -489,16 +501,72 @@ export default function PiarDetalle() {
 
       {vista === 'anexo3' && (
       <form className="card" id="anexo3" onSubmit={guardarActa}>
-        <h2>Acta de acuerdo con la familia (Anexo 3)</h2>
-        <div className="campo"><label>Compromisos de la familia</label>
+        <h2>Acta de Acuerdo — Anexo 3</h2>
+
+        {/* Encabezado heredado del estudiante */}
+        <table className="ftabla" style={{ marginBottom: 12 }}>
+          <tbody>
+            <tr><td className="lbl" style={{ width: '22%' }}>Institución y sede</td><td className="val"><input value={`${piar.inst_nombre || ''}${piar.inst_sede ? ' · ' + piar.inst_sede : ''}`} disabled /></td>
+                <td className="lbl" style={{ width: '12%' }}>Fecha</td><td className="val"><input value={acta.fecha_firma ? acta.fecha_firma.slice(0, 10) : ''} disabled /></td></tr>
+            <tr><td className="lbl">Nombre del estudiante</td><td className="val"><input value={piar.estudiante_nombre || ''} disabled /></td>
+                <td className="lbl">Documento</td><td className="val"><input value={piar.documento_numero || ''} disabled /></td></tr>
+            <tr><td className="lbl">Grado</td><td className="val"><input value={piar.grado || ''} disabled /></td>
+                <td className="lbl">Año</td><td className="val"><input value={piar.periodo || ''} disabled /></td></tr>
+            <tr><td className="lbl">Nombres del equipo directivo y de docentes</td>
+                <td className="val" colSpan={3}><input value={acta.nombres_directivos || ''} disabled={esPadre}
+                  onChange={(e) => setActa({ ...acta, nombres_directivos: e.target.value })} /></td></tr>
+          </tbody>
+        </table>
+
+        {/* Familia del estudiante y parentesco */}
+        <table className="ftabla" style={{ marginBottom: 12 }}>
+          <thead><tr><th>Nombres de la familia del estudiante</th><th style={{ width: '30%' }}>Parentesco</th></tr></thead>
+          <tbody>
+            {famRows.map((f, i) => (
+              <tr key={i}>
+                <td className="val"><input value={f.nombre || ''} disabled={esPadre} onChange={(e) => setFam(i, 'nombre', e.target.value)} /></td>
+                <td className="val"><input value={f.parentesco || ''} disabled={esPadre} onChange={(e) => setFam(i, 'parentesco', e.target.value)} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!esPadre && <button type="button" className="btn sec sm" style={{ marginBottom: 12 }} onClick={addFam}>+ Agregar familiar</button>}
+
+        <p style={{ fontSize: 12, color: 'var(--gris-600)', background: 'var(--gris-100)', padding: 10, borderRadius: 8 }}>
+          Según el Decreto 1421 de 2017, la educación inclusiva es un proceso permanente que reconoce, valora y responde a la
+          diversidad de características, intereses, posibilidades y expectativas de los estudiantes. La inclusión solo es posible
+          cuando se unen los esfuerzos del colegio, el estudiante y la familia; por eso se formaliza con las firmas la presente Acta Acuerdo.
+        </p>
+
+        <div className="campo"><label>La familia se compromete a cumplir y firmar los compromisos señalados en el PIAR, y en particular a:</label>
           <textarea value={acta.compromisos_familia || ''} disabled={esPadre}
-            onChange={(e) => setActa({ ...acta, compromisos_familia: e.target.value })} /></div>
+            onChange={(e) => setActa({ ...acta, compromisos_familia: e.target.value })}
+            placeholder="Compromisos específicos para implementar en el aula que requieran ampliación o detalle adicional al PIAR" /></div>
         <div className="campo"><label>Compromisos de la institución</label>
           <textarea value={acta.compromisos_institucion || ''} disabled={esPadre}
             onChange={(e) => setActa({ ...acta, compromisos_institucion: e.target.value })} /></div>
-        <div className="campo"><label>En casa, la familia apoyará con las siguientes actividades</label>
-          <textarea value={acta.actividades_casa || ''} disabled={esPadre}
-            onChange={(e) => setActa({ ...acta, actividades_casa: e.target.value })} placeholder="Actividades de apoyo en casa, incluidos los recesos escolares" /></div>
+
+        {/* Y en casa apoyará con las siguientes actividades (tabla oficial) */}
+        <label style={{ fontWeight: 600, fontSize: 13 }}>Y en casa apoyará con las siguientes actividades:</label>
+        <table className="ftabla" style={{ margin: '4px 0 6px' }}>
+          <thead><tr><th style={{ width: '28%' }}>Nombre de la actividad</th><th>Descripción de la estrategia</th><th style={{ width: '20%' }}>Frecuencia</th>{!esPadre && <th style={{ width: '5%' }}></th>}</tr></thead>
+          <tbody>
+            {actRows.map((a, i) => (
+              <tr key={i}>
+                <td className="val"><textarea rows={2} value={a.actividad || ''} disabled={esPadre} onChange={(e) => setAct(i, 'actividad', e.target.value)} /></td>
+                <td className="val"><textarea rows={2} value={a.estrategia || ''} disabled={esPadre} onChange={(e) => setAct(i, 'estrategia', e.target.value)} /></td>
+                <td className="val">
+                  <select value={a.frecuencia || ''} disabled={esPadre} onChange={(e) => setAct(i, 'frecuencia', e.target.value)} style={{ fontSize: 12 }}>
+                    <option value="">—</option><option value="Diaria">Diaria (D)</option><option value="Semanal">Semanal (S)</option><option value="Permanente">Permanente (P)</option>
+                  </select>
+                </td>
+                {!esPadre && <td className="val" style={{ textAlign: 'center' }}><button type="button" className="btn sec sm" onClick={() => delAct(i)}>×</button></td>}
+              </tr>
+            ))}
+            {actRows.length === 0 && <tr><td className="val" colSpan={esPadre ? 3 : 4} style={{ color: 'var(--gris-500)', padding: 8 }}>Sin actividades registradas.</td></tr>}
+          </tbody>
+        </table>
+        {!esPadre && <button type="button" className="btn sec sm" style={{ marginBottom: 10 }} onClick={addAct}>+ Agregar actividad</button>}
         <div className="fila">
           <div className="campo">
             <label>Firma de la familia / acudiente</label>

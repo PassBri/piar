@@ -328,28 +328,55 @@ router.get('/acta/:piarId/pdf', async (req, res, next) => {
     const { piar } = data;
     const a = (await query('SELECT * FROM acta_acuerdo WHERE piar_id=$1', [req.params.piarId])).rows[0] || {};
     const doc = iniciar(res, req, `Anexo3_Acta_${piar.estudiante_id}.pdf`);
-    titulo(doc, 'ACTA DE ACUERDO CON LA FAMILIA – ANEXO 3');
-    campos(doc, [['Institución educativa', piar.inst_nombre], ['Sede', piar.inst_sede]]);
-    campos(doc, [['Estudiante', piar.estudiante], ['Periodo / Año', piar.periodo]]);
-    banda(doc, 'Compromisos de la familia');
-    campos(doc, [['Compromisos', a.compromisos_familia || '—']]);
-    banda(doc, 'Compromisos de la institución');
-    campos(doc, [['Compromisos', a.compromisos_institucion || '—']]);
-    banda(doc, 'En casa, la familia apoyará con las siguientes actividades');
-    campos(doc, [['Actividades de apoyo en casa', a.actividades_casa || '—']]);
+    titulo(doc, 'ACTA DE ACUERDO – ANEXO 3', 'Plan Individual de Ajustes Razonables – PIAR', { logo: piar.inst_logo, nombre: piar.inst_nombre, nit: piar.inst_nit });
+    campos(doc, [['Institución educativa y sede', `${piar.inst_nombre || ''}${piar.inst_sede ? ' · ' + piar.inst_sede : ''}`], ['Fecha', a.fecha_firma ? new Date(a.fecha_firma).toLocaleDateString('es-CO') : '—']]);
+    campos(doc, [['Nombre del estudiante', piar.estudiante], ['Documento', piar.documento_numero || '—']]);
+    campos(doc, [['Grado', piar.grado || '—'], ['Año', piar.periodo]]);
+    campos(doc, [['Nombres del equipo directivo y de docentes', a.nombres_directivos || '—']]);
+    const fam = Array.isArray(a.familia) ? a.familia.filter((f) => (f.nombre || '').trim()) : [];
+    if (fam.length) fam.forEach((f) => campos(doc, [['Familia del estudiante', f.nombre || '—'], ['Parentesco', f.parentesco || '—']]));
+    else campos(doc, [['Familia del estudiante', '—'], ['Parentesco', '—']]);
 
-    saltoSi(doc, 80);
+    doc.moveDown(0.3);
+    doc.font('Helvetica').fontSize(8.5).fillColor(GRIS_MEDIO).text(
+      'Según el Decreto 1421 de 2017, la educación inclusiva es un proceso permanente que reconoce, valora y responde a la diversidad de los estudiantes. La inclusión solo es posible cuando se unen los esfuerzos del colegio, el estudiante y la familia; por eso se formaliza con las firmas la presente Acta Acuerdo.',
+      X0, doc.y, { width: ANCHO });
+    doc.fillColor('#000').moveDown(0.3);
+
+    banda(doc, 'La familia se compromete a cumplir y firmar los compromisos del PIAR, y en particular a:');
+    campos(doc, [['Compromisos de la familia', a.compromisos_familia || '—']]);
+    if ((a.compromisos_institucion || '').trim()) campos(doc, [['Compromisos de la institución', a.compromisos_institucion]]);
+
+    banda(doc, 'Y en casa apoyará con las siguientes actividades');
+    const acts = Array.isArray(a.actividades) ? a.actividades.filter((x) => (x.actividad || x.estrategia || '').trim()) : [];
+    if (acts.length) {
+      acts.forEach((x) => {
+        const frec = x.frecuencia ? ` (Frecuencia: ${x.frecuencia})` : '';
+        campos(doc, [[x.actividad || 'Actividad', `${x.estrategia || '—'}${frec}`]]);
+      });
+    } else if ((a.actividades_casa || '').trim()) {
+      campos(doc, [['Actividades de apoyo en casa', a.actividades_casa]]);
+    } else {
+      campos(doc, [['Actividades', '—']]);
+    }
+
+    saltoSi(doc, 90);
     doc.moveDown(2);
     const y = doc.y;
-    const firma = (x, img, label) => {
+    const firma = (x, yy, img, label) => {
       if (img && img.startsWith('data:image')) {
-        try { doc.image(Buffer.from(img.split(',')[1], 'base64'), x, y, { fit: [180, 46] }); } catch { /* ignora */ }
+        try { doc.image(Buffer.from(img.split(',')[1], 'base64'), x, yy, { fit: [170, 40] }); } catch { /* ignora */ }
       }
-      doc.moveTo(x, y + 50).lineTo(x + 190, y + 50).stroke(BORDE);
-      doc.font('Helvetica').fontSize(8.5).fillColor(GRIS_MEDIO).text(label, x, y + 53, { width: 200, lineBreak: false });
+      doc.moveTo(x, yy + 44).lineTo(x + 180, yy + 44).stroke(BORDE);
+      doc.font('Helvetica').fontSize(8.5).fillColor(GRIS_MEDIO).text(label, x, yy + 47, { width: 190, lineBreak: false });
     };
-    firma(60, a.firma_familia_img, a.firmada_familia ? 'Firma de la familia / acudiente' : 'Firma de la familia / acudiente (pendiente)');
-    firma(320, a.firma_institucion_img, 'Firma de la institución');
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(GRIS).text('Firma de los actores comprometidos:', X0, y - 14);
+    firma(60, y, a.firma_familia_img ? null : null, 'Estudiante');
+    firma(320, y, a.firma_familia_img, a.firmada_familia ? 'Acudiente / familia' : 'Acudiente / familia (pendiente)');
+    const y2 = y + 70;
+    firma(60, y2, null, 'Docentes');
+    firma(320, y2, a.firma_institucion_img, 'Directivo docente');
+    doc.y = y2 + 56;
     finalizar(doc);
   } catch (err) { next(err); }
 });

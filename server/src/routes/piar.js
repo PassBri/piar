@@ -60,8 +60,9 @@ router.get('/avance/listado', autorizar('superadmin', 'rector', 'coordinador', '
 router.get('/:id', async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT p.*, e.nombres AS estudiante_nombre, e.grado, e.documento_numero,
-              e.institucion_id, e.reservado, COALESCE(i.num_periodos, 4) AS num_periodos,
+      `SELECT p.*, e.nombres AS estudiante_nombre, e.grado, e.documento_numero, e.fecha_nacimiento,
+              e.institucion_id, e.reservado, i.nombre AS inst_nombre, i.sede AS inst_sede,
+              COALESCE(i.num_periodos, 4) AS num_periodos,
               COALESCE(i.usa_promocion, true) AS usa_promocion
        FROM piar p JOIN estudiante e ON e.id = p.estudiante_id
        LEFT JOIN institucion i ON i.id = e.institucion_id WHERE p.id = $1`,
