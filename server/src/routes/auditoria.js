@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { autenticar, autorizar } from '../middleware/auth.js';
+import { negarAcceso, accesoEstudiante, accesoPiar } from '../lib/acceso.js';
 
 const router = Router();
 router.use(autenticar);
@@ -9,6 +10,16 @@ router.use(autenticar);
 router.get('/', autorizar('superadmin', 'rector', 'coordinador', 'psicoorientador', 'administrador', 'docente'), async (req, res, next) => {
   try {
     const { estudiante_id, piar_id } = req.query;
+    // Confidencialidad: solo se consulta la bitácora de recursos de la propia institución (y no reservados ajenos).
+    if (piar_id) {
+      const neg = negarAcceso(req.usuario, await accesoPiar(piar_id));
+      if (neg) return res.status(neg.status).json({ error: neg.error });
+    } else if (estudiante_id) {
+      const neg = negarAcceso(req.usuario, await accesoEstudiante(estudiante_id));
+      if (neg) return res.status(neg.status).json({ error: neg.error });
+    } else if (req.usuario.rol !== 'superadmin') {
+      return res.status(400).json({ error: 'Indica el estudiante o el PIAR a consultar.' });
+    }
     const limite = Math.min(500, Number(req.query.limite) || 100);
     const params = [];
     let sql = `SELECT a.*, COALESCE(u.nombres, a.usuario_nombre) AS nombre_actual

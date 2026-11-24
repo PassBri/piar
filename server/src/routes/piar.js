@@ -3,6 +3,7 @@ import { query } from '../db.js';
 import { autenticar, autorizar } from '../middleware/auth.js';
 import { avancePiar } from '../lib/avance.js';
 import { auditar } from '../lib/auditoria.js';
+import { negarAcceso, accesoPiar } from '../lib/acceso.js';
 
 const router = Router();
 router.use(autenticar);
@@ -60,14 +61,15 @@ router.get('/:id', async (req, res, next) => {
   try {
     const { rows } = await query(
       `SELECT p.*, e.nombres AS estudiante_nombre, e.grado, e.documento_numero,
-              e.institucion_id, COALESCE(i.num_periodos, 4) AS num_periodos,
+              e.institucion_id, e.reservado, COALESCE(i.num_periodos, 4) AS num_periodos,
               COALESCE(i.usa_promocion, true) AS usa_promocion
        FROM piar p JOIN estudiante e ON e.id = p.estudiante_id
        LEFT JOIN institucion i ON i.id = e.institucion_id WHERE p.id = $1`,
       [req.params.id]
     );
     const piar = rows[0];
-    if (!piar) return res.status(404).json({ error: 'PIAR no encontrado.' });
+    const neg = negarAcceso(req.usuario, piar);
+    if (neg) return res.status(neg.status).json({ error: neg.error });
     const ajustes = await query(
       `SELECT a.*, ar.nombre AS area_nombre FROM ajuste_razonable a
        LEFT JOIN area ar ON ar.id = a.area_id WHERE a.piar_id = $1 ORDER BY a.id`,
@@ -110,6 +112,8 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coord
 router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
     const { periodo, valoracion, aspectos_generales, recomendaciones_pmi, estado } = req.body;
+    const neg = negarAcceso(req.usuario, await accesoPiar(req.params.id));
+    if (neg) return res.status(neg.status).json({ error: neg.error });
     const { rows } = await query(
       `UPDATE piar SET periodo=$1, valoracion=$2, aspectos_generales=$3,
          recomendaciones_pmi=$4, estado=COALESCE($5,estado), actualizado_en=now()

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import PDFDocument from 'pdfkit';
 import { query } from '../db.js';
 import { autenticar, autorizar } from '../middleware/auth.js';
+import { negarAcceso, accesoEstudiante, accesoPiar, ROLES_RESERVADO } from '../lib/acceso.js';
 
 const router = Router();
 router.use(autenticar);
@@ -158,7 +159,8 @@ router.get('/estudiante/:id/pdf', async (req, res, next) => {
        LEFT JOIN municipio m ON m.id = i.municipio_id LEFT JOIN departamento d ON d.id = m.departamento_id
        WHERE e.id = $1`, [req.params.id]);
     const e = rows[0];
-    if (!e) return res.status(404).json({ error: 'Estudiante no encontrado.' });
+    const neg = negarAcceso(req.usuario, e);
+    if (neg) return res.status(neg.status).json({ error: neg.error });
     const doc = iniciar(res, req, `Anexo1_${e.id}.pdf`);
     titulo(doc, 'INFORMACIÓN GENERAL DEL ESTUDIANTE', 'Información para la matrícula – Anexo 1 PIAR');
     if (e.foto && typeof e.foto === 'string' && e.foto.startsWith('data:image')) {
@@ -236,6 +238,7 @@ router.get('/piar/:id/pdf', async (req, res, next) => {
   try {
     const data = await cargarPiar(req.params.id);
     if (!data) return res.status(404).json({ error: 'PIAR no encontrado.' });
+    { const neg = negarAcceso(req.usuario, await accesoPiar(data.piar.id)); if (neg) return res.status(neg.status).json({ error: neg.error }); }
     const { piar, ajustes } = data;
     const doc = iniciar(res, req, `Anexo2_${piar.estudiante_id}.pdf`);
     titulo(doc, 'PLAN INDIVIDUAL DE AJUSTES RAZONABLES – ANEXO 2');
@@ -281,6 +284,7 @@ router.get('/acta/:piarId/pdf', async (req, res, next) => {
   try {
     const data = await cargarPiar(req.params.piarId);
     if (!data) return res.status(404).json({ error: 'PIAR no encontrado.' });
+    { const neg = negarAcceso(req.usuario, await accesoPiar(data.piar.id)); if (neg) return res.status(neg.status).json({ error: neg.error }); }
     const { piar } = data;
     const a = (await query('SELECT * FROM acta_acuerdo WHERE piar_id=$1', [req.params.piarId])).rows[0] || {};
     const doc = iniciar(res, req, `Anexo3_Acta_${piar.estudiante_id}.pdf`);
@@ -313,6 +317,7 @@ router.get('/seguimiento/:piarId/pdf', async (req, res, next) => {
   try {
     const data = await cargarPiar(req.params.piarId);
     if (!data) return res.status(404).json({ error: 'PIAR no encontrado.' });
+    { const neg = negarAcceso(req.usuario, await accesoPiar(data.piar.id)); if (neg) return res.status(neg.status).json({ error: neg.error }); }
     const { piar, ajustes } = data;
     const doc = iniciar(res, req, `Seguimiento_${piar.estudiante_id}.pdf`);
     titulo(doc, 'INFORME DE SEGUIMIENTO DE AJUSTES');
@@ -369,6 +374,7 @@ router.get('/competencias/:piarId/pdf', async (req, res, next) => {
   try {
     const data = await cargarPiar(req.params.piarId);
     if (!data) return res.status(404).json({ error: 'PIAR no encontrado.' });
+    { const neg = negarAcceso(req.usuario, await accesoPiar(data.piar.id)); if (neg) return res.status(neg.status).json({ error: neg.error }); }
     const { piar, ajustes } = data;
     // institución (periodos/promoción) y curso del estudiante
     const extra = await query(
@@ -447,6 +453,7 @@ router.get('/mosaico/pdf', autorizar('superadmin', 'rector', 'coordinador', 'psi
                FROM estudiante e LEFT JOIN curso c ON c.id = e.curso_id
                LEFT JOIN institucion i ON i.id = e.institucion_id
                WHERE ($1::int IS NULL OR e.institucion_id = $1)`;
+    if (!ROLES_RESERVADO.includes(req.usuario.rol)) sql += ' AND e.reservado = FALSE';
     if (req.query.curso_id) { params.push(req.query.curso_id); sql += ` AND e.curso_id = $${params.length}`; }
     if (req.query.sede) { params.push(req.query.sede); sql += ` AND c.sede = $${params.length}`; }
     sql += ' ORDER BY i.nombre, c.sede, c.grado, c.grupo, e.nombres';
@@ -498,6 +505,7 @@ router.get('/asistencia/pdf', autorizar('superadmin', 'rector', 'coordinador', '
                FROM estudiante e LEFT JOIN curso c ON c.id = e.curso_id
                LEFT JOIN institucion i ON i.id = e.institucion_id
                WHERE ($1::int IS NULL OR e.institucion_id = $1)`;
+    if (!ROLES_RESERVADO.includes(req.usuario.rol)) sql += ' AND e.reservado = FALSE';
     if (req.query.curso_id) { params.push(req.query.curso_id); sql += ` AND e.curso_id = $${params.length}`; }
     if (req.query.sede) { params.push(req.query.sede); sql += ` AND c.sede = $${params.length}`; }
     sql += ' ORDER BY e.nombres';

@@ -57,8 +57,9 @@ const CAMPOS = {
   },
 };
 const GRUPOS = Object.keys(CAMPOS);
+const ROLES_RESERVADO = ['psicoorientador', 'coordinador', 'rector', 'administrador', 'superadmin'];
 const vacio = {
-  nombres: '', documento_tipo: 'TI', documento_numero: '', grado: '', fecha_nacimiento: '', curso_id: '', foto: '',
+  nombres: '', documento_tipo: 'TI', documento_numero: '', grado: '', fecha_nacimiento: '', curso_id: '', foto: '', reservado: false,
   identificacion: {}, entorno_personal: {}, entorno_salud: {}, entorno_hogar: {}, entorno_educativo: {},
 };
 
@@ -86,6 +87,7 @@ export default function EstudianteForm() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
   const editable = ['docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'].includes(usuario.rol);
+  const puedeReservar = ROLES_RESERVADO.includes(usuario.rol);
   const [form, setForm] = useState(vacio);
   const [piars, setPiars] = useState([]);
   const [cursos, setCursos] = useState([]);
@@ -179,6 +181,20 @@ export default function EstudianteForm() {
       )}
       {error && <div className="mensaje-error">{error}</div>}
       {ok && <div style={{ color: 'var(--ok)', fontSize: 14, margin: '6px 0' }}>{ok}</div>}
+
+      {(puedeReservar || form.reservado) && (
+        <div className="config-periodos" style={{ borderColor: form.reservado ? '#c62828' : 'var(--gris-200)', background: form.reservado ? '#FBE3E3' : 'var(--gris-100)' }}>
+          {puedeReservar ? (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, margin: 0 }}>
+              <input type="checkbox" checked={!!form.reservado} style={{ width: 'auto' }} disabled={!editable}
+                onChange={(e) => set('reservado', e.target.checked)} />
+              Caso reservado — acceso restringido al equipo de orientación y directivos
+            </label>
+          ) : (
+            <span style={{ color: '#c62828', fontWeight: 600 }}>🔒 Caso reservado — acceso restringido</span>
+          )}
+        </div>
+      )}
 
       <form onSubmit={guardar}>
         <div className="formato">
