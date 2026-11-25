@@ -6,7 +6,7 @@ import { useExpediente } from '../context/ExpedienteContext.jsx';
 import Guardado from '../components/Guardado.jsx';
 import NavAnexos from '../components/NavAnexos.jsx';
 import AgregarAnio from '../components/AgregarAnio.jsx';
-import BarraDocumentos from '../components/BarraDocumentos.jsx';
+import MenuDocumentos from '../components/MenuDocumentos.jsx';
 import EstudianteForm from './EstudianteForm.jsx';
 
 const TIPOS = [
@@ -273,25 +273,29 @@ export default function PiarDetalle() {
 
   return (
     <div>
-      <Link to={`/estudiantes/${piar.estudiante_id}`} className="btn sec sm">← Volver al estudiante</Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '12px 0 10px', flexWrap: 'wrap', gap: 8 }}>
-        <h1 style={{ margin: 0 }}>PIAR — {piar.estudiante_nombre} ({piar.periodo})</h1>
+      <div className="exp-toolbar">
+        <button type="button" className="exp-volver" onClick={() => navigate('/seguimiento')} title="Volver a la lista de estudiantes" aria-label="Volver">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z" /></svg>
+        </button>
+        <h1 className="exp-titulo">{piar.estudiante_nombre} <span className="exp-anio-badge">PIAR {piar.periodo}</span></h1>
+        <div className="exp-acciones">
+          <MenuDocumentos conPortada={conPortada} setConPortada={setConPortada} docs={[
+            { clave: 'a1', nombre: 'Anexo 1', icono: 'doc', url: `/informes/estudiante/${piar.estudiante_id}/pdf${pp}`, archivo: 'Anexo1.pdf' },
+            { clave: 'a2', nombre: 'Anexo 2', icono: 'doc', url: `/informes/piar/${id}/pdf?periodo=all${ppAmp}`, archivo: 'Anexo2.pdf' },
+            { clave: 'a3', nombre: 'Anexo 3', icono: 'doc', url: `/informes/acta/${id}/pdf${pp}`, archivo: 'Anexo3.pdf' },
+            { clave: 'a4', nombre: 'Anexo 4', icono: 'doc', url: `/informes/anexo4/${id}/pdf${pp}`, archivo: 'Anexo4.pdf' },
+            { clave: 'inf', nombre: 'Informe anual', icono: 'chart', url: `/informes/competencias/${id}/pdf${pp}`, archivo: 'Informe_anual.pdf' },
+            { clave: 'seg', nombre: 'Seguimiento', icono: 'track', url: `/informes/seguimiento/${id}/pdf${pp}`, archivo: 'Seguimiento.pdf' },
+          ]} />
+        </div>
       </div>
-      <BarraDocumentos conPortada={conPortada} setConPortada={setConPortada} docs={[
-        { clave: 'a1', nombre: 'Anexo 1', icono: 'doc', url: `/informes/estudiante/${piar.estudiante_id}/pdf${pp}`, archivo: 'Anexo1.pdf' },
-        { clave: 'a2', nombre: 'Anexo 2', icono: 'doc', url: `/informes/piar/${id}/pdf?periodo=all${ppAmp}`, archivo: 'Anexo2.pdf' },
-        { clave: 'a3', nombre: 'Anexo 3', icono: 'doc', url: `/informes/acta/${id}/pdf${pp}`, archivo: 'Anexo3.pdf' },
-        { clave: 'a4', nombre: 'Anexo 4', icono: 'doc', url: `/informes/anexo4/${id}/pdf${pp}`, archivo: 'Anexo4.pdf' },
-        { clave: 'inf', nombre: 'Informe anual', icono: 'chart', url: `/informes/competencias/${id}/pdf${pp}`, archivo: 'Informe_anual.pdf' },
-        { clave: 'seg', nombre: 'Seguimiento', icono: 'track', url: `/informes/seguimiento/${id}/pdf${pp}`, archivo: 'Seguimiento.pdf' },
-      ]} />
       {error && <div className="mensaje-error">{error}</div>}
 
       {aniosPiar.length > 0 && (() => {
         const orden = [...aniosPiar].sort((a, b) => String(a.periodo).localeCompare(String(b.periodo)));
         return (
           <div className="anios-tabs">
-            <span className="anios-label">Año del PIAR</span>
+            <span className="anios-label">Año</span>
             {orden.map((p) => (
               <Link key={p.id} to={`/piar/${p.id}`} className={String(p.id) === String(id) ? 'activo' : ''}
                 title={`PIAR ${p.periodo} · estado: ${p.estado}`}>
