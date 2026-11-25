@@ -245,6 +245,9 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
   background: var(--gris-100); padding: 4px; border-radius: 12px; border: 1px solid var(--gris-200);
   position: sticky; top: 0; z-index: 30; box-shadow: 0 2px 8px rgba(0,0,0,.06);
 }
+.chip-nivel { background: var(--gris-100); border: 1px solid var(--gris-300); color: var(--gris-700); border-radius: 999px; padding: 4px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background .15s, border-color .15s; }
+.chip-nivel:hover { background: var(--gris-700); color: #fff; border-color: var(--gris-700); }
+
 /* Tabla de actores del PMI (formato oficial) */
 .tabla-actores { width: 100%; border-collapse: collapse; font-size: 13px; }
 .tabla-actores th { background: var(--gris-700); color: #fff; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .3px; padding: 8px 10px; border: 1px solid #aab; text-align: left; }

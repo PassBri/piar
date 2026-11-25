@@ -7,6 +7,7 @@ import Guardado from '../components/Guardado.jsx';
 import NavAnexos from '../components/NavAnexos.jsx';
 import AgregarAnio from '../components/AgregarAnio.jsx';
 import MenuDocumentos from '../components/MenuDocumentos.jsx';
+import { NIVELES_AREAS } from '../data/areas.js';
 import EstudianteForm from './EstudianteForm.jsx';
 
 const TIPOS = [
@@ -241,12 +242,11 @@ export default function PiarDetalle() {
       const lista = await api.get('/areas'); setAreas(lista);
     } catch (err) { setError(err.message); }
   }
-  // Áreas transversales del formato oficial (sección "otras")
-  async function agregarAreasBase() {
-    const BASE = ['Convivencia', 'Socialización', 'Participación', 'Autonomía', 'Autocontrol'];
+  // Carga las áreas/asignaturas de un nivel educativo (Ley 115, art. 23)
+  async function cargarAreasNivel(items) {
     try {
       const existentes = areas.map((a) => a.nombre);
-      for (const d of BASE) { if (!existentes.includes(d)) await api.post('/areas', { nombre: d }); }
+      for (const d of items) { if (!existentes.includes(d)) await api.post('/areas', { nombre: d }); }
       const lista = await api.get('/areas'); setAreas(lista);
     } catch (err) { setError(err.message); }
   }
@@ -428,7 +428,7 @@ export default function PiarDetalle() {
           <thead>
             <tr>
               {periodoActivo === 0 && <th style={{ minWidth: 58 }}>Per.</th>}
-              <th style={{ minWidth: 150 }}>Área</th>
+              <th style={{ minWidth: 150 }}>Áreas / Aprendizajes</th>
               <th style={{ minWidth: 170 }}>Objetivos / propósitos<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(para el grado, según EBC y DBA)</span></th>
               <th style={{ minWidth: 170 }}>Barreras<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(en el contexto)</span></th>
               <th style={{ minWidth: 180 }}>Ajustes razonables<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(apoyos/estrategias)</span></th>
@@ -535,11 +535,17 @@ export default function PiarDetalle() {
                   </div>
                   <button type="button" className="btn" onClick={agregarArea}>+ Agregar</button>
                 </div>
-                <p style={{ fontSize: 12, color: 'var(--gris-500)', margin: '2px 0 8px' }}>
-                  Inicio rápido:{' '}
-                  <button type="button" onClick={agregarAreasBase} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', textDecoration: 'underline', padding: 0, font: 'inherit' }}>cargar áreas del formato</button>
-                  {' · '}
-                  <button type="button" onClick={agregarDimensiones} style={{ background: 'none', border: 'none', color: '#1565c0', cursor: 'pointer', textDecoration: 'underline', padding: 0, font: 'inherit' }}>dimensiones de preescolar</button>
+                <div style={{ margin: '4px 0 8px' }}>
+                  <span style={{ fontSize: 12, color: 'var(--gris-600)', fontWeight: 600, marginRight: 4 }}>Cargar áreas por nivel:</span>
+                  <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+                    {NIVELES_AREAS.map((n) => (
+                      <button key={n.clave} type="button" className="chip-nivel" title={n.nota} onClick={() => cargarAreasNivel(n.items)}>{n.etiqueta}</button>
+                    ))}
+                  </span>
+                </div>
+                <p style={{ fontSize: 12, color: 'var(--gris-600)', margin: '0 0 8px', background: '#eef4fb', border: '1px solid #cfe0f3', borderRadius: 8, padding: '8px 10px' }}>
+                  <strong>Preescolar y educación inicial:</strong> los propósitos se orientan según las bases curriculares
+                  para la educación inicial y los DBA de transición, que no van por áreas ni asignaturas (usa las dimensiones).
                 </p>
               </>
             ) : (
