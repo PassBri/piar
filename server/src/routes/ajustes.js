@@ -12,14 +12,16 @@ const PERIODO_NOMBRE = (p) => (Number(p) === 5 ? 'Promoción' : `Periodo ${p}`);
 router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
     const { piar_id, area_id, periodo, objetivo, barrera, tipo, descripcion, apoyo, intensidad, evaluacion, desempeno } = req.body;
-    if (!piar_id || !barrera || !tipo || !descripcion) {
-      return res.status(400).json({ error: 'PIAR, barrera, tipo y descripción son obligatorios.' });
+    // Se permite crear filas vacías: la barrera y el ajuste se completan después
+    // (varios docentes diligencian el mismo formato, cada uno su área).
+    if (!piar_id) {
+      return res.status(400).json({ error: 'Falta el PIAR.' });
     }
     const { rows } = await query(
       `INSERT INTO ajuste_razonable
         (piar_id, area_id, periodo, objetivo, barrera, tipo, descripcion, apoyo, intensidad, evaluacion, desempeno)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [piar_id, area_id || null, periodo || 1, objetivo, barrera, tipo, descripcion, apoyo, intensidad || 'intermitente', evaluacion, desempeno || null]
+      [piar_id, area_id || null, periodo || 1, objetivo, barrera || '', tipo || 'actividades', descripcion || '', apoyo, intensidad || 'intermitente', evaluacion, desempeno || null]
     );
     await auditar(req, { entidad: 'ajuste', entidad_id: rows[0].id, piar_id, accion: 'crear', descripcion: `Agregó un ajuste razonable (${PERIODO_NOMBRE(periodo || 1)})` });
     res.status(201).json(rows[0]);

@@ -85,6 +85,7 @@ export default function PiarDetalle() {
     return { ...n, [campo]: act ? `${act}\n${texto}` : texto };
   });
   const [nuevaArea, setNuevaArea] = useState('');
+  const [avisoFila, setAvisoFila] = useState('');
   const [periodoActivo, setPeriodoActivo] = useState(1); // 1..5, o 0 = todos
   const [bitacora, setBitacora] = useState([]);
   const [searchParams] = useSearchParams();
@@ -239,12 +240,9 @@ export default function PiarDetalle() {
   }
   async function agregarAjuste(e) {
     e?.preventDefault?.();
-    if (!nuevo.barrera?.trim() || !nuevo.descripcion?.trim()) {
-      setError('Para agregar la fila, escribe al menos la barrera y el ajuste razonable.');
-      return;
-    }
+    // Se puede agregar la fila aunque esté vacía (varios docentes diligencian el formato).
     try {
-      setError('');
+      setAvisoFila(''); setError('');
       const periodo = periodoActivo === 0 ? nuevo.periodo : periodoActivo;
       await api.post('/ajustes', { piar_id: Number(id), ...nuevo, periodo, area_id: nuevo.area_id || null });
       setNuevo(ajusteVacio);
@@ -492,14 +490,6 @@ export default function PiarDetalle() {
                         <option value="">— Área —</option>
                         {areasUnicas.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
                       </select>
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <select value={a.tipo} title="Tipo de ajuste" onChange={(e) => actualizarAjuste(a, { tipo: e.target.value })} style={{ fontSize: 10 }}>
-                          {TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                        </select>
-                        <select value={a.intensidad || 'intermitente'} title="Intensidad del apoyo" onChange={(e) => actualizarAjuste(a, { intensidad: e.target.value })} style={{ fontSize: 10 }}>
-                          {INTENSIDADES.map((i) => <option key={i} value={i}>{i}</option>)}
-                        </select>
-                      </div>
                     </>
                   ) : (a.area_nombre || '—')}
                 </td>
@@ -540,18 +530,10 @@ export default function PiarDetalle() {
                     <option value="">— Área —</option>
                     {areasUnicas.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
                   </select>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <select value={nuevo.tipo} title="Tipo de ajuste" onChange={(e) => setNuevo({ ...nuevo, tipo: e.target.value })} style={{ fontSize: 10 }}>
-                      {TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                    </select>
-                    <select value={nuevo.intensidad} title="Intensidad del apoyo" onChange={(e) => setNuevo({ ...nuevo, intensidad: e.target.value })} style={{ fontSize: 10 }}>
-                      {INTENSIDADES.map((i) => <option key={i} value={i}>{i}</option>)}
-                    </select>
-                  </div>
                 </td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><SugMenu campo="objetivo" onPick={(t) => appendNuevo('objetivo', t)} /><textarea rows={2} value={nuevo.objetivo} onChange={(e) => setNuevo({ ...nuevo, objetivo: e.target.value })} placeholder="Objetivo…" /></td>
-                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><SugMenu campo="barrera" onPick={(t) => appendNuevo('barrera', t)} /><textarea rows={2} value={nuevo.barrera} onChange={(e) => setNuevo({ ...nuevo, barrera: e.target.value })} placeholder="Barrera…" /></td>
-                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><SugMenu campo="descripcion" onPick={(t) => appendNuevo('descripcion', t)} /><textarea rows={2} value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} placeholder="Ajuste razonable…" /></td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><SugMenu campo="barrera" onPick={(t) => { setAvisoFila(''); appendNuevo('barrera', t); }} /><textarea rows={2} value={nuevo.barrera} onChange={(e) => { if (avisoFila) setAvisoFila(''); setNuevo({ ...nuevo, barrera: e.target.value }); }} placeholder="Barrera…" /></td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><SugMenu campo="descripcion" onPick={(t) => { setAvisoFila(''); appendNuevo('descripcion', t); }} /><textarea rows={2} value={nuevo.descripcion} onChange={(e) => { if (avisoFila) setAvisoFila(''); setNuevo({ ...nuevo, descripcion: e.target.value }); }} placeholder="Ajuste razonable…" /></td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.evaluacion} onChange={(e) => setNuevo({ ...nuevo, evaluacion: e.target.value })} placeholder="Evaluación…" /></td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top', textAlign: 'center' }}>
                   <select value={nuevo.desempeno || ''} onChange={(e) => setNuevo({ ...nuevo, desempeno: e.target.value })} style={{ fontSize: 11 }}>
@@ -560,6 +542,13 @@ export default function PiarDetalle() {
                   </select>
                 </td>
                 <td className="val" style={{ textAlign: 'center', verticalAlign: 'top' }}><button type="button" className="btn sm" title="Agregar esta fila" onClick={() => agregarAjuste()}>+</button></td>
+              </tr>
+            )}
+            {editable && avisoFila && (
+              <tr>
+                <td colSpan={periodoActivo === 0 ? 8 : 7} style={{ padding: '6px 8px', color: '#b4232a', background: '#fdECEC', fontSize: 12.5, borderTop: '1px solid #f3c6c6' }}>
+                  ⚠️ {avisoFila}
+                </td>
               </tr>
             )}
             {ajustesVisibles.length === 0 && !editable && <tr><td className="val" colSpan={periodoActivo === 0 ? 7 : 6} style={{ color: 'var(--gris-500)', padding: 8 }}>Sin ajustes en esta selección.</td></tr>}
