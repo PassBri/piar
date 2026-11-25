@@ -147,4 +147,17 @@ router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coo
   } catch (err) { next(err); }
 });
 
+// DELETE /api/piar/:id  — elimina el PIAR de un año (y en cascada sus anexos)
+router.delete('/:id', autorizar('coordinador', 'rector', 'administrador', 'superadmin'), async (req, res, next) => {
+  try {
+    const neg = negarAcceso(req.usuario, await accesoPiar(req.params.id));
+    if (neg) return res.status(neg.status).json({ error: neg.error });
+    const prev = await query('SELECT p.periodo, p.estudiante_id FROM piar p WHERE p.id=$1', [req.params.id]);
+    if (!prev.rows[0]) return res.status(404).json({ error: 'PIAR no encontrado.' });
+    await auditar(req, { entidad: 'piar', entidad_id: Number(req.params.id), estudiante_id: prev.rows[0].estudiante_id, accion: 'eliminar', descripcion: `Eliminó el PIAR del año ${prev.rows[0].periodo}` });
+    await query('DELETE FROM piar WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
 export default router;

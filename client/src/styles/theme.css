@@ -296,6 +296,8 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
   padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .anios-tabs .anios-nuevo:hover { background: var(--gris-100); color: var(--gris-800); }
+.anios-tabs .anios-eliminar { display: inline-flex; align-items: center; gap: 5px; border: 1px solid transparent; background: transparent; color: var(--gris-500); padding: 5px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.anios-tabs .anios-eliminar:hover { background: #fdecea; color: #c62828; border-color: #f3b7b1; }
 .anio-nuevo-form { display: inline-flex; align-items: flex-end; gap: 8px; background: var(--gris-100); border: 1px solid var(--gris-300); border-radius: 12px; padding: 8px 10px; }
 .anio-nuevo-form label { display: flex; flex-direction: column; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--gris-500); gap: 3px; }
 .anio-nuevo-form input { padding: 6px 8px; border: 1px solid var(--gris-300); border-radius: 7px; font-size: 13px; width: 90px; }

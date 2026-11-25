@@ -152,7 +152,7 @@ export default function Seguimiento() {
                   {celdaPct(a.avance.anexo2)}
                   {celdaPct(a.avance.anexo3)}
                   <td><span className="badge gris">{a.avance.total}%</span></td>
-                  <td><Link className="btn sec sm" to={`/estudiantes/${a.estudiante_id}`}>Abrir</Link></td>
+                  <td><Link className="btn sec sm" to={a.piar_id ? `/piar/${a.piar_id}?v=anexo1` : `/estudiantes/${a.estudiante_id}`}>Abrir</Link></td>
                 </tr>
               ))}
               {visibles.length === 0 && <tr><td colSpan="7" style={{ color: 'var(--gris-500)' }}>Ningún estudiante con esos filtros.</td></tr>}

@@ -111,6 +111,7 @@ export default function EstudianteForm({ estudianteId: propId, embebido = false 
   const puedeReservar = ROLES_RESERVADO.includes(usuario.rol);
   const [form, setForm] = useState(vacio);
   const [piars, setPiars] = useState([]);
+  const [piarsCargado, setPiarsCargado] = useState(false);
   const [avance, setAvance] = useState(null);
   const [cursos, setCursos] = useState([]);
   const [autoriz, setAutoriz] = useState({ autoriza: false, nombre_acudiente: '', documento_acudiente: '', parentesco: '', fecha: '', firma_img: '' });
@@ -132,13 +133,23 @@ export default function EstudianteForm({ estudianteId: propId, embebido = false 
         entorno_educativo: e.entorno_educativo || {},
       })).catch((err) => setError(err.message));
       api.get(`/piar?estudiante_id=${id}`).then((lista) => {
-        setPiars(lista);
+        setPiars(lista); setPiarsCargado(true);
         if (lista[0]) api.get(`/piar/${lista[0].id}`).then((p) => setAvance(p.avance)).catch(() => {});
-      }).catch(() => {});
+      }).catch(() => setPiarsCargado(true));
       api.get(`/autorizacion/${id}`).then((d) => d && setAutoriz({ ...d, fecha: d.fecha ? d.fecha.slice(0, 10) : '' })).catch(() => {});
       api.get(`/evidencias/${id}`).then(setEvidencias).catch(() => {});
     }
   }, [id]);
+
+  // Al abrir el Anexo 1 por su propia ruta (/estudiantes/:id), si el estudiante
+  // ya tiene PIAR se redirige al expediente unificado (/piar/:id) para mostrar
+  // el mismo encabezado que los demás anexos.
+  useEffect(() => {
+    if (!embebido && id && piarsCargado && piars[0]) {
+      navigate(`/piar/${piars[0].id}?v=anexo1`, { replace: true });
+    }
+  }, [embebido, id, piarsCargado, piars, navigate]);
+  const redirigiendo = !embebido && id && (!piarsCargado || (piars[0] && true));
 
   // Ficha del estudiante en la barra lateral. Cuando el Anexo 1 va embebido
   // dentro del PIAR, la ficha la gestiona PiarDetalle (así se mantiene en los 4
@@ -281,6 +292,8 @@ export default function EstudianteForm({ estudianteId: propId, embebido = false 
     }
     return rows;
   }
+
+  if (redirigiendo) return <div style={{ color: 'var(--gris-500)', padding: 8 }}>Abriendo expediente…</div>;
 
   return (
     <div>

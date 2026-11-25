@@ -293,6 +293,16 @@ export default function PiarDetalle() {
 
       {aniosPiar.length > 0 && (() => {
         const orden = [...aniosPiar].sort((a, b) => String(a.periodo).localeCompare(String(b.periodo)));
+        const actual = orden.find((p) => String(p.id) === String(id));
+        const eliminarAnio = async () => {
+          if (!actual) return;
+          if (!window.confirm(`¿Está seguro de eliminar el PIAR del año ${actual.periodo} (grado ${actual.grado || '—'})?\n\nSe borrarán todos los anexos de ese año y no se puede deshacer.`)) return;
+          try {
+            await api.del(`/piar/${id}`);
+            const restantes = orden.filter((p) => String(p.id) !== String(id)).sort((a, b) => String(b.periodo).localeCompare(String(a.periodo)));
+            navigate(restantes[0] ? `/piar/${restantes[0].id}` : '/seguimiento');
+          } catch (e) { setError(e.message); }
+        };
         return (
           <div className="anios-tabs">
             <span className="anios-label">Año</span>
@@ -304,6 +314,12 @@ export default function PiarDetalle() {
             ))}
             {editable && <AgregarAnio anios={orden} estudianteId={piar.estudiante_id}
               onCreado={(np) => navigate(`/piar/${np.id}`)} onError={setError} />}
+            {puedeConfigurar && orden.length > 1 && (
+              <button type="button" className="anios-eliminar" onClick={eliminarAnio} title={`Eliminar el año ${actual?.periodo || ''}`}>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" /></svg>
+                Eliminar año
+              </button>
+            )}
           </div>
         );
       })()}
