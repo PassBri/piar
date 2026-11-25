@@ -2,6 +2,7 @@ import { createApp } from './app.js';
 import { config } from './config.js';
 import { pool } from './db.js';
 import { ensureSchema, migrar } from './db/init.js';
+import { seedEjemplos } from './db/seedEjemplos.js';
 
 const app = createApp();
 
@@ -9,6 +10,7 @@ const app = createApp();
 try {
   await ensureSchema();
   await migrar();
+  await seedEjemplos();
 } catch (e) {
   console.error('No se pudo inicializar la base de datos:', e.message);
 }
