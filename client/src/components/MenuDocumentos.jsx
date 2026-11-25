@@ -39,11 +39,10 @@ export default function MenuDocumentos({ docs, conPortada, setConPortada }) {
           <div className="md-sep" />
           {docs.map((d) => (
             <div className="md-fila" key={d.clave}>
-              <span className="md-nombre"><Svg name={d.icono || 'doc'} /> {d.nombre}</span>
-              <span className="md-acciones">
-                <button type="button" title={`Ver / imprimir ${d.nombre}`} onClick={() => { api.abrirPdf(d.url); setAbierto(false); }}><Svg name="open" size={17} /></button>
-                <button type="button" title={`Descargar ${d.nombre}`} onClick={() => { api.descargarPdf(d.url, d.archivo); setAbierto(false); }}><Svg name="download" size={17} /></button>
-              </span>
+              <button type="button" className="md-nombre" title={`Ver / imprimir ${d.nombre}`} onClick={() => { api.abrirPdf(d.url); setAbierto(false); }}>
+                <Svg name={d.icono || 'doc'} /> {d.nombre}
+              </button>
+              <button type="button" className="md-descargar" title={`Descargar ${d.nombre}`} onClick={() => { api.descargarPdf(d.url, d.archivo); setAbierto(false); }}><Svg name="download" size={18} /></button>
             </div>
           ))}
         </div>

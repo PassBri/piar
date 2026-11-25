@@ -268,11 +268,11 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
 .md-sep { height: 1px; background: var(--gris-200); margin: 6px 4px; }
 .md-fila { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px; border-radius: 8px; }
 .md-fila:hover { background: var(--gris-100); }
-.md-nombre { display: inline-flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 600; color: var(--gris-800); }
-.md-nombre svg { color: var(--gris-500); }
-.md-acciones { display: inline-flex; gap: 2px; }
-.md-acciones button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: none; background: none; border-radius: 8px; color: var(--gris-600); cursor: pointer; }
-.md-acciones button:hover { background: var(--gris-700); color: #fff; }
+.md-nombre { display: inline-flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 600; color: var(--gris-800); background: none; border: none; cursor: pointer; padding: 2px 4px; border-radius: 6px; flex: 1 1 auto; text-align: left; }
+.md-nombre:hover { color: var(--gris-900, #263238); }
+.md-nombre svg { color: var(--gris-500); flex: 0 0 auto; }
+.md-descargar { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: none; background: none; border-radius: 8px; color: var(--gris-600); cursor: pointer; flex: 0 0 auto; }
+.md-descargar:hover { background: var(--gris-700); color: #fff; }
 
 /* Selector de años (trayectoria) del expediente */
 .anios-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 12px 0 0; }
