@@ -9,13 +9,24 @@ import Guardado from '../components/Guardado.jsx';
 import NavAnexos from '../components/NavAnexos.jsx';
 import AgregarAnio from '../components/AgregarAnio.jsx';
 
+// Listas para selectores del Anexo 1.
+const EDADES = Array.from({ length: 23 }, (_, i) => String(i + 3)); // 3 a 25 años
+const ETNIAS = [
+  'No pertenece',
+  'Indígena',
+  'Rrom (Gitano)',
+  'Raizal (San Andrés y Providencia)',
+  'Palenquero (San Basilio)',
+  'Negro(a), Mulato(a), Afrocolombiano(a) o Afrodescendiente',
+];
+
 // Campos oficiales del Anexo 1 (Formato PIAR - Decreto 1421). t: 'area' = textarea.
 const CAMPOS = {
   diligenciamiento: {
     titulo: 'Diligenciamiento del Anexo 1',
     store: 'identificacion',
     campos: [
-      ['fecha_diligenciamiento', 'Fecha de diligenciamiento (DD/MM/AAAA)'],
+      ['fecha_diligenciamiento', 'Fecha de diligenciamiento', 'fecha'],
       ['lugar_diligenciamiento', 'Lugar de diligenciamiento'],
       ['nombre_diligencia', 'Nombre de la persona que diligencia'],
       ['rol_diligencia', 'Rol que desempeña en la SE o la IE'],
@@ -24,14 +35,14 @@ const CAMPOS = {
   identificacion: {
     titulo: '1) Información general del estudiante',
     campos: [
-      ['edad', 'Edad'],
+      ['edad', 'Edad', 'select', EDADES],
       ['sede', 'Sede'], ['jornada', 'Jornada'], ['grado_ingreso', 'Grado al que aspira ingresar'],
       ['lugar_nacimiento', 'Lugar de nacimiento'], ['sexo', 'Sexo', 'select', ['Femenino', 'Masculino']],
       ['departamento_vive', 'Departamento donde vive', 'departamento'], ['municipio_vive', 'Municipio', 'municipio'],
       ['direccion', 'Dirección de vivienda'], ['barrio', 'Barrio / vereda'],
       ['telefono', 'Teléfono'], ['correo', 'Correo electrónico'],
       ['centro_proteccion', '¿Está en centro de protección? ¿Dónde?'],
-      ['grupo_etnico', '¿Pertenece a un grupo étnico? ¿Cuál?'],
+      ['grupo_etnico', '¿Pertenece a un grupo étnico?', 'select', ETNIAS],
       ['victima_conflicto', '¿Víctima del conflicto armado? (¿registro?)', 'area'],
     ],
   },
@@ -269,6 +280,9 @@ export default function EstudianteForm({ estudianteId: propId, embebido = false 
           {NOMBRES_DISCAPACIDAD.map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
       );
+    }
+    if (tipo === 'fecha') {
+      return <input type="date" value={val ? String(val).slice(0, 10) : ''} onChange={(e) => setG(store, k, e.target.value)} disabled={!editable} />;
     }
     if (tipo === 'si_no') {
       return (
