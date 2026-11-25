@@ -48,12 +48,20 @@ export default function Estadisticas() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
         <h1 style={{ margin: 0 }}>Estadísticas de atención — PIAR</h1>
-        <div className="campo" style={{ margin: 0, minWidth: 240 }}>
-          <label>Filtrar por discapacidad</label>
-          <select value={disc} onChange={(e) => setDisc(e.target.value)}>
-            <option value="">Todas las discapacidades</option>
-            {NOMBRES_DISCAPACIDAD.map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn sec sm" title="Informe consolidado del colegio en PDF"
+              onClick={() => api.abrirPdf('/informes/institucional/pdf')}>Informe institucional (PDF)</button>
+            <button className="btn sec sm" title="Descargar sin portada"
+              onClick={() => api.descargarPdf('/informes/institucional/pdf?portada=0', 'Informe_institucional_PIAR.pdf')}>↓ sin portada</button>
+          </div>
+          <div className="campo" style={{ margin: 0, minWidth: 240 }}>
+            <label>Filtrar por discapacidad</label>
+            <select value={disc} onChange={(e) => setDisc(e.target.value)}>
+              <option value="">Todas las discapacidades</option>
+              {NOMBRES_DISCAPACIDAD.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
         </div>
       </div>
 

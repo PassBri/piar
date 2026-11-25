@@ -44,9 +44,9 @@ function decorar(doc, indicePagina) {
     doc.lineWidth(0.8).rect(470, 18, 88, 26).stroke('#B0BEC5');
     doc.font('Helvetica-Bold').fontSize(9.5).fillColor(GRIS).text('PIAR', 470, 22, { width: 88, align: 'center', lineBreak: false });
     doc.font('Helvetica').fontSize(6.5).fillColor(GRIS_MEDIO).text('Decreto 1421/2017', 470, 34, { width: 88, align: 'center', lineBreak: false });
-    // Estudiante + documento
-    doc.font('Helvetica').fontSize(7.5).fillColor('#000').text(
-      `Estudiante: ${cab.estudiante || '—'}${cab.documento ? `   ·   Documento: ${cab.documento}` : ''}`, X0, 49, { width: ANCHO, lineBreak: false });
+    // Línea inferior del encabezado: estudiante (anexos) o texto propio (informes institucionales)
+    const lineaInf = cab.linea || `Estudiante: ${cab.estudiante || '—'}${cab.documento ? `   ·   Documento: ${cab.documento}` : ''}`;
+    doc.font('Helvetica').fontSize(7.5).fillColor('#000').text(lineaInf, X0, 49, { width: ANCHO, lineBreak: false });
     doc.moveTo(X0, 62).lineTo(X0 + ANCHO, 62).lineWidth(0.6).stroke('#CFD8DC');
   } else {
     // Encabezado simple (documentos sin estudiante)
@@ -1119,6 +1119,164 @@ router.get('/indicadores', async (req, res, next) => {
        GROUP BY i.id, i.nombre, m.nombre, d.nombre
        ORDER BY d.nombre, m.nombre, i.nombre`);
     res.json({ por_institucion: porInstitucion.rows });
+  } catch (err) { next(err); }
+});
+
+// ====== Informe institucional consolidado del PIAR ======
+// Tabla simple con cabecera gris. cols: [[titulo, ancho, align]]; filas: [[v,v,...]]
+function tablaInforme(doc, cols, filas, opts = {}) {
+  const alto = opts.alto || 15;
+  const dibujarCab = () => {
+    saltoSi(doc, alto + 2);
+    const y = doc.y; let x = X0;
+    cols.forEach(([t, w]) => {
+      doc.rect(x, y, w, alto).fillAndStroke(GRIS, BORDE);
+      doc.fillColor('#fff').font('Helvetica-Bold').fontSize(8).text(t, x + 3, y + 4, { width: w - 6, align: 'left', lineBreak: false });
+      x += w;
+    });
+    doc.fillColor('#000'); doc.y = y + alto;
+  };
+  dibujarCab();
+  filas.forEach((f, idx) => {
+    let hFila = alto;
+    cols.forEach(([, w], i) => {
+      doc.font('Helvetica').fontSize(8);
+      hFila = Math.max(hFila, doc.heightOfString(String(f[i] ?? '—'), { width: w - 6 }) + 5);
+    });
+    if (doc.y + hFila > TOPE) { doc.addPage(); dibujarCab(); }
+    const y = doc.y; let x = X0;
+    cols.forEach(([, w, align], i) => {
+      if (idx % 2 === 1) { doc.rect(x, y, w, hFila).fill('#F5F7F8'); }
+      doc.rect(x, y, w, hFila).stroke(BORDE);
+      doc.fillColor('#000').font('Helvetica').fontSize(8)
+         .text(String(f[i] ?? '—'), x + 3, y + 3, { width: w - 6, align: align || 'left' });
+      x += w;
+    });
+    doc.y = y + hFila;
+  });
+  doc.moveDown(0.5);
+}
+
+router.get('/institucional/pdf', autorizar('superadmin', 'rector', 'coordinador', 'psicoorientador', 'administrador', 'docente'), async (req, res, next) => {
+  try {
+    const esSuper = req.usuario.rol === 'superadmin';
+    const instId = esSuper ? (req.query.institucion_id || null) : req.usuario.institucion_id;
+    const veReservados = ROLES_RESERVADO.includes(req.usuario.rol);
+    const P = [instId || null];
+
+    const instRow = (await query(
+      `SELECT i.id, i.nombre, i.sede, i.nit, i.logo, i.sistema_evaluacion, i.num_periodos,
+              m.nombre AS municipio, d.nombre AS departamento
+       FROM institucion i LEFT JOIN municipio m ON m.id = i.municipio_id
+       LEFT JOIN departamento d ON d.id = m.departamento_id WHERE i.id = $1`, [instId]
+    )).rows[0] || { nombre: 'Institución Educativa', nit: '', logo: null };
+    const inst = { logo: instRow.logo, nombre: instRow.nombre, nit: instRow.nit };
+
+    // Cifras generales
+    const g = (await query(
+      `SELECT
+         COUNT(*)::int AS total_est,
+         COUNT(*) FILTER (WHERE reservado)::int AS reservados,
+         COUNT(DISTINCT entorno_salud->>'discapacidad') FILTER (WHERE COALESCE(entorno_salud->>'discapacidad','') <> '')::int AS tipos_disc
+       FROM estudiante WHERE ($1::int IS NULL OR institucion_id = $1)`, P)).rows[0];
+    const piarEstado = (await query(
+      `SELECT p.estado::text AS estado, COUNT(*)::int AS n
+       FROM piar p JOIN estudiante e ON e.id = p.estudiante_id
+       WHERE ($1::int IS NULL OR e.institucion_id = $1) GROUP BY p.estado`, P)).rows;
+    const nPiar = (s) => (piarEstado.find(r => r.estado === s)?.n || 0);
+    const aj = (await query(
+      `SELECT COUNT(*) FILTER (WHERE NOT a.retirado)::int AS activos,
+              COUNT(*) FILTER (WHERE a.retirado)::int AS retirados,
+              COUNT(*) FILTER (WHERE NOT a.retirado AND COALESCE(a.desempeno,'') <> '')::int AS valorados
+       FROM ajuste_razonable a JOIN piar p ON p.id = a.piar_id JOIN estudiante e ON e.id = p.estudiante_id
+       WHERE ($1::int IS NULL OR e.institucion_id = $1)`, P)).rows[0];
+    const seg = (await query(
+      `SELECT COALESCE(LEAST(n,3),0) AS grp, COUNT(*)::int AS ajustes FROM (
+         SELECT a.id, COUNT(s.id) AS n
+         FROM ajuste_razonable a JOIN piar p ON p.id=a.piar_id JOIN estudiante e ON e.id=p.estudiante_id
+         LEFT JOIN seguimiento s ON s.ajuste_id = a.id
+         WHERE NOT a.retirado AND ($1::int IS NULL OR e.institucion_id=$1) GROUP BY a.id
+       ) t GROUP BY LEAST(n,3) ORDER BY 1`, P)).rows;
+    const segN = (k) => (seg.find(r => Number(r.grp) === k)?.ajustes || 0);
+    const con3 = segN(3);
+    const totAjSeg = seg.reduce((s, r) => s + r.ajustes, 0);
+    const actas = (await query(
+      `SELECT COUNT(*)::int AS total,
+              COUNT(*) FILTER (WHERE firmada_familia)::int AS fam,
+              COUNT(*) FILTER (WHERE firmada_institucion)::int AS insti
+       FROM acta_acuerdo ac JOIN piar p ON p.id=ac.piar_id JOIN estudiante e ON e.id=p.estudiante_id
+       WHERE ($1::int IS NULL OR e.institucion_id=$1)`, P)).rows[0];
+    const otros = (await query(
+      `SELECT
+        (SELECT COUNT(*) FROM tamizaje t JOIN estudiante e ON e.id=t.estudiante_id WHERE ($1::int IS NULL OR e.institucion_id=$1))::int AS tamizajes,
+        (SELECT COUNT(*) FROM autorizacion_datos au JOIN estudiante e ON e.id=au.estudiante_id WHERE ($1::int IS NULL OR e.institucion_id=$1))::int AS autoriz,
+        (SELECT COUNT(*) FROM remision r JOIN estudiante e ON e.id=r.estudiante_id WHERE r.sector='Psicoorientación' AND ($1::int IS NULL OR e.institucion_id=$1))::int AS remisiones`, P)).rows[0];
+
+    const porDisc = (await query(
+      `SELECT COALESCE(NULLIF(entorno_salud->>'discapacidad',''),'Sin registrar') AS disc, COUNT(*)::int AS n
+       FROM estudiante WHERE ($1::int IS NULL OR institucion_id=$1) GROUP BY 1 ORDER BY 2 DESC, 1`, P)).rows;
+    const porGrado = (await query(
+      `SELECT COALESCE(NULLIF(grado,''),'Sin grado') AS grado, COUNT(*)::int AS n
+       FROM estudiante WHERE ($1::int IS NULL OR institucion_id=$1) GROUP BY 1 ORDER BY n DESC, grado`, P)).rows;
+
+    let sqlList = `SELECT e.nombres, e.reservado, COALESCE(NULLIF(e.grado,''),'—') AS grado,
+              COALESCE(NULLIF(e.entorno_salud->>'discapacidad',''),'Sin registrar') AS disc,
+              COUNT(a.id) FILTER (WHERE NOT a.retirado)::int AS ajustes,
+              COUNT(a.id) FILTER (WHERE NOT a.retirado AND COALESCE(a.desempeno,'')<>'')::int AS valorados
+       FROM estudiante e LEFT JOIN piar p ON p.estudiante_id=e.id LEFT JOIN ajuste_razonable a ON a.piar_id=p.id
+       WHERE ($1::int IS NULL OR e.institucion_id=$1)`;
+    if (!veReservados) sqlList += ' AND e.reservado = FALSE';
+    sqlList += ' GROUP BY e.id, e.nombres, e.reservado, e.grado, e.entorno_salud ORDER BY e.nombres';
+    const listado = (await query(sqlList, P)).rows;
+
+    const hoy = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+    const periodo = new Date().getFullYear();
+    const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) + '%' : '—');
+
+    const doc = iniciar(res, req, 'Informe_institucional_PIAR.pdf', { inst, linea: `Informe institucional del PIAR · Periodo ${periodo}` });
+    if (req.query.portada !== '0') {
+      portada(doc, { tituloDoc: 'Informe Institucional del PIAR', estudiante: `Periodo ${periodo}`, documento: '', inst });
+    }
+
+    titulo(doc, 'INFORME INSTITUCIONAL DEL PIAR', `Decreto 1421 de 2017 · Consolidado ${periodo} · Generado el ${hoy}`, inst);
+    doc.moveDown(0.2);
+
+    banda(doc, 'Resumen general');
+    campos(doc, [['Estudiantes con expediente PIAR', g.total_est], ['PIAR vigentes', nPiar('vigente')]]);
+    campos(doc, [['PIAR en borrador', nPiar('borrador')], ['PIAR cerrados', nPiar('cerrado')]]);
+    campos(doc, [['Ajustes razonables activos', aj.activos], ['Tipos de discapacidad atendidos', g.tipos_disc]]);
+    campos(doc, [['Detecciones / tamizajes', otros.tamizajes], ['Remisiones a psicoorientación', otros.remisiones]]);
+    doc.moveDown(0.4);
+
+    banda(doc, 'Cumplimiento del Decreto 1421');
+    campos(doc, [['Ajustes con sus 3 seguimientos', `${con3} de ${totAjSeg}  (${pct(con3, totAjSeg)})`], ['Ajustes ya valorados (desempeño)', `${aj.valorados} de ${aj.activos}  (${pct(aj.valorados, aj.activos)})`]]);
+    campos(doc, [['Actas de acuerdo firmadas por la familia', `${actas.fam} de ${actas.total}  (${pct(actas.fam, actas.total)})`], ['Actas firmadas por la institución', `${actas.insti} de ${actas.total}  (${pct(actas.insti, actas.total)})`]]);
+    campos(doc, [['Autorizaciones de tratamiento de datos', otros.autoriz], ['Estudiantes con información reservada', g.reservados]]);
+    doc.moveDown(0.5);
+
+    banda(doc, 'Estudiantes por tipo de discapacidad');
+    tablaInforme(doc, [['Tipo de discapacidad', 380], ['Estudiantes', 83, 'center'], ['%', 60, 'center']],
+      porDisc.map(r => [r.disc, r.n, pct(r.n, g.total_est)]));
+
+    banda(doc, 'Estudiantes por grado');
+    tablaInforme(doc, [['Grado', 380], ['Estudiantes', 83, 'center'], ['%', 60, 'center']],
+      porGrado.map(r => [r.grado, r.n, pct(r.n, g.total_est)]));
+
+    banda(doc, 'Estado de los seguimientos (ajustes activos)');
+    tablaInforme(doc, [['Seguimientos realizados', 380], ['Ajustes', 83, 'center'], ['%', 60, 'center']],
+      [['Sin seguimientos', segN(0)], ['1 seguimiento', segN(1)], ['2 seguimientos', segN(2)], ['3 o más (completo)', segN(3)]]
+        .map(([l, n]) => [l, n, pct(n, totAjSeg)]));
+
+    banda(doc, `Estudiantes con PIAR (${listado.length})`);
+    tablaInforme(doc,
+      [['Estudiante', 210], ['Grado', 55, 'center'], ['Discapacidad', 140], ['Ajustes', 48, 'center'], ['Avance', 70, 'center']],
+      listado.map(r => [
+        r.reservado ? `${r.nombres}  (reservado)` : r.nombres,
+        r.grado, r.disc, r.ajustes, `${r.valorados}/${r.ajustes} ${pct(r.valorados, r.ajustes)}`
+      ]), { alto: 15 });
+    if (!listado.length) doc.font('Helvetica-Oblique').fontSize(9).text('No hay estudiantes registrados para esta institución.', X0, doc.y + 6);
+
+    finalizar(doc);
   } catch (err) { next(err); }
 });
 

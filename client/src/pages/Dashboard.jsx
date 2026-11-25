@@ -18,8 +18,18 @@ export default function Dashboard() {
     }
   }, [usuario.rol]);
 
+  const puedeInforme = ['docente', 'psicoorientador', 'administrador', 'rector', 'coordinador', 'superadmin'].includes(usuario.rol);
+
   return (
     <div>
+      {puedeInforme && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+          <button className="btn sec sm" title="Informe consolidado del colegio en PDF"
+            onClick={() => api.abrirPdf('/informes/institucional/pdf')}>Informe institucional (PDF)</button>
+          <button className="btn sec sm" title="Descargar sin portada"
+            onClick={() => api.descargarPdf('/informes/institucional/pdf?portada=0', 'Informe_institucional_PIAR.pdf')}>↓</button>
+        </div>
+      )}
       <div className="grid">
         <div className="card">
           <div className="kpi">{estudiantes.length}</div>
