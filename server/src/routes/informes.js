@@ -446,12 +446,15 @@ router.get('/acta/:piarId/pdf', async (req, res, next) => {
     else campos(doc, [['Familia del estudiante', '—'], ['Parentesco', '—']]);
 
     doc.moveDown(0.3);
-    doc.font('Helvetica').fontSize(8.5).fillColor(GRIS_MEDIO).text(
-      'Según el Decreto 1421 de 2017, la educación inclusiva es un proceso permanente que reconoce, valora y responde a la diversidad de los estudiantes. La inclusión solo es posible cuando se unen los esfuerzos del colegio, el estudiante y la familia; por eso se formaliza con las firmas la presente Acta Acuerdo.',
-      X0, doc.y, { width: ANCHO });
+    doc.font('Helvetica').fontSize(8.5).fillColor(GRIS_MEDIO);
+    doc.text('Según el Decreto 1421 de 2017 la educación inclusiva es un proceso permanente que reconoce, valora y responde a la diversidad de características, intereses, posibilidades y expectativas de los estudiantes para promover su desarrollo, aprendizaje y participación, en un ambiente de aprendizaje común, sin discriminación o exclusión.', X0, doc.y, { width: ANCHO });
+    doc.moveDown(0.3);
+    doc.text('La inclusión solo es posible cuando se unen los esfuerzos del colegio, el estudiante y la familia. De ahí la importancia de formalizar con las firmas, la presente Acta Acuerdo.', X0, doc.y, { width: ANCHO });
+    doc.moveDown(0.3);
+    doc.text('El Establecimiento Educativo ha realizado la valoración y definido los ajustes razonables que facilitarán al estudiante su proceso educativo.', X0, doc.y, { width: ANCHO });
     doc.fillColor('#000').moveDown(0.3);
 
-    banda(doc, 'La familia se compromete a cumplir y firmar los compromisos del PIAR, y en particular a:');
+    banda(doc, 'La Familia se compromete a cumplir y firmar los compromisos señalados en el PIAR y en las actas de acuerdo, para fortalecer los procesos escolares del estudiante y en particular a:');
     campos(doc, [['Compromisos de la familia', a.compromisos_familia || '—']]);
     if ((a.compromisos_institucion || '').trim()) campos(doc, [['Compromisos de la institución', a.compromisos_institucion]]);
 

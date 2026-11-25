@@ -704,13 +704,23 @@ export default function PiarDetalle() {
         </table>
         {!esPadre && <button type="button" className="btn sec sm" style={{ marginBottom: 12 }} onClick={addFam}>+ Agregar familiar</button>}
 
-        <p style={{ fontSize: 12, color: 'var(--gris-600)', background: 'var(--gris-100)', padding: 10, borderRadius: 8 }}>
-          Según el Decreto 1421 de 2017, la educación inclusiva es un proceso permanente que reconoce, valora y responde a la
-          diversidad de características, intereses, posibilidades y expectativas de los estudiantes. La inclusión solo es posible
-          cuando se unen los esfuerzos del colegio, el estudiante y la familia; por eso se formaliza con las firmas la presente Acta Acuerdo.
-        </p>
+        <div style={{ fontSize: 12.5, color: 'var(--gris-700)', background: 'var(--gris-100)', padding: '12px 14px', borderRadius: 8, lineHeight: 1.5 }}>
+          <p style={{ margin: '0 0 8px' }}>
+            Según el Decreto 1421 de 2017 la educación inclusiva es un proceso permanente que reconoce, valora y responde a la
+            diversidad de características, intereses, posibilidades y expectativas de los estudiantes para promover su desarrollo,
+            aprendizaje y participación, en un ambiente de aprendizaje común, sin discriminación o exclusión.
+          </p>
+          <p style={{ margin: '0 0 8px' }}>
+            La inclusión solo es posible cuando se unen los esfuerzos del colegio, el estudiante y la familia. De ahí la importancia
+            de formalizar con las firmas, la presente Acta Acuerdo.
+          </p>
+          <p style={{ margin: 0 }}>
+            <strong>El Establecimiento Educativo</strong> ha realizado la valoración y definido los ajustes razonables que
+            facilitarán al estudiante su proceso educativo.
+          </p>
+        </div>
 
-        <div className="campo"><label>La familia se compromete a cumplir y firmar los compromisos señalados en el PIAR, y en particular a:</label>
+        <div className="campo"><label>La Familia se compromete a cumplir y firmar los compromisos señalados en el PIAR y en las actas de acuerdo, para fortalecer los procesos escolares del estudiante y en particular a:</label>
           <textarea value={acta.compromisos_familia || ''} disabled={esPadre}
             onChange={(e) => setActa({ ...acta, compromisos_familia: e.target.value })}
             placeholder="Compromisos específicos para implementar en el aula que requieran ampliación o detalle adicional al PIAR" /></div>
