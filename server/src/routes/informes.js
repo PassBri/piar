@@ -12,8 +12,7 @@ router.use(autenticar);
 
 // Logos PIAR para portadas de los PDF: el pollito (patrón de fondo) y el logo blanco (marca central)
 const DIR_ASSETS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../assets');
-const LOGO_PIAR = (() => { try { return fs.readFileSync(path.join(DIR_ASSETS, 'favicon-piar.png')); } catch { return null; } })();
-const LOGO_BLANCO = (() => { try { return fs.readFileSync(path.join(DIR_ASSETS, 'logo-piar-blanco.png')); } catch { return null; } })();
+const LOGO_BLANCO = (() => { try { return fs.readFileSync(path.join(DIR_ASSETS, 'icono-pdf.png')); } catch { return null; } })();
 const FONDO_PDF = (() => { try { return fs.readFileSync(path.join(DIR_ASSETS, 'fondo-pdf.jpg')); } catch { return null; } })();
 
 const GRIS = '#37474F';
@@ -90,16 +89,15 @@ function portada(doc, { tituloDoc, estudiante, documento, inst }) {
   }
   // Velo oscuro para dar contraste al texto central
   doc.save(); doc.opacity(0.22); doc.rect(0, 0, doc.page.width, doc.page.height).fill('#0E0F11'); doc.opacity(1); doc.restore();
-  // Logo completo (blanco) centrado arriba
+  // Ícono PIAR (braille) centrado arriba, con el nombre y el subtítulo debajo
   const cx = doc.page.width / 2;
   if (LOGO_BLANCO) {
-    const w = 360, h = w * 320 / 1080;
-    try { doc.image(LOGO_BLANCO, cx - w / 2, 150, { fit: [w, h] }); } catch { /* */ }
-  } else {
-    doc.fillColor('#fff').font('Helvetica-Bold').fontSize(30).text('PIAR', 0, 200, { width: doc.page.width, align: 'center' });
-    doc.fillColor('#B0BEC5').font('Helvetica').fontSize(11).text('Plan Individual de Ajustes Razonables', 0, 238, { width: doc.page.width, align: 'center' });
+    const s = 108;
+    try { doc.image(LOGO_BLANCO, cx - s / 2, 140, { fit: [s, s] }); } catch { /* */ }
   }
-  doc.fillColor('#90A4AE').font('Helvetica').fontSize(9).text('Decreto 1421 de 2017', 0, 300, { width: doc.page.width, align: 'center' });
+  doc.fillColor('#fff').font('Helvetica-Bold').fontSize(34).text('PIAR', 0, 262, { width: doc.page.width, align: 'center', characterSpacing: 6 });
+  doc.fillColor('#CFD8DC').font('Helvetica').fontSize(11).text('Plan Individual de Ajustes Razonables', 0, 304, { width: doc.page.width, align: 'center' });
+  doc.fillColor('#90A4AE').font('Helvetica').fontSize(9).text('Decreto 1421 de 2017', 0, 330, { width: doc.page.width, align: 'center' });
   // Título del documento
   doc.fillColor('#fff').font('Helvetica-Bold').fontSize(16).text(tituloDoc, 60, 380, { width: doc.page.width - 120, align: 'center' });
   // Nombre del estudiante

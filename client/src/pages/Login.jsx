@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import icono from '../assets/icono-piar.png';
+import icono from '../assets/icono-app.png';
 
 function IconoUsuario() {
   return (
