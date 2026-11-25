@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import logo from '../assets/logo-piar-full.png';
+import logo from '../assets/logo-piar-blanco.png';
 
 const ESCALAS = [0.9, 1, 1.15, 1.3];
 
@@ -73,7 +73,7 @@ export default function Layout() {
       <div className={`overlay-menu ${menu ? 'visible' : ''}`} onClick={() => setMenu(false)} />
       <aside className={`sidebar ${menu ? 'abierto' : ''}`} onClick={() => setMenu(false)}>
         <div className="brand">
-          <img src={logo} alt="PIAR — Plan Individual de Ajustes Razonables" style={{ width: '100%', height: 'auto', filter: 'invert(1)' }} />
+          <img src={logo} alt="PIAR — Plan Individual de Ajustes Razonables" style={{ width: '100%', height: 'auto' }} />
         </div>
         <nav>
           {MENU.map((grupo, gi) => {

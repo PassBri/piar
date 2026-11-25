@@ -14,6 +14,7 @@ router.use(autenticar);
 const DIR_ASSETS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../assets');
 const LOGO_PIAR = (() => { try { return fs.readFileSync(path.join(DIR_ASSETS, 'favicon-piar.png')); } catch { return null; } })();
 const LOGO_BLANCO = (() => { try { return fs.readFileSync(path.join(DIR_ASSETS, 'logo-piar-blanco.png')); } catch { return null; } })();
+const FONDO_PDF = (() => { try { return fs.readFileSync(path.join(DIR_ASSETS, 'fondo-pdf.jpg')); } catch { return null; } })();
 
 const GRIS = '#37474F';
 const GRIS_MEDIO = '#607D8B';
@@ -79,29 +80,20 @@ function iniciar(res, req, filename, cab) {
 // Portada: fondo gris (como el login), logo del pollito, título, estudiante y datos del colegio
 function portada(doc, { tituloDoc, estudiante, documento, inst }) {
   doc._portadas.add(doc.bufferedPageRange().count - 1);
-  // Fondo gris
   doc.save();
-  doc.rect(0, 0, doc.page.width, doc.page.height).fill('#37474F');
-  // Patrón de pollitos tenue en escala de grises (como el fondo del login)
-  if (LOGO_PIAR) {
-    doc.save();
-    doc.opacity(0.05);
-    const paso = 74, tam = 32;
-    let fila = 0;
-    for (let yy = 8; yy < doc.page.height - 10; yy += paso) {
-      const offset = (fila % 2) * (paso / 2);
-      for (let xx = 8 + offset; xx < doc.page.width - 10; xx += paso) {
-        try { doc.image(LOGO_PIAR, xx, yy, { fit: [tam, tam] }); } catch { /* */ }
-      }
-      fila++;
-    }
-    doc.opacity(1);
-    doc.restore();
+  // Fondo: patrón de íconos de accesibilidad (imagen) a toda la página
+  if (FONDO_PDF) {
+    try { doc.image(FONDO_PDF, 0, 0, { width: doc.page.width, height: doc.page.height }); }
+    catch { doc.rect(0, 0, doc.page.width, doc.page.height).fill('#1A1A1A'); }
+  } else {
+    doc.rect(0, 0, doc.page.width, doc.page.height).fill('#1A1A1A');
   }
+  // Velo oscuro para dar contraste al texto central
+  doc.save(); doc.opacity(0.22); doc.rect(0, 0, doc.page.width, doc.page.height).fill('#0E0F11'); doc.opacity(1); doc.restore();
   // Logo completo (blanco) centrado arriba
   const cx = doc.page.width / 2;
   if (LOGO_BLANCO) {
-    const w = 380, h = w * 724 / 2172;
+    const w = 360, h = w * 320 / 1080;
     try { doc.image(LOGO_BLANCO, cx - w / 2, 150, { fit: [w, h] }); } catch { /* */ }
   } else {
     doc.fillColor('#fff').font('Helvetica-Bold').fontSize(30).text('PIAR', 0, 200, { width: doc.page.width, align: 'center' });
