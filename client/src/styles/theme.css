@@ -167,6 +167,17 @@ th { background: var(--blanco); color: var(--gris-900); font-weight: 700; }
 /* Formato oficial editable (WYSIWYG, igual al PDF) */
 .formato { background: var(--blanco); border: 1px solid #999; border-radius: 6px; overflow: hidden; margin-bottom: 18px; box-shadow: var(--sombra); }
 .formato-cab { display: flex; justify-content: space-between; align-items: flex-start; padding: 12px 14px 6px; }
+/* Cabecera del Anexo 1 en barra de encabezado + foto y datos lado a lado */
+.formato-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--gris-700); color: #fff; padding: 10px 14px; }
+.formato-head h3 { margin: 0; font-size: 14px; text-transform: uppercase; color: #fff; letter-spacing: .3px; }
+.formato-head .sub { font-size: 11px; color: var(--gris-200); margin-top: 2px; }
+.formato-head .formato-sello { border-color: rgba(255,255,255,0.45); min-width: 100px; }
+.formato-head .formato-sello b { color: #fff; }
+.formato-head .formato-sello span { color: var(--gris-200); }
+.anexo1-identidad { display: flex; gap: 14px; align-items: flex-start; padding: 14px; }
+.anexo1-identidad .foto-anexo { flex: 0 0 auto; }
+.anexo1-identidad .anexo1-datos { flex: 1 1 auto; }
+@media (max-width: 680px) { .anexo1-identidad { flex-wrap: wrap; } .anexo1-identidad .anexo1-datos { width: 100%; } }
 .formato-cab h3 { margin: 0; font-size: 14px; color: var(--gris-900); text-transform: uppercase; }
 .formato-cab .sub { font-size: 11px; color: var(--gris-500); margin-top: 2px; }
 .formato-sello { border: 1px solid #999; border-radius: 4px; padding: 4px 10px; text-align: center; min-width: 110px; }

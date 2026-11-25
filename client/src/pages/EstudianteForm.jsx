@@ -101,8 +101,9 @@ function procesarFoto(file, cb) {
   reader.readAsDataURL(file);
 }
 
-export default function EstudianteForm() {
-  const { id } = useParams();
+export default function EstudianteForm({ estudianteId: propId, embebido = false } = {}) {
+  const params = useParams();
+  const id = propId ?? params.id;
   const navigate = useNavigate();
   const { usuario } = useAuth();
   const editable = ['docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'].includes(usuario.rol);
@@ -266,6 +267,7 @@ export default function EstudianteForm() {
 
   return (
     <div>
+      {!embebido && (<>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Link to="/estudiantes" className="btn sec sm">← Volver</Link>
         {id && (
@@ -283,6 +285,7 @@ export default function EstudianteForm() {
       {id && (
         <NavAnexos vista="anexo1" estudianteId={id} piarId={piars[0]?.id} av={avance} />
       )}
+      </>)}
       {error && <div className="mensaje-error">{error}</div>}
       {ok && <div style={{ color: 'var(--ok)', fontSize: 14, margin: '6px 0' }}>{ok}</div>}
 
@@ -337,60 +340,64 @@ export default function EstudianteForm() {
       {id && (
       <form onSubmit={(e) => { e.preventDefault(); guardar(); }} onBlur={autosave}>
         <div className="formato">
-          <div className="formato-cab">
-            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-              <div className="foto-anexo">
-                {form.foto ? <img src={form.foto} alt="Foto" /> : <span>Foto</span>}
-                {editable && (
-                  <div className="foto-acciones">
-                    <label className="btn sec sm" style={{ cursor: 'pointer' }}>
-                      {form.foto ? 'Cambiar' : 'Subir'}
-                      <input type="file" accept="image/*" style={{ display: 'none' }}
-                        onChange={(e) => e.target.files[0] && procesarFoto(e.target.files[0], (d) => set('foto', d))} />
-                    </label>
-                    {form.foto && <button type="button" className="btn sec sm" onClick={() => set('foto', '')}>Quitar</button>}
-                  </div>
-                )}
-              </div>
-              <div>
-                <h3>Información general del estudiante</h3>
-                <div className="sub">Información para la matrícula – Anexo 1 PIAR</div>
-              </div>
+          <div className="formato-head">
+            <div>
+              <h3>Información general del estudiante</h3>
+              <div className="sub">Información para la matrícula – Anexo 1 PIAR</div>
             </div>
             <div className="formato-sello"><b>PIAR</b><span>Decreto 1421/2017</span></div>
           </div>
+          <div className="anexo1-identidad">
+            <div className="foto-anexo">
+              {form.foto ? <img src={form.foto} alt="Foto" /> : <span>Foto</span>}
+              {editable && (
+                <div className="foto-acciones">
+                  <label className="btn sec sm" style={{ cursor: 'pointer' }}>
+                    {form.foto ? 'Cambiar' : 'Subir'}
+                    <input type="file" accept="image/*" style={{ display: 'none' }}
+                      onChange={(e) => e.target.files[0] && procesarFoto(e.target.files[0], (d) => set('foto', d))} />
+                  </label>
+                  {form.foto && <button type="button" className="btn sec sm" onClick={() => set('foto', '')}>Quitar</button>}
+                </div>
+              )}
+            </div>
+            <table className="ftabla anexo1-datos">
+              <tbody>
+                <tr><td className="banda" colSpan={4}>Datos del estudiante</td></tr>
+                <tr>
+                  <td className="lbl">Nombres y apellidos</td>
+                  <td className="val" colSpan={3}><input value={form.nombres} onChange={(e) => set('nombres', e.target.value)} disabled={!editable} required /></td>
+                </tr>
+                <tr>
+                  <td className="lbl">Tipo de documento</td>
+                  <td className="val">
+                    <select value={form.documento_tipo} onChange={(e) => set('documento_tipo', e.target.value)} disabled={!editable}>
+                      <option>RC</option><option>TI</option><option>CC</option><option>PEP</option><option>PPT</option><option>Otro</option>
+                    </select>
+                  </td>
+                  <td className="lbl">N.º de identificación</td>
+                  <td className="val"><input value={form.documento_numero || ''} onChange={(e) => set('documento_numero', e.target.value)} disabled={!editable} /></td>
+                </tr>
+                <tr>
+                  <td className="lbl">Grado actual</td>
+                  <td className="val"><input value={form.grado || ''} onChange={(e) => set('grado', e.target.value)} disabled={!editable} /></td>
+                  <td className="lbl">Fecha de nacimiento</td>
+                  <td className="val"><input type="date" value={form.fecha_nacimiento || ''} onChange={(e) => set('fecha_nacimiento', e.target.value)} disabled={!editable} /></td>
+                </tr>
+                <tr>
+                  <td className="lbl">Curso (sede · jornada · grado · grupo)</td>
+                  <td className="val" colSpan={3}>
+                    <select value={form.curso_id || ''} onChange={(e) => elegirCurso(e.target.value)} disabled={!editable}>
+                      <option value="">— Sin asignar —</option>
+                      {cursos.map((c) => <option key={c.id} value={c.id}>{c.sede} · {c.jornada} · {c.grado} · Grupo {c.grupo}</option>)}
+                    </select>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           <table className="ftabla">
             <tbody>
-              <tr><td className="banda" colSpan={4}>Datos del estudiante</td></tr>
-              <tr>
-                <td className="lbl">Nombres y apellidos</td>
-                <td className="val" colSpan={3}><input value={form.nombres} onChange={(e) => set('nombres', e.target.value)} disabled={!editable} required /></td>
-              </tr>
-              <tr>
-                <td className="lbl">Tipo de documento</td>
-                <td className="val">
-                  <select value={form.documento_tipo} onChange={(e) => set('documento_tipo', e.target.value)} disabled={!editable}>
-                    <option>RC</option><option>TI</option><option>CC</option><option>PEP</option><option>PPT</option><option>Otro</option>
-                  </select>
-                </td>
-                <td className="lbl">N.º de identificación</td>
-                <td className="val"><input value={form.documento_numero || ''} onChange={(e) => set('documento_numero', e.target.value)} disabled={!editable} /></td>
-              </tr>
-              <tr>
-                <td className="lbl">Grado actual</td>
-                <td className="val"><input value={form.grado || ''} onChange={(e) => set('grado', e.target.value)} disabled={!editable} /></td>
-                <td className="lbl">Fecha de nacimiento</td>
-                <td className="val"><input type="date" value={form.fecha_nacimiento || ''} onChange={(e) => set('fecha_nacimiento', e.target.value)} disabled={!editable} /></td>
-              </tr>
-              <tr>
-                <td className="lbl">Curso (sede · jornada · grado · grupo)</td>
-                <td className="val" colSpan={3}>
-                  <select value={form.curso_id || ''} onChange={(e) => elegirCurso(e.target.value)} disabled={!editable}>
-                    <option value="">— Sin asignar —</option>
-                    {cursos.map((c) => <option key={c.id} value={c.id}>{c.sede} · {c.jornada} · {c.grado} · Grupo {c.grupo}</option>)}
-                  </select>
-                </td>
-              </tr>
               {GRUPOS.map((g) => filasSeccion(g))}
             </tbody>
           </table>

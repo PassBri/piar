@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useExpediente } from '../context/ExpedienteContext.jsx';
 import Guardado from '../components/Guardado.jsx';
 import NavAnexos from '../components/NavAnexos.jsx';
+import EstudianteForm from './EstudianteForm.jsx';
 
 const TIPOS = [
   ['actividades', 'Actividades'], ['materiales', 'Materiales'], ['espacios', 'Espacios'],
@@ -57,8 +58,8 @@ export default function PiarDetalle() {
   const [searchParams] = useSearchParams();
   const [vista, setVista] = useState(() => {
     const v = searchParams.get('v');
-    return ['anexo2', 'anexo3', 'anexo4'].includes(v) ? v : 'anexo2';
-  }); // anexo2 | anexo3 | anexo4
+    return ['anexo1', 'anexo2', 'anexo3', 'anexo4'].includes(v) ? v : 'anexo2';
+  }); // anexo1 | anexo2 | anexo3 | anexo4
   const [conPortada, setConPortada] = useState(true);
   const pp = conPortada ? '' : '?portada=0';
   const ppAmp = conPortada ? '' : '&portada=0';
@@ -286,6 +287,8 @@ export default function PiarDetalle() {
       {error && <div className="mensaje-error">{error}</div>}
 
       <NavAnexos vista={vista} estudianteId={piar.estudiante_id} piarId={id} av={av} onVista={setVista} />
+
+      {vista === 'anexo1' && <EstudianteForm estudianteId={piar.estudiante_id} embebido />}
 
       {vista === 'anexo2' && <>
       {/* ANEXO 2 — mismo aspecto que el formato impreso */}

@@ -21,12 +21,14 @@ function Barra({ etiqueta, valor }) {
 export default function NavAnexos({ vista, estudianteId, piarId, av, onVista }) {
   const tab = (clave, texto) => {
     if (vista === clave) return <span className="activo" key={clave}>{texto}</span>;
+    // Dentro del PIAR (onVista): todas las pestañas cambian de sección sin recargar
+    if (onVista) return <button type="button" key={clave} onClick={() => onVista(clave)}>{texto}</button>;
+    // Standalone (Anexo 1 en su propia ruta): navegación por enlaces
     if (clave === 'anexo1') {
       return estudianteId
         ? <Link to={`/estudiantes/${estudianteId}`} key={clave}>{texto}</Link>
         : <span className="deshab" key={clave}>{texto}</span>;
     }
-    if (onVista) return <button type="button" key={clave} className={vista === clave ? 'activo' : ''} onClick={() => onVista(clave)}>{texto}</button>;
     return piarId
       ? <Link to={`/piar/${piarId}?v=${clave}`} key={clave}>{texto}</Link>
       : <span className="deshab" key={clave}>{texto}</span>;
