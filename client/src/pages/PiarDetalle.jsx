@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useExpediente } from '../context/ExpedienteContext.jsx';
 import Guardado from '../components/Guardado.jsx';
 import NavAnexos from '../components/NavAnexos.jsx';
+import AgregarAnio from '../components/AgregarAnio.jsx';
 import EstudianteForm from './EstudianteForm.jsx';
 
 const TIPOS = [
@@ -291,12 +292,6 @@ export default function PiarDetalle() {
       {error && <div className="mensaje-error">{error}</div>}
 
       {aniosPiar.length > 0 && (() => {
-        const anioActual = String(new Date().getFullYear());
-        const existeActual = aniosPiar.some((p) => String(p.periodo) === anioActual);
-        const crearAnioActual = async () => {
-          try { const np = await api.post('/piar', { estudiante_id: piar.estudiante_id, periodo: anioActual }); navigate(`/piar/${np.id}`); }
-          catch (e) { setError(e.message); }
-        };
         const orden = [...aniosPiar].sort((a, b) => String(a.periodo).localeCompare(String(b.periodo)));
         return (
           <div className="anios-tabs">
@@ -307,9 +302,8 @@ export default function PiarDetalle() {
                 {p.periodo} · {p.grado || p.grado_actual || '—'}{p.estado === 'vigente' ? ' ●' : ''}
               </Link>
             ))}
-            {editable && !existeActual && (
-              <button type="button" className="anios-nuevo" onClick={crearAnioActual} title="Crear el PIAR del año actual">+ {anioActual}</button>
-            )}
+            {editable && <AgregarAnio anios={orden} estudianteId={piar.estudiante_id}
+              onCreado={(np) => navigate(`/piar/${np.id}`)} onError={setError} />}
           </div>
         );
       })()}

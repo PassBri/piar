@@ -6,6 +6,7 @@ import { useExpediente } from '../context/ExpedienteContext.jsx';
 import { NOMBRES_DISCAPACIDAD } from '../data/discapacidades.js';
 import Guardado from '../components/Guardado.jsx';
 import NavAnexos from '../components/NavAnexos.jsx';
+import AgregarAnio from '../components/AgregarAnio.jsx';
 
 // Campos oficiales del Anexo 1 (Formato PIAR - Decreto 1421). t: 'area' = textarea.
 const CAMPOS = {
@@ -497,7 +498,8 @@ export default function EstudianteForm({ estudianteId: propId, embebido = false 
         <div className="card" style={{ marginTop: 18 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2>Trayectoria del estudiante (un PIAR por año, grado a grado)</h2>
-            {editable && <button className="btn sm" onClick={crearPiar}>+ Nuevo PIAR (año actual)</button>}
+            {editable && <AgregarAnio anios={[...piars].sort((a, b) => String(a.periodo).localeCompare(String(b.periodo)))}
+              estudianteId={id} onCreado={(np) => navigate(`/piar/${np.id}`)} onError={setError} />}
           </div>
           <p style={{ color: 'var(--gris-600)', fontSize: 13, marginTop: 0 }}>Cada año se registra un PIAR con su grado; el historial se conserva mientras el estudiante avanza.</p>
           <table>

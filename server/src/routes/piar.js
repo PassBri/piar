@@ -103,16 +103,20 @@ router.get('/:id', async (req, res, next) => {
 // POST /api/piar  (crear PIAR)
 router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
-    const { estudiante_id, periodo, valoracion, aspectos_generales, recomendaciones_pmi } = req.body;
+    const { estudiante_id, periodo, valoracion, aspectos_generales, recomendaciones_pmi, grado } = req.body;
     if (!estudiante_id || !periodo) {
       return res.status(400).json({ error: 'Estudiante y periodo son obligatorios.' });
     }
-    // Hereda el grado actual del estudiante (grado de ese año, para la trayectoria)
+    // Un solo PIAR por estudiante y año: si ya existe, se devuelve ese.
+    const ya = await query('SELECT * FROM piar WHERE estudiante_id=$1 AND periodo=$2', [estudiante_id, String(periodo)]);
+    if (ya.rows[0]) return res.status(200).json(ya.rows[0]);
+    // Grado: el elegido por el usuario o, si no, el grado actual del estudiante
     const gr = await query('SELECT grado FROM estudiante WHERE id=$1', [estudiante_id]);
+    const gradoFinal = (grado != null && String(grado).trim() !== '') ? String(grado).trim() : (gr.rows[0]?.grado || null);
     const { rows } = await query(
       `INSERT INTO piar (estudiante_id, periodo, valoracion, aspectos_generales, recomendaciones_pmi, grado, fecha_elaboracion, creado_por)
        VALUES ($1,$2,$3,$4,$5,$6,CURRENT_DATE,$7) RETURNING *`,
-      [estudiante_id, periodo, valoracion, aspectos_generales, recomendaciones_pmi || {}, gr.rows[0]?.grado || null, req.usuario.id]
+      [estudiante_id, String(periodo), valoracion, aspectos_generales, recomendaciones_pmi || {}, gradoFinal, req.usuario.id]
     );
     await auditar(req, { entidad: 'piar', entidad_id: rows[0].id, piar_id: rows[0].id, estudiante_id, accion: 'crear', descripcion: `Creó el PIAR (${periodo})` });
     res.status(201).json(rows[0]);
