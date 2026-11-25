@@ -143,7 +143,7 @@ export default function EstudianteForm({ estudianteId: propId, embebido = false 
   // Ficha del estudiante en la barra lateral. Cuando el Anexo 1 va embebido
   // dentro del PIAR, la ficha la gestiona PiarDetalle (así se mantiene en los 4
   // anexos); aquí solo se gestiona en la ruta propia del Anexo 1.
-  const { fijarExpediente, limpiarExpediente } = useExpediente();
+  const { fijarExpediente, limpiarExpediente, actualizarExpediente } = useExpediente();
   useEffect(() => {
     if (embebido) return;
     if (id && form.nombres) fijarExpediente({
@@ -225,6 +225,16 @@ export default function EstudianteForm({ estudianteId: propId, embebido = false 
     if (!editable) return;
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(guardar, 700);
+  }
+  // La foto se guarda al momento (subir una imagen no dispara el blur del form)
+  // y se refleja de inmediato en la ficha de la barra lateral.
+  async function guardarFoto(foto) {
+    set('foto', foto);
+    actualizarExpediente({ foto });
+    if (!editable || !id) return;
+    setGuardado('saving'); setError('');
+    try { await api.put(`/estudiantes/${id}`, { ...form, foto }); setGuardado('saved'); }
+    catch (err) { setError(err.message); setGuardado('error'); }
   }
   async function crearPiar() {
     const p = await api.post('/piar', { estudiante_id: Number(id), periodo: String(new Date().getFullYear()) });
@@ -362,9 +372,9 @@ export default function EstudianteForm({ estudianteId: propId, embebido = false 
                   <label className="btn sec sm" style={{ cursor: 'pointer' }}>
                     {form.foto ? 'Cambiar' : 'Subir'}
                     <input type="file" accept="image/*" style={{ display: 'none' }}
-                      onChange={(e) => e.target.files[0] && procesarFoto(e.target.files[0], (d) => set('foto', d))} />
+                      onChange={(e) => e.target.files[0] && procesarFoto(e.target.files[0], (d) => guardarFoto(d))} />
                   </label>
-                  {form.foto && <button type="button" className="btn sec sm" onClick={() => set('foto', '')}>Quitar</button>}
+                  {form.foto && <button type="button" className="btn sec sm" onClick={() => guardarFoto('')}>Quitar</button>}
                 </div>
               )}
             </div>

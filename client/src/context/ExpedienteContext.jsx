@@ -20,8 +20,13 @@ export function ExpedienteProvider({ children }) {
 
   const limpiarExpediente = useCallback(() => setEstudiante(null), []);
 
+  // Actualiza campos de la ficha ya mostrada (p.ej. la foto recién subida)
+  const actualizarExpediente = useCallback((parcial) => {
+    setEstudiante((prev) => (prev ? { ...prev, ...parcial } : prev));
+  }, []);
+
   return (
-    <ExpedienteContext.Provider value={{ estudiante, fijarExpediente, limpiarExpediente }}>
+    <ExpedienteContext.Provider value={{ estudiante, fijarExpediente, limpiarExpediente, actualizarExpediente }}>
       {children}
     </ExpedienteContext.Provider>
   );
@@ -29,6 +34,6 @@ export function ExpedienteProvider({ children }) {
 
 export function useExpediente() {
   const ctx = useContext(ExpedienteContext);
-  if (!ctx) return { estudiante: null, fijarExpediente: () => {}, limpiarExpediente: () => {} };
+  if (!ctx) return { estudiante: null, fijarExpediente: () => {}, limpiarExpediente: () => {}, actualizarExpediente: () => {} };
   return ctx;
 }
