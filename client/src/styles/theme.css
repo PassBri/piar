@@ -42,9 +42,9 @@ a { color: var(--gris-700); }
   box-shadow: 0 6px 18px rgba(0,0,0,0.20);
 }
 .ficha-foto {
-  width: 104px; height: 104px; border-radius: 26px; margin: 0 auto 11px; overflow: hidden;
+  width: 108px; height: 144px; border-radius: 14px; margin: 0 auto 11px; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-weight: 800; font-size: 40px; letter-spacing: .5px;
+  color: #fff; font-weight: 800; font-size: 44px; letter-spacing: .5px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.33);
   border: 3px solid rgba(255,255,255,0.22);
 }
@@ -172,8 +172,8 @@ th { background: var(--blanco); color: var(--gris-900); font-weight: 700; }
 .formato-sello { border: 1px solid #999; border-radius: 4px; padding: 4px 10px; text-align: center; min-width: 110px; }
 .formato-sello b { color: var(--gris-700); font-size: 13px; }
 .foto-anexo { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.foto-anexo img { width: 90px; height: 110px; object-fit: cover; border: 1px solid #999; border-radius: 4px; background: #fff; }
-.foto-anexo > span { width: 90px; height: 110px; display: flex; align-items: center; justify-content: center; border: 1px dashed #aaa; border-radius: 4px; color: var(--gris-500); font-size: 12px; }
+.foto-anexo img { width: 108px; height: 144px; object-fit: cover; border: 1px solid #999; border-radius: 6px; background: #fff; }
+.foto-anexo > span { width: 108px; height: 144px; display: flex; align-items: center; justify-content: center; border: 1px dashed #aaa; border-radius: 6px; color: var(--gris-500); font-size: 12px; }
 .foto-acciones { display: flex; gap: 4px; }
 
 /* Mosaico de estudiantes — tarjetas estilo Material Design */

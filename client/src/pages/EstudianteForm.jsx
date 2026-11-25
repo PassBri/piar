@@ -77,19 +77,23 @@ const vacio = {
   identificacion: {}, entorno_personal: {}, entorno_salud: {}, entorno_hogar: {}, entorno_educativo: {},
 };
 
-// Escala la foto a máx. 400px y la guarda como JPEG (mantiene la base liviana)
+// Recorta la foto a proporción 3:4 (tipo documento) centrada y la guarda a 300x400 JPEG
 function procesarFoto(file, cb) {
   const reader = new FileReader();
   reader.onload = () => {
     const img = new Image();
     img.onload = () => {
-      const max = 400;
-      const escala = Math.min(1, max / Math.max(img.width, img.height));
-      const w = Math.round(img.width * escala); const h = Math.round(img.height * escala);
+      const DEST_W = 300, DEST_H = 400; // 3:4
+      const relDest = DEST_W / DEST_H;
+      const relImg = img.width / img.height;
+      // Área de recorte centrada que respeta 3:4
+      let sw = img.width, sh = img.height, sx = 0, sy = 0;
+      if (relImg > relDest) { sw = img.height * relDest; sx = (img.width - sw) / 2; }
+      else { sh = img.width / relDest; sy = (img.height - sh) / 2; }
       const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      cb(canvas.toDataURL('image/jpeg', 0.82));
+      canvas.width = DEST_W; canvas.height = DEST_H;
+      canvas.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, DEST_W, DEST_H);
+      cb(canvas.toDataURL('image/jpeg', 0.85));
     };
     img.src = reader.result;
   };
