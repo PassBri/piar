@@ -12,7 +12,8 @@ export function ExpedienteProvider({ children }) {
     setEstudiante((prev) => {
       // Evita re-render si es el mismo estudiante con los mismos datos
       if (prev && prev.id === datos.id && prev.foto === datos.foto &&
-          prev.nombres === datos.nombres && prev.grado === datos.grado) return prev;
+          prev.nombres === datos.nombres && prev.grado === datos.grado &&
+          prev.anioPiar === datos.anioPiar && prev.estadoPiar === datos.estadoPiar) return prev;
       return datos;
     });
   }, []);

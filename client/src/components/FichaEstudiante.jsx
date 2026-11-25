@@ -26,7 +26,7 @@ export default function FichaEstudiante() {
   const navigate = useNavigate();
   if (!estudiante) return null;
 
-  const { nombres, foto, grado, curso_sede, documento, discapacidad, reservado } = estudiante;
+  const { nombres, foto, grado, curso_sede, documento, discapacidad, reservado, anioPiar, estadoPiar } = estudiante;
   const src = fotoSrc(foto);
   const [c1, c2] = gradienteDe(nombres || discapacidad || 'piar');
 
@@ -48,6 +48,7 @@ export default function FichaEstudiante() {
         {[grado && `Grado ${grado}`, curso_sede].filter(Boolean).join(' · ') || 'Sin grado'}
       </div>
       {documento && <div className="ficha-doc">Doc. {documento}</div>}
+      {anioPiar && <div className="ficha-anio">PIAR {anioPiar}{estadoPiar ? ` · ${estadoPiar}` : ''}</div>}
       {discapacidad && (
         <div className="ficha-chip" style={{ background: `${c1}2e`, color: '#fff', border: `1px solid ${c1}66` }}>
           {discapacidad}

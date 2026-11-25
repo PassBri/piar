@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useExpediente } from '../context/ExpedienteContext.jsx';
@@ -38,6 +38,7 @@ const BADGE_ACCION = { crear: 'ok', editar: 'gris', eliminar: 'error', firmar: '
 
 export default function PiarDetalle() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { usuario } = useAuth();
   const editable = ['docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'].includes(usuario.rol);
   const puedeConfigurar = ['rector', 'coordinador', 'administrador', 'superadmin'].includes(usuario.rol);
@@ -74,11 +75,13 @@ export default function PiarDetalle() {
   const periodosBase = Array.from({ length: numPeriodos }, (_, i) => i + 1);
   const periodosDisponibles = usaPromocion ? [...periodosBase, 5] : periodosBase;
 
+  const [aniosPiar, setAniosPiar] = useState([]);
   async function cargar() {
     try {
       const p = await api.get(`/piar/${id}`);
       setPiar(p);
       setActa(p.acta || { compromisos_familia: '', compromisos_institucion: '', firmada_familia: false, firmada_institucion: false });
+      if (p.estudiante_id) api.get(`/piar?estudiante_id=${p.estudiante_id}`).then(setAniosPiar).catch(() => {});
     } catch (e) { setError(e.message); }
   }
   function cargarValoraciones() {
@@ -119,6 +122,7 @@ export default function PiarDetalle() {
       id: piar.estudiante_id, nombres: piar.estudiante_nombre, foto: piar.estudiante_foto,
       grado: piar.grado, curso_sede: piar.inst_sede, documento: piar.documento_numero,
       discapacidad: piar.discapacidad, reservado: piar.reservado,
+      anioPiar: piar.periodo, estadoPiar: piar.estado,
     });
   }, [piar, fijarExpediente]);
   useEffect(() => () => limpiarExpediente(), [limpiarExpediente]);
@@ -285,6 +289,30 @@ export default function PiarDetalle() {
         </div>
       </div>
       {error && <div className="mensaje-error">{error}</div>}
+
+      {aniosPiar.length > 0 && (() => {
+        const anioActual = String(new Date().getFullYear());
+        const existeActual = aniosPiar.some((p) => String(p.periodo) === anioActual);
+        const crearAnioActual = async () => {
+          try { const np = await api.post('/piar', { estudiante_id: piar.estudiante_id, periodo: anioActual }); navigate(`/piar/${np.id}`); }
+          catch (e) { setError(e.message); }
+        };
+        const orden = [...aniosPiar].sort((a, b) => String(a.periodo).localeCompare(String(b.periodo)));
+        return (
+          <div className="anios-tabs">
+            <span className="anios-label">Año del PIAR</span>
+            {orden.map((p) => (
+              <Link key={p.id} to={`/piar/${p.id}`} className={String(p.id) === String(id) ? 'activo' : ''}
+                title={`PIAR ${p.periodo} · estado: ${p.estado}`}>
+                {p.periodo} · {p.grado || p.grado_actual || '—'}{p.estado === 'vigente' ? ' ●' : ''}
+              </Link>
+            ))}
+            {editable && !existeActual && (
+              <button type="button" className="anios-nuevo" onClick={crearAnioActual} title="Crear el PIAR del año actual">+ {anioActual}</button>
+            )}
+          </div>
+        );
+      })()}
 
       <NavAnexos vista={vista} estudianteId={piar.estudiante_id} piarId={id} av={av} onVista={setVista} />
 
