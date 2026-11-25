@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import FichaEstudiante from './FichaEstudiante.jsx';
 import icono from '../assets/icono-app.png';
 
 const ESCALAS = [0.9, 1, 1.15, 1.3];
@@ -76,6 +77,7 @@ export default function Layout() {
           <img src={icono} alt="PIAR" />
           <span>PIAR</span>
         </div>
+        <FichaEstudiante />
         <nav>
           {MENU.map((grupo, gi) => {
             const items = grupo.items.filter((it) => puede(it.roles));

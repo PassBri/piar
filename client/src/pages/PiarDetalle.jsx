@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useExpediente } from '../context/ExpedienteContext.jsx';
 import Guardado from '../components/Guardado.jsx';
 
 const TIPOS = [
@@ -118,6 +119,16 @@ export default function PiarDetalle() {
     cargar(); cargarValoraciones(); cargarBitacora(); cargarAnexo4();
     api.get('/areas').then(setAreas).catch(() => {});
   }, [id]);
+  // Ficha del estudiante en la barra lateral mientras se trabaja su expediente
+  const { fijarExpediente, limpiarExpediente } = useExpediente();
+  useEffect(() => {
+    if (piar) fijarExpediente({
+      id: piar.estudiante_id, nombres: piar.estudiante_nombre, foto: piar.estudiante_foto,
+      grado: piar.grado, curso_sede: piar.inst_sede, documento: piar.documento_numero,
+      discapacidad: piar.discapacidad, reservado: piar.reservado,
+    });
+  }, [piar, fijarExpediente]);
+  useEffect(() => () => limpiarExpediente(), [limpiarExpediente]);
   useEffect(() => {
     api.get(`/catalogo?tipo=${nuevo.tipo}`).then(setCatalogo).catch(() => {});
   }, [nuevo.tipo]);

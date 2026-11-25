@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useExpediente } from '../context/ExpedienteContext.jsx';
 import { NOMBRES_DISCAPACIDAD } from '../data/discapacidades.js';
 import Guardado from '../components/Guardado.jsx';
 
@@ -127,6 +128,17 @@ export default function EstudianteForm() {
       api.get(`/evidencias/${id}`).then(setEvidencias).catch(() => {});
     }
   }, [id]);
+
+  // Ficha del estudiante en la barra lateral mientras se edita su expediente
+  const { fijarExpediente, limpiarExpediente } = useExpediente();
+  useEffect(() => {
+    if (id && form.nombres) fijarExpediente({
+      id, nombres: form.nombres, foto: form.foto, grado: form.grado,
+      curso_sede: form.curso_sede, documento: form.documento_numero,
+      discapacidad: form.entorno_salud?.discapacidad, reservado: form.reservado,
+    });
+  }, [id, form.nombres, form.foto, form.grado, form.documento_numero, form.reservado, fijarExpediente]);
+  useEffect(() => () => limpiarExpediente(), [limpiarExpediente]);
 
   function subirEvidencia(file) {
     if (!file) return;
