@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useExpediente } from '../context/ExpedienteContext.jsx';
 import Guardado from '../components/Guardado.jsx';
+import NavAnexos from '../components/NavAnexos.jsx';
 
 const TIPOS = [
   ['actividades', 'Actividades'], ['materiales', 'Materiales'], ['espacios', 'Espacios'],
@@ -33,19 +34,6 @@ const ROLES_LABEL = {
 };
 const BADGE_ACCION = { crear: 'ok', editar: 'gris', eliminar: 'error', firmar: 'morado' };
 
-function Barra({ etiqueta, valor }) {
-  const color = valor >= 80 ? '#2e7d32' : valor >= 40 ? '#f9a825' : '#c62828';
-  return (
-    <div style={{ marginBottom: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-        <span>{etiqueta}</span><b>{valor}%</b>
-      </div>
-      <div style={{ background: 'var(--gris-200)', borderRadius: 6, height: 8, overflow: 'hidden' }}>
-        <div style={{ width: `${valor}%`, height: '100%', background: color, transition: 'width .3s' }} />
-      </div>
-    </div>
-  );
-}
 
 export default function PiarDetalle() {
   const { id } = useParams();
@@ -66,7 +54,11 @@ export default function PiarDetalle() {
   const [nuevaArea, setNuevaArea] = useState('');
   const [periodoActivo, setPeriodoActivo] = useState(1); // 1..5, o 0 = todos
   const [bitacora, setBitacora] = useState([]);
-  const [vista, setVista] = useState('anexo2'); // anexo2 | anexo3 | anexo4
+  const [searchParams] = useSearchParams();
+  const [vista, setVista] = useState(() => {
+    const v = searchParams.get('v');
+    return ['anexo2', 'anexo3', 'anexo4'].includes(v) ? v : 'anexo2';
+  }); // anexo2 | anexo3 | anexo4
   const [conPortada, setConPortada] = useState(true);
   const pp = conPortada ? '' : '?portada=0';
   const ppAmp = conPortada ? '' : '&portada=0';
@@ -293,25 +285,7 @@ export default function PiarDetalle() {
       </div>
       {error && <div className="mensaje-error">{error}</div>}
 
-      <div className="anexos-tabs">
-        <Link to={`/estudiantes/${piar.estudiante_id}`}>Anexo 1 · Información</Link>
-        <button type="button" className={vista === 'anexo2' ? 'activo' : ''} onClick={() => setVista('anexo2')}>Anexo 2 · Valoración y ajustes</button>
-        <button type="button" className={vista === 'anexo3' ? 'activo' : ''} onClick={() => setVista('anexo3')}>Anexo 3 · Acta de acuerdo</button>
-        <button type="button" className={vista === 'anexo4' ? 'activo' : ''} onClick={() => setVista('anexo4')}>Anexo 4 · Seguimiento y transición</button>
-      </div>
-
-      {/* Mecanismo de control: avance de diligenciamiento por anexo */}
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <h2 style={{ margin: 0 }}>Avance de diligenciamiento</h2>
-          <span className="badge gris" style={{ fontSize: 14 }}>Total {av.total}%</span>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
-          <Barra etiqueta="Anexo 1 · Información" valor={av.anexo1} />
-          <Barra etiqueta="Anexo 2 · Valoración y ajustes" valor={av.anexo2} />
-          <Barra etiqueta="Anexo 3 · Acta de acuerdo" valor={av.anexo3} />
-        </div>
-      </div>
+      <NavAnexos vista={vista} estudianteId={piar.estudiante_id} piarId={id} av={av} onVista={setVista} />
 
       {vista === 'anexo2' && <>
       {/* ANEXO 2 — mismo aspecto que el formato impreso */}

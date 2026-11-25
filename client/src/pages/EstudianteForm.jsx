@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useExpediente } from '../context/ExpedienteContext.jsx';
 import { NOMBRES_DISCAPACIDAD } from '../data/discapacidades.js';
 import Guardado from '../components/Guardado.jsx';
+import NavAnexos from '../components/NavAnexos.jsx';
 
 // Campos oficiales del Anexo 1 (Formato PIAR - Decreto 1421). t: 'area' = textarea.
 const CAMPOS = {
@@ -108,6 +109,7 @@ export default function EstudianteForm() {
   const puedeReservar = ROLES_RESERVADO.includes(usuario.rol);
   const [form, setForm] = useState(vacio);
   const [piars, setPiars] = useState([]);
+  const [avance, setAvance] = useState(null);
   const [cursos, setCursos] = useState([]);
   const [autoriz, setAutoriz] = useState({ autoriza: false, nombre_acudiente: '', documento_acudiente: '', parentesco: '', fecha: '', firma_img: '' });
   const [evidencias, setEvidencias] = useState([]);
@@ -127,7 +129,10 @@ export default function EstudianteForm() {
         entorno_salud: e.entorno_salud || {}, entorno_hogar: e.entorno_hogar || {},
         entorno_educativo: e.entorno_educativo || {},
       })).catch((err) => setError(err.message));
-      api.get(`/piar?estudiante_id=${id}`).then(setPiars).catch(() => {});
+      api.get(`/piar?estudiante_id=${id}`).then((lista) => {
+        setPiars(lista);
+        if (lista[0]) api.get(`/piar/${lista[0].id}`).then((p) => setAvance(p.avance)).catch(() => {});
+      }).catch(() => {});
       api.get(`/autorizacion/${id}`).then((d) => d && setAutoriz({ ...d, fecha: d.fecha ? d.fecha.slice(0, 10) : '' })).catch(() => {});
       api.get(`/evidencias/${id}`).then(setEvidencias).catch(() => {});
     }
@@ -276,12 +281,7 @@ export default function EstudianteForm() {
       </div>
       <h1 style={{ marginTop: 12 }}>{id ? form.nombres : 'Nuevo estudiante'}</h1>
       {id && (
-        <div className="anexos-tabs">
-          <span className="activo">Anexo 1 · Información</span>
-          {piars[0] ? <Link to={`/piar/${piars[0].id}`}>Anexo 2 · Valoración y ajustes</Link> : <span className="deshab">Anexo 2 · Valoración y ajustes</span>}
-          {piars[0] ? <Link to={`/piar/${piars[0].id}`}>Anexo 3 · Acta de acuerdo</Link> : <span className="deshab">Anexo 3 · Acta de acuerdo</span>}
-          {piars[0] ? <Link to={`/piar/${piars[0].id}`}>Anexo 4 · Seguimiento y transición</Link> : <span className="deshab">Anexo 4 · Seguimiento y transición</span>}
-        </div>
+        <NavAnexos vista="anexo1" estudianteId={id} piarId={piars[0]?.id} av={avance} />
       )}
       {error && <div className="mensaje-error">{error}</div>}
       {ok && <div style={{ color: 'var(--ok)', fontSize: 14, margin: '6px 0' }}>{ok}</div>}
