@@ -81,8 +81,11 @@ router.get('/:id', async (req, res, next) => {
     const neg = negarAcceso(req.usuario, piar);
     if (neg) return res.status(neg.status).json({ error: neg.error });
     const ajustes = await query(
-      `SELECT a.*, ar.nombre AS area_nombre FROM ajuste_razonable a
-       LEFT JOIN area ar ON ar.id = a.area_id WHERE a.piar_id = $1 ORDER BY a.id`,
+      `SELECT a.*, ar.nombre AS area_nombre, u.nombres AS creador_nombre
+         FROM ajuste_razonable a
+         LEFT JOIN area ar ON ar.id = a.area_id
+         LEFT JOIN usuario u ON u.id = a.creado_por
+        WHERE a.piar_id = $1 ORDER BY a.id`,
       [req.params.id]
     );
     const acta = await query('SELECT * FROM acta_acuerdo WHERE piar_id = $1', [req.params.id]);

@@ -311,7 +311,7 @@ export default function PiarDetalle() {
   async function eliminarAjuste(aid) { await api.del(`/ajustes/${aid}`); cargar(); }
   const esFilaVacia = (a) => !a.area_id && !['objetivo', 'barrera', 'descripcion', 'evaluacion'].some((k) => (a[k] || '').trim()) && !a.desempeno;
   async function limpiarFilasVacias() {
-    const vacias = ajustesVisibles.filter(esFilaVacia);
+    const vacias = ajustesVisibles.filter((a) => esFilaVacia(a) && (supervisa || !a.creado_por || a.creado_por === usuario.id));
     if (!vacias.length) { setAvisoFila('No hay filas vacías para borrar en esta selección.'); return; }
     if (!window.confirm(`¿Borrar ${vacias.length} fila(s) vacía(s)?`)) return;
     for (const a of vacias) { await api.del(`/ajustes/${a.id}`); }
@@ -516,11 +516,15 @@ export default function PiarDetalle() {
             </tr>
           </thead>
           <tbody>
-            {ajustesVisibles.map((a) => (
+            {ajustesVisibles.map((a) => {
+              const puedoFila = supervisa || !a.creado_por || a.creado_por === usuario.id;
+              const edF = editable && puedoFila;
+              const otroDocente = !!a.creado_por && !puedoFila;
+              return (
               <tr key={a.id} style={a.retirado ? { opacity: 0.5 } : null}>
                 {periodoActivo === 0 && <td className="lbl" style={{ textAlign: 'center' }}>{nombrePeriodo(a.periodo)}</td>}
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
-                  {editable ? (
+                  {edF ? (
                     <>
                       <select value={a.area_id || ''} onChange={(e) => actualizarAjuste(a, { area_id: e.target.value || null })} style={{ marginBottom: 4 }}>
                         <option value="">— Área —</option>
@@ -528,30 +532,32 @@ export default function PiarDetalle() {
                       </select>
                     </>
                   ) : (a.area_nombre || '—')}
+                  {otroDocente && <div className="fila-autor" title="Solo el coordinador o el psicoorientador pueden modificarla">🔒 {a.creador_nombre || 'Otro docente'}</div>}
                 </td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
-                  {editable ? (<><SugMenu campo="objetivo" onPick={(t) => ponerSugerencia(a, 'objetivo', t)} /><textarea key={`o${a.id}`} ref={(el) => { if (el) celdasRef.current[`${a.id}-objetivo`] = el; }} rows={2} defaultValue={a.objetivo || ''} onBlur={(e) => { if ((a.objetivo || '') !== e.target.value) actualizarAjuste(a, { objetivo: e.target.value }); }} /></>) : (a.objetivo || '—')}
+                  {edF ? (<><SugMenu campo="objetivo" onPick={(t) => ponerSugerencia(a, 'objetivo', t)} /><textarea key={`o${a.id}`} ref={(el) => { if (el) celdasRef.current[`${a.id}-objetivo`] = el; }} rows={2} defaultValue={a.objetivo || ''} onBlur={(e) => { if ((a.objetivo || '') !== e.target.value) actualizarAjuste(a, { objetivo: e.target.value }); }} /></>) : (a.objetivo || '—')}
                 </td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
-                  {editable ? (<><SugMenu campo="barrera" onPick={(t) => ponerSugerencia(a, 'barrera', t)} /><textarea key={`b${a.id}`} ref={(el) => { if (el) celdasRef.current[`${a.id}-barrera`] = el; }} rows={2} defaultValue={a.barrera || ''} onBlur={(e) => { if ((a.barrera || '') !== e.target.value && e.target.value.trim()) actualizarAjuste(a, { barrera: e.target.value }); }} /></>) : a.barrera}
+                  {edF ? (<><SugMenu campo="barrera" onPick={(t) => ponerSugerencia(a, 'barrera', t)} /><textarea key={`b${a.id}`} ref={(el) => { if (el) celdasRef.current[`${a.id}-barrera`] = el; }} rows={2} defaultValue={a.barrera || ''} onBlur={(e) => { if ((a.barrera || '') !== e.target.value && e.target.value.trim()) actualizarAjuste(a, { barrera: e.target.value }); }} /></>) : a.barrera}
                 </td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
-                  {editable ? (<><SugMenu campo="descripcion" onPick={(t) => ponerSugerencia(a, 'descripcion', t)} /><textarea key={`d${a.id}`} ref={(el) => { if (el) celdasRef.current[`${a.id}-descripcion`] = el; }} rows={2} defaultValue={a.descripcion || ''} onBlur={(e) => { if ((a.descripcion || '') !== e.target.value && e.target.value.trim()) actualizarAjuste(a, { descripcion: e.target.value }); }} /></>) : a.descripcion}
+                  {edF ? (<><SugMenu campo="descripcion" onPick={(t) => ponerSugerencia(a, 'descripcion', t)} /><textarea key={`d${a.id}`} ref={(el) => { if (el) celdasRef.current[`${a.id}-descripcion`] = el; }} rows={2} defaultValue={a.descripcion || ''} onBlur={(e) => { if ((a.descripcion || '') !== e.target.value && e.target.value.trim()) actualizarAjuste(a, { descripcion: e.target.value }); }} /></>) : a.descripcion}
                 </td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
-                  {editable ? <textarea key={`e${a.id}`} rows={2} defaultValue={a.evaluacion || ''} onBlur={(e) => { if ((a.evaluacion || '') !== e.target.value) actualizarAjuste(a, { evaluacion: e.target.value }); }} /> : (a.evaluacion || '—')}
+                  {edF ? <textarea key={`e${a.id}`} rows={2} defaultValue={a.evaluacion || ''} onBlur={(e) => { if ((a.evaluacion || '') !== e.target.value) actualizarAjuste(a, { evaluacion: e.target.value }); }} /> : (a.evaluacion || '—')}
                 </td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top', textAlign: 'center' }}>
-                  {editable
+                  {edF
                     ? <select value={a.desempeno || ''} onChange={(e) => actualizarAjuste(a, { desempeno: e.target.value })} style={{ fontSize: 11 }}>
                         <option value="">—</option>
                         {opcionesDesempeno.map((d) => <option key={d} value={d}>{d}</option>)}
                       </select>
                     : (a.desempeno || '—')}
                 </td>
-                {editable && <td className="val" style={{ textAlign: 'center', verticalAlign: 'top' }}><button type="button" className="btn sec sm" title="Eliminar fila" onClick={() => eliminarAjuste(a.id)}>×</button></td>}
+                {editable && <td className="val" style={{ textAlign: 'center', verticalAlign: 'top' }}>{edF && <button type="button" className="btn sec sm" title="Eliminar fila" onClick={() => eliminarAjuste(a.id)}>×</button>}</td>}
               </tr>
-            ))}
+              );
+            })}
             {editable && (
               <tr style={{ background: '#F7FAFC' }}>
                 {periodoActivo === 0 && (

@@ -8,6 +8,18 @@ router.use(autenticar);
 
 const PERIODO_NOMBRE = (p) => (Number(p) === 5 ? 'Promoción' : `Periodo ${p}`);
 
+// Roles que supervisan y pueden gestionar lo de cualquier docente.
+const SUPERVISA = ['coordinador', 'psicoorientador', 'rector', 'administrador', 'superadmin'];
+// Un docente solo modifica sus propias filas (o filas sin autor previas).
+async function puedeModificar(req, ajusteId) {
+  if (SUPERVISA.includes(req.usuario.rol)) return true;
+  const r = await query('SELECT creado_por FROM ajuste_razonable WHERE id=$1', [ajusteId]);
+  if (!r.rows[0]) return true; // no existe: el 404 se maneja después
+  const dueno = r.rows[0].creado_por;
+  return dueno == null || dueno === req.usuario.id;
+}
+const ERROR_AUTORIA = 'Esta fila la diligenció otro docente. Solo el coordinador o el psicoorientador pueden modificarla.';
+
 // POST /api/ajustes  (añadir ajuste razonable a un PIAR)
 router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
@@ -19,9 +31,9 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coord
     }
     const { rows } = await query(
       `INSERT INTO ajuste_razonable
-        (piar_id, area_id, periodo, objetivo, barrera, tipo, descripcion, apoyo, intensidad, evaluacion, desempeno)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-      [piar_id, area_id || null, periodo || 1, objetivo, barrera || '', tipo || 'actividades', descripcion || '', apoyo, intensidad || 'intermitente', evaluacion, desempeno || null]
+        (piar_id, area_id, periodo, objetivo, barrera, tipo, descripcion, apoyo, intensidad, evaluacion, desempeno, creado_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [piar_id, area_id || null, periodo || 1, objetivo, barrera || '', tipo || 'actividades', descripcion || '', apoyo, intensidad || 'intermitente', evaluacion, desempeno || null, req.usuario.id]
     );
     await auditar(req, { entidad: 'ajuste', entidad_id: rows[0].id, piar_id, accion: 'crear', descripcion: `Agregó un ajuste razonable (${PERIODO_NOMBRE(periodo || 1)})` });
     res.status(201).json(rows[0]);
@@ -31,6 +43,7 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coord
 // PUT /api/ajustes/:id
 router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
+    if (!(await puedeModificar(req, req.params.id))) return res.status(403).json({ error: ERROR_AUTORIA });
     const { area_id, periodo, objetivo, barrera, tipo, descripcion, apoyo, intensidad, evaluacion, retirado, justificacion_retiro, desempeno } = req.body;
     const { rows } = await query(
       `UPDATE ajuste_razonable SET area_id=$1, periodo=COALESCE($2,periodo), objetivo=$3, barrera=$4, tipo=$5,
@@ -49,6 +62,7 @@ router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coo
 // DELETE /api/ajustes/:id
 router.delete('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
   try {
+    if (!(await puedeModificar(req, req.params.id))) return res.status(403).json({ error: ERROR_AUTORIA });
     const prev = await query('SELECT piar_id, periodo FROM ajuste_razonable WHERE id=$1', [req.params.id]);
     const { rowCount } = await query('DELETE FROM ajuste_razonable WHERE id=$1', [req.params.id]);
     if (!rowCount) return res.status(404).json({ error: 'Ajuste no encontrado.' });

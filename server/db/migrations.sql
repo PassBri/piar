@@ -80,3 +80,8 @@ END $$;
 
 -- Evita nuevas áreas duplicadas por institución (ignorando mayúsculas y espacios).
 CREATE UNIQUE INDEX IF NOT EXISTS area_inst_nombre_uniq ON area (institucion_id, lower(btrim(nombre)));
+
+-- Seguridad del Anexo 2: autoría de cada ajuste razonable.
+-- Un docente solo puede editar/eliminar las filas que él creó; coordinador,
+-- psicoorientador, rector y administrador pueden gestionar todas.
+ALTER TABLE ajuste_razonable ADD COLUMN IF NOT EXISTS creado_por INTEGER REFERENCES usuario(id) ON DELETE SET NULL;
