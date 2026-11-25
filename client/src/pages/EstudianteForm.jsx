@@ -4,6 +4,7 @@ import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useExpediente } from '../context/ExpedienteContext.jsx';
 import { NOMBRES_DISCAPACIDAD } from '../data/discapacidades.js';
+import { DEPARTAMENTOS, municipiosDe } from '../data/colombia.js';
 import Guardado from '../components/Guardado.jsx';
 import NavAnexos from '../components/NavAnexos.jsx';
 import AgregarAnio from '../components/AgregarAnio.jsx';
@@ -25,8 +26,8 @@ const CAMPOS = {
     campos: [
       ['edad', 'Edad'],
       ['sede', 'Sede'], ['jornada', 'Jornada'], ['grado_ingreso', 'Grado al que aspira ingresar'],
-      ['lugar_nacimiento', 'Lugar de nacimiento'], ['sexo', 'Sexo'],
-      ['departamento_vive', 'Departamento donde vive'], ['municipio_vive', 'Municipio'],
+      ['lugar_nacimiento', 'Lugar de nacimiento'], ['sexo', 'Sexo', 'select', ['Femenino', 'Masculino']],
+      ['departamento_vive', 'Departamento donde vive', 'departamento'], ['municipio_vive', 'Municipio', 'municipio'],
       ['direccion', 'Dirección de vivienda'], ['barrio', 'Barrio / vereda'],
       ['telefono', 'Teléfono'], ['correo', 'Correo electrónico'],
       ['centro_proteccion', '¿Está en centro de protección? ¿Dónde?'],
@@ -37,8 +38,8 @@ const CAMPOS = {
   entorno_salud: {
     titulo: '2) Entorno salud',
     campos: [
-      ['afiliacion', 'Afiliación al sistema de salud (Sí/No)'], ['eps', 'EPS'],
-      ['regimen', 'Régimen (Contributivo/Subsidiado)'], ['lugar_atencion', 'Lugar de atención en emergencia'],
+      ['afiliacion', 'Afiliación al sistema de salud', 'si_no'], ['eps', 'EPS'],
+      ['regimen', 'Régimen', 'select', ['Contributivo', 'Subsidiado', 'Especial', 'No afiliado']], ['lugar_atencion', 'Lugar de atención en emergencia'],
       ['atendido_salud', '¿Atendido por el sector salud? Frecuencia'], ['diagnostico', 'Diagnóstico médico (¿cuál?)'],
       ['discapacidad', 'Tipo de discapacidad (si aplica)'], ['terapias', '¿Asiste a terapias? ¿Cuáles? Frecuencia'],
       ['tratamiento', '¿Recibe tratamiento médico? (¿cuál?)'],
@@ -56,14 +57,14 @@ const CAMPOS = {
       ['nivel_cuidador', 'Nivel educativo del cuidador'], ['telefono_cuidador', 'Teléfono / correo del cuidador'],
       ['num_hermanos', 'N.º de hermanos'], ['lugar_ocupa', 'Lugar que ocupa'],
       ['personas_vive', 'Personas con quien vive'], ['apoyan_crianza', '¿Quiénes apoyan la crianza?'],
-      ['bajo_proteccion', '¿Está bajo protección? (Sí/No)'], ['subsidio', '¿Recibe algún subsidio? ¿Cuál?'],
+      ['bajo_proteccion', '¿Está bajo protección?', 'si_no'], ['subsidio', '¿Recibe algún subsidio? ¿Cuál?'],
     ],
   },
   entorno_educativo: {
     titulo: '4) Entorno educativo (trayectoria)',
     campos: [
       ['vinculado_otra_ie', '¿Vinculado antes a otra IE / fundación? ¿Cuáles?'],
-      ['ultimo_grado', 'Último grado cursado'], ['aprobo', '¿Aprobó? (Sí/No)'],
+      ['ultimo_grado', 'Último grado cursado'], ['aprobo', '¿Aprobó?', 'si_no'],
       ['recibe_informe', '¿Recibe informe pedagógico? ¿De qué institución?'],
       ['observaciones', 'Observaciones (motivos de cambio de IE o modalidad)', 'area'],
       ['programas_complementarios', '¿Asiste a programas complementarios? ¿Cuáles?', 'area'],
@@ -252,19 +253,59 @@ export default function EstudianteForm({ estudianteId: propId, embebido = false 
     navigate(`/piar/${p.id}`);
   }
 
-  const campoInput = (grupo, k, tipo) => {
+  // Cambiar departamento limpia el municipio (ya no corresponde al nuevo departamento).
+  const setDepto = (store, valor) => setForm((f) => ({ ...f, [store]: { ...f[store], departamento_vive: valor, municipio_vive: '' } }));
+
+  const campoInput = (grupo, k) => {
     const store = CAMPOS[grupo].store || grupo;
+    const def = CAMPOS[grupo].campos.find((c) => c[0] === k) || [];
+    const tipo = def[2];
+    const opciones = def[3];
+    const val = form[store][k] || '';
     if (k === 'discapacidad') {
       return (
-        <select value={form[store][k] || ''} onChange={(e) => setG(store, k, e.target.value)} disabled={!editable}>
+        <select value={val} onChange={(e) => setG(store, k, e.target.value)} disabled={!editable}>
           <option value="">— Sin discapacidad / no aplica —</option>
           {NOMBRES_DISCAPACIDAD.map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
       );
     }
+    if (tipo === 'si_no') {
+      return (
+        <select value={val} onChange={(e) => setG(store, k, e.target.value)} disabled={!editable}>
+          <option value="">—</option><option value="Sí">Sí</option><option value="No">No</option>
+        </select>
+      );
+    }
+    if (tipo === 'select') {
+      return (
+        <select value={val} onChange={(e) => setG(store, k, e.target.value)} disabled={!editable}>
+          <option value="">—</option>
+          {(opciones || []).map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      );
+    }
+    if (tipo === 'departamento') {
+      return (
+        <select value={val} onChange={(e) => setDepto(store, e.target.value)} disabled={!editable}>
+          <option value="">— Departamento —</option>
+          {DEPARTAMENTOS.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      );
+    }
+    if (tipo === 'municipio') {
+      const depto = form[store].departamento_vive || '';
+      const muns = municipiosDe(depto);
+      return (
+        <select value={val} onChange={(e) => setG(store, k, e.target.value)} disabled={!editable || !depto}>
+          <option value="">{depto ? '— Municipio —' : '— Elige el departamento primero —'}</option>
+          {muns.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      );
+    }
     return tipo === 'area'
-      ? <textarea value={form[store][k] || ''} onChange={(e) => setG(store, k, e.target.value)} disabled={!editable} />
-      : <input value={form[store][k] || ''} onChange={(e) => setG(store, k, e.target.value)} disabled={!editable} />;
+      ? <textarea value={val} onChange={(e) => setG(store, k, e.target.value)} disabled={!editable} />
+      : <input value={val} onChange={(e) => setG(store, k, e.target.value)} disabled={!editable} />;
   };
 
   function filasSeccion(grupo) {

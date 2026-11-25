@@ -377,7 +377,8 @@ router.get('/piar/:id/pdf', async (req, res, next) => {
     banda(doc, tituloSeccion);
     let impresos = 0;
     periodosImprimir.forEach((p) => {
-      const delP = ajustes.filter((a) => a.periodo === p);
+      // Omite filas sin barrera ni ajuste (filas en blanco que se dejaron para repartir el trabajo).
+      const delP = ajustes.filter((a) => a.periodo === p && ((a.barrera || '').trim() || (a.descripcion || '').trim()));
       if (delP.length === 0) return;
       impresos += delP.length;
       doc.moveDown(0.3);

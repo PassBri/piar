@@ -290,6 +290,15 @@ export default function PiarDetalle() {
     } catch (err) { setError(err.message); }
   }
   async function eliminarAjuste(aid) { await api.del(`/ajustes/${aid}`); cargar(); }
+  const esFilaVacia = (a) => !a.area_id && !['objetivo', 'barrera', 'descripcion', 'evaluacion'].some((k) => (a[k] || '').trim()) && !a.desempeno;
+  async function limpiarFilasVacias() {
+    const vacias = ajustesVisibles.filter(esFilaVacia);
+    if (!vacias.length) { setAvisoFila('No hay filas vacías para borrar en esta selección.'); return; }
+    if (!window.confirm(`¿Borrar ${vacias.length} fila(s) vacía(s)?`)) return;
+    for (const a of vacias) { await api.del(`/ajustes/${a.id}`); }
+    setAvisoFila('');
+    cargar();
+  }
 
   if (!piar) return <div>{error || 'Cargando…'}</div>;
 
@@ -452,7 +461,12 @@ export default function PiarDetalle() {
         </div>
 
         {/* Barreras y ajustes razonables del periodo — se diligencia por filas, una por área */}
-        <h3 style={{ marginBottom: 2 }}>2. Ajustes razonables {periodoActivo === 0 ? '(todos)' : `· ${nombrePeriodo(periodoActivo)}`}</h3>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+          <h3 style={{ marginBottom: 2 }}>2. Ajustes razonables {periodoActivo === 0 ? '(todos)' : `· ${nombrePeriodo(periodoActivo)}`}</h3>
+          {editable && ajustesVisibles.some(esFilaVacia) && (
+            <button type="button" className="btn sec sm" onClick={limpiarFilasVacias} title="Borrar las filas que quedaron sin diligenciar">🧹 Limpiar filas vacías</button>
+          )}
+        </div>
         <p style={{ fontSize: 12, color: 'var(--gris-500)', margin: '0 0 6px' }}>
           Escribe directamente en cada fila. Los cambios se guardan al salir del campo. La última fila agrega un ajuste nuevo.
           Desliza la tabla a los lados si no cabe en la pantalla.
@@ -622,7 +636,7 @@ export default function PiarDetalle() {
         <table className="ftabla" style={{ marginBottom: 12 }}>
           <tbody>
             <tr><td className="lbl" style={{ width: '22%' }}>Institución y sede</td><td className="val"><input value={`${piar.inst_nombre || ''}${piar.inst_sede ? ' · ' + piar.inst_sede : ''}`} disabled /></td>
-                <td className="lbl" style={{ width: '12%' }}>Fecha</td><td className="val"><input value={acta.fecha_firma ? acta.fecha_firma.slice(0, 10) : ''} disabled /></td></tr>
+                <td className="lbl" style={{ width: '12%' }}>Fecha</td><td className="val"><input type="date" value={acta.fecha_firma ? acta.fecha_firma.slice(0, 10) : ''} disabled={esPadre} onChange={(e) => setActa({ ...acta, fecha_firma: e.target.value })} /></td></tr>
             <tr><td className="lbl">Nombre del estudiante</td><td className="val"><input value={piar.estudiante_nombre || ''} disabled /></td>
                 <td className="lbl">Documento</td><td className="val"><input value={piar.documento_numero || ''} disabled /></td></tr>
             <tr><td className="lbl">Grado</td><td className="val"><input value={piar.grado || ''} disabled /></td>
