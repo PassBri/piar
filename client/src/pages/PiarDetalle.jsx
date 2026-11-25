@@ -25,6 +25,25 @@ function SugMenu({ campo, onPick }) {
   );
 }
 
+// Deduce el nivel educativo (clave de NIVELES_AREAS) a partir del grado del estudiante.
+function nivelDeGrado(grado) {
+  const g = (grado || '').toString().trim().toLowerCase();
+  if (!g) return null;
+  if (/pre|jard|transic|p[aá]rvul|infan|inicial|^-/.test(g)) return 'preescolar';
+  const m = g.match(/\d+/);
+  const n = m ? parseInt(m[0], 10) : null;
+  if (n !== null) {
+    if (n === 0) return 'preescolar';
+    if (n >= 1 && n <= 5) return 'primaria';
+    if (n >= 6 && n <= 9) return 'secundaria';
+    if (n >= 10) return 'media';
+  }
+  if (/(primero|segundo|tercero|cuarto|quinto)/.test(g)) return 'primaria';
+  if (/(sexto|s[eé]ptimo|octavo|noveno)/.test(g)) return 'secundaria';
+  if (/(d[eé]cimo|once|und[eé]cimo|media)/.test(g)) return 'media';
+  return null;
+}
+
 const TIPOS = [
   ['actividades', 'Actividades'], ['materiales', 'Materiales'], ['espacios', 'Espacios'],
   ['comunicacion', 'Comunicación'], ['apoyos_humanos', 'Apoyos humanos'], ['tecnologias', 'Tecnologías'],
@@ -574,15 +593,36 @@ export default function PiarDetalle() {
           <div style={{ marginTop: 10 }}>
             {puedeCrearArea ? (
               <>
-                <div style={{ margin: '4px 0 8px' }}>
-                  <span style={{ fontSize: 12, color: 'var(--gris-600)', fontWeight: 600, marginRight: 4 }}>Cargar áreas por nivel:</span>
-                  <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
-                    {NIVELES_AREAS.map((n) => (
-                      <button key={n.clave} type="button" className="chip-nivel" title={n.nota} onClick={() => cargarAreasNivel(n.items)}>{n.etiqueta}</button>
-                    ))}
-                  </span>
-                  <span style={{ fontSize: 12, color: 'var(--gris-500)', marginLeft: 8 }}>· para una asignatura suelta usa <strong>+ Área</strong> en el encabezado de la tabla.</span>
-                </div>
+                {(() => {
+                  const claveRec = nivelDeGrado(piar.grado);
+                  const nivelRec = NIVELES_AREAS.find((n) => n.clave === claveRec);
+                  return (
+                    <div style={{ margin: '4px 0 8px' }}>
+                      {nivelRec && (
+                        <div style={{ marginBottom: 6 }}>
+                          <button type="button" className="btn sm" title={nivelRec.nota}
+                            onClick={() => cargarAreasNivel(nivelRec.items)}>
+                            📚 Cargar áreas de {nivelRec.etiqueta}
+                          </button>
+                          <span style={{ fontSize: 12, color: 'var(--gris-600)', marginLeft: 8 }}>
+                            recomendado para <strong>grado {piar.grado || '—'}</strong>
+                          </span>
+                        </div>
+                      )}
+                      <span style={{ fontSize: 12, color: 'var(--gris-600)', fontWeight: 600, marginRight: 4 }}>
+                        {nivelRec ? 'Otros niveles:' : 'Cargar áreas por nivel:'}
+                      </span>
+                      <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
+                        {NIVELES_AREAS.map((n) => (
+                          <button key={n.clave} type="button"
+                            className={`chip-nivel${n.clave === claveRec ? ' recomendado' : ''}`}
+                            title={n.nota} onClick={() => cargarAreasNivel(n.items)}>{n.etiqueta}</button>
+                        ))}
+                      </span>
+                      <span style={{ fontSize: 12, color: 'var(--gris-500)', marginLeft: 8 }}>· para una asignatura suelta usa <strong>+ Área</strong> en el encabezado de la tabla.</span>
+                    </div>
+                  );
+                })()}
                 <p style={{ fontSize: 12, color: 'var(--gris-600)', margin: '0 0 8px', background: '#eef4fb', border: '1px solid #cfe0f3', borderRadius: 8, padding: '8px 10px' }}>
                   <strong>Preescolar y educación inicial:</strong> los propósitos se orientan según las bases curriculares
                   para la educación inicial y los DBA de transición, que no van por áreas ni asignaturas (usa las dimensiones).
