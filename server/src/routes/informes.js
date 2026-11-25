@@ -999,9 +999,60 @@ router.get('/pmi/pdf', autorizar('superadmin', 'rector', 'coordinador', 'adminis
        GROUP BY a.barrera ORDER BY n DESC LIMIT 15`, [inst || null]);
 
     const inst0 = rows[0] || {};
-    const doc = iniciar(res, req, 'Formato_PMI.pdf');
-    titulo(doc, 'PLAN DE MEJORAMIENTO INSTITUCIONAL (PMI)', 'Eliminación de barreras — derivado de los PIAR',
-      { logo: inst0.inst_logo, nombre: inst0.institucion_nombre, nit: inst0.inst_nit });
+    const institucion = { logo: inst0.inst_logo, nombre: inst0.institucion_nombre, nit: inst0.inst_nit };
+    const anio = String(req.query.anio || new Date().getFullYear());
+
+    // Plan institucional diligenciable (pmi_institucional) — por ámbito (general o sede/jornada)
+    const pmiInst = inst ? (await query(
+      `SELECT sede, jornada, actor, acciones, estrategias FROM pmi_institucional
+       WHERE institucion_id=$1 AND anio=$2 AND (COALESCE(acciones,'')<>'' OR COALESCE(estrategias,'')<>'')
+       ORDER BY sede, jornada`, [inst, anio])).rows : [];
+    const ambitos = [];
+    for (const r of pmiInst) {
+      const clave = `${r.sede}||${r.jornada}`;
+      let g = ambitos.find((a) => a.clave === clave);
+      if (!g) { g = { clave, sede: r.sede, jornada: r.jornada, filas: {} }; ambitos.push(g); }
+      g.filas[r.actor] = { acciones: r.acciones, estrategias: r.estrategias };
+    }
+    const GUIA = [
+      ['Familia, cuidadores o con quienes vive', 'Acompañar las actividades en casa, mantener comunicación con la institución, informar avances y necesidades del estudiante y participar en los acuerdos y el seguimiento.', 'Rutinas y hábitos de estudio en casa, refuerzo de lo trabajado en el aula, asistencia a reuniones y entrega de soportes.'],
+      ['Docentes', 'Aplicar los ajustes razonables en el aula, flexibilizar actividades y evaluación, y hacer seguimiento al desempeño del estudiante.', 'Diseño Universal para el Aprendizaje (DUA), material adaptado, apoyos visuales, tiempo adicional y trabajo diferenciado por áreas.'],
+      ['Directivos', 'Garantizar tiempos, recursos y condiciones; liderar la política de inclusión y acompañar al equipo docente.', 'Organización de jornadas y horarios, formación docente, asignación de apoyos y ajustes institucionales.'],
+      ['Administrativos', 'Facilitar procesos, gestionar materiales y asegurar la accesibilidad física y de la información.', 'Adecuación de espacios, señalización, accesibilidad y gestión de insumos y recursos de apoyo.'],
+      ['Pares (sus compañeros)', 'Acompañar, incluir y colaborar con el estudiante en las actividades escolares y de convivencia.', 'Trabajo colaborativo, tutoría entre pares, parejas o grupos de apoyo y actividades inclusivas.'],
+    ];
+    const COLS_PMI = [['Actores', 150], ['Acciones', 190, 'left'], ['Estrategias a implementar', 183, 'left']];
+
+    const doc = iniciar(res, req, 'Formato_PMI.pdf', { inst: institucion, linea: `Plan de Mejoramiento Institucional · Año ${anio}` });
+    if (req.query.portada !== '0') {
+      portada(doc, { tituloDoc: 'Plan de Mejoramiento Institucional (PMI)', estudiante: `Año ${anio}`, documento: '', inst: institucion });
+    }
+    titulo(doc, 'PLAN DE MEJORAMIENTO INSTITUCIONAL (PMI)', `Eliminación de barreras — Año ${anio} · Decreto 1421 de 2017`, institucion);
+    doc.moveDown(0.2);
+
+    // 1) Plan institucional (diligenciable)
+    banda(doc, 'Plan institucional (diligenciable)');
+    doc.moveDown(0.2);
+    if (ambitos.length === 0) {
+      doc.font('Helvetica-Oblique').fontSize(9).text('Aún no se ha diligenciado el plan institucional. Se registra en el módulo PMI por actor (general o por sede y jornada).', X0, doc.y + 2, { width: ANCHO });
+      doc.moveDown(0.4);
+    } else {
+      ambitos.forEach((g) => {
+        const ambito = g.sede || g.jornada ? `${g.sede || 'Todas las sedes'}${g.jornada ? ' · ' + g.jornada : ''}` : 'Toda la institución';
+        saltoSi(doc, 24);
+        doc.font('Helvetica-Bold').fontSize(9.5).fillColor(GRIS_MEDIO).text(`Ámbito: ${ambito}`, X0, doc.y + 2);
+        doc.fillColor('#000').moveDown(0.2);
+        tablaInforme(doc, COLS_PMI, ACTORES_PMI.map(([clave, nombre]) => {
+          const f = g.filas[clave] || {};
+          return [nombre, f.acciones || '—', f.estrategias || '—'];
+        }), { alto: 16 });
+      });
+    }
+
+    // 2) Cómo puede participar y aportar cada actor (guía)
+    banda(doc, 'Cómo puede participar y aportar cada actor');
+    doc.moveDown(0.2);
+    tablaInforme(doc, COLS_PMI, GUIA, { alto: 16 });
 
     banda(doc, 'Barreras recurrentes identificadas en los PIAR');
     doc.moveDown(0.2);
