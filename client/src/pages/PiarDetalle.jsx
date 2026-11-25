@@ -8,6 +8,7 @@ import NavAnexos from '../components/NavAnexos.jsx';
 import AgregarAnio from '../components/AgregarAnio.jsx';
 import MenuDocumentos from '../components/MenuDocumentos.jsx';
 import { NIVELES_AREAS } from '../data/areas.js';
+import { SUGERENCIAS, ETIQUETA_SUG } from '../data/sugerencias.js';
 import EstudianteForm from './EstudianteForm.jsx';
 
 const TIPOS = [
@@ -223,13 +224,15 @@ export default function PiarDetalle() {
       cargar();
     } catch (err) { setError(err.message); }
   }
-  async function agregarArea() {
-    if (!nuevaArea.trim()) return;
+  async function agregarArea(nombre) {
+    const n = (nombre ?? nuevaArea).trim();
+    if (!n) return;
     try {
-      const a = await api.post('/areas', { nombre: nuevaArea.trim() });
+      const existe = areas.find((a) => (a.nombre || '').trim().toLowerCase() === n.toLowerCase());
+      let a = existe;
+      if (!existe) { a = await api.post('/areas', { nombre: n }); const lista = await api.get('/areas'); setAreas(lista); }
       setNuevaArea('');
-      const lista = await api.get('/areas'); setAreas(lista);
-      setNuevo((n) => ({ ...n, area_id: a.id }));
+      setNuevo((nv) => ({ ...nv, area_id: a.id }));
     } catch (err) { setError(err.message); }
   }
   // Educación inicial: la valoración es por dimensiones y DBA de transición, no por áreas
@@ -245,8 +248,8 @@ export default function PiarDetalle() {
   // Carga las áreas/asignaturas de un nivel educativo (Ley 115, art. 23)
   async function cargarAreasNivel(items) {
     try {
-      const existentes = areas.map((a) => a.nombre);
-      for (const d of items) { if (!existentes.includes(d)) await api.post('/areas', { nombre: d }); }
+      const existentes = areas.map((a) => (a.nombre || '').trim().toLowerCase());
+      for (const d of items) { if (!existentes.includes(d.trim().toLowerCase())) await api.post('/areas', { nombre: d }); }
       const lista = await api.get('/areas'); setAreas(lista);
     } catch (err) { setError(err.message); }
   }
@@ -267,6 +270,12 @@ export default function PiarDetalle() {
 
   const av = piar.avance || { anexo1: 0, anexo2: 0, anexo3: 0, total: 0 };
   const ajustesVisibles = piar.ajustes.filter((a) => periodoActivo === 0 || a.periodo === periodoActivo);
+  // Áreas sin repetidos (ignora mayúsculas/espacios) para los selectores
+  const areasUnicas = (() => {
+    const vistos = new Set(); const out = [];
+    for (const ar of areas) { const k = (ar.nombre || '').trim().toLowerCase(); if (!k || vistos.has(k)) continue; vistos.add(k); out.push(ar); }
+    return out;
+  })();
   const opcionesDesempeno = OPCIONES_EVAL[piar.sistema_evaluacion] || OPCIONES_EVAL.cualitativo;
   const sufijoPdf = periodoActivo === 0 ? 'all' : periodoActivo;
   const nombrePdf = periodoActivo === 0 ? 'Anexo2_todos' : (periodoActivo === 5 ? 'Anexo2_promocion' : `Anexo2_P${periodoActivo}`);
@@ -428,7 +437,15 @@ export default function PiarDetalle() {
           <thead>
             <tr>
               {periodoActivo === 0 && <th style={{ minWidth: 58 }}>Per.</th>}
-              <th style={{ minWidth: 150 }}>Áreas / Aprendizajes</th>
+              <th style={{ minWidth: 150 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                  <span>Áreas / Aprendizajes</span>
+                  {puedeCrearArea && (
+                    <button type="button" className="th-add-area" title="Agregar una asignatura o área"
+                      onClick={() => { const n = window.prompt('Nombre de la asignatura o área:'); if (n && n.trim()) agregarArea(n.trim()); }}>+ Área</button>
+                  )}
+                </div>
+              </th>
               <th style={{ minWidth: 170 }}>Objetivos / propósitos<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(para el grado, según EBC y DBA)</span></th>
               <th style={{ minWidth: 170 }}>Barreras<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(en el contexto)</span></th>
               <th style={{ minWidth: 180 }}>Ajustes razonables<br /><span style={{ fontWeight: 400, fontSize: 10 }}>(apoyos/estrategias)</span></th>
@@ -446,7 +463,7 @@ export default function PiarDetalle() {
                     <>
                       <select value={a.area_id || ''} onChange={(e) => actualizarAjuste(a, { area_id: e.target.value || null })} style={{ marginBottom: 4 }}>
                         <option value="">— Área —</option>
-                        {areas.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
+                        {areasUnicas.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
                       </select>
                       <div style={{ display: 'flex', gap: 4 }}>
                         <select value={a.tipo} title="Tipo de ajuste" onChange={(e) => actualizarAjuste(a, { tipo: e.target.value })} style={{ fontSize: 10 }}>
@@ -494,7 +511,7 @@ export default function PiarDetalle() {
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
                   <select value={nuevo.area_id} onChange={(e) => setNuevo({ ...nuevo, area_id: e.target.value })} style={{ marginBottom: 4 }}>
                     <option value="">— Área —</option>
-                    {areas.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
+                    {areasUnicas.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
                   </select>
                   <div style={{ display: 'flex', gap: 4 }}>
                     <select value={nuevo.tipo} title="Tipo de ajuste" onChange={(e) => setNuevo({ ...nuevo, tipo: e.target.value })} style={{ fontSize: 10 }}>
@@ -527,14 +544,6 @@ export default function PiarDetalle() {
           <div style={{ marginTop: 10 }}>
             {puedeCrearArea ? (
               <>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 4 }}>
-                  <div className="campo" style={{ flex: 1, minWidth: 220, marginBottom: 0 }}>
-                    <label>Agregar asignatura o área</label>
-                    <input value={nuevaArea} onChange={(e) => setNuevaArea(e.target.value)} placeholder="Nombre de la asignatura"
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregarArea(); } }} />
-                  </div>
-                  <button type="button" className="btn" onClick={agregarArea}>+ Agregar</button>
-                </div>
                 <div style={{ margin: '4px 0 8px' }}>
                   <span style={{ fontSize: 12, color: 'var(--gris-600)', fontWeight: 600, marginRight: 4 }}>Cargar áreas por nivel:</span>
                   <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
@@ -542,6 +551,7 @@ export default function PiarDetalle() {
                       <button key={n.clave} type="button" className="chip-nivel" title={n.nota} onClick={() => cargarAreasNivel(n.items)}>{n.etiqueta}</button>
                     ))}
                   </span>
+                  <span style={{ fontSize: 12, color: 'var(--gris-500)', marginLeft: 8 }}>· para una asignatura suelta usa <strong>+ Área</strong> en el encabezado de la tabla.</span>
                 </div>
                 <p style={{ fontSize: 12, color: 'var(--gris-600)', margin: '0 0 8px', background: '#eef4fb', border: '1px solid #cfe0f3', borderRadius: 8, padding: '8px 10px' }}>
                   <strong>Preescolar y educación inicial:</strong> los propósitos se orientan según las bases curriculares
@@ -553,16 +563,22 @@ export default function PiarDetalle() {
                 Escoge el área de la lista en la última fila. Si falta una asignatura, el coordinador o el psicoorientador debe agregarla.
               </p>
             )}
-            {catalogo.length > 0 && (
-              <div className="campo">
-                <label>Sugerencias del catálogo (MEN) — clic para ponerlas en el ajuste de la nueva fila</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {catalogo.map((c) => (
-                    <button type="button" key={c.id} className="btn sec sm" onClick={() => setNuevo({ ...nuevo, descripcion: c.descripcion })}>{c.descripcion}</button>
-                  ))}
+            <div className="sugerencias-men">
+              <div className="sm-titulo">Sugerencias (orientaciones MEN) — clic para agregarlas a la <strong>nueva fila</strong>; luego puedes editarlas</div>
+              {['objetivo', 'barrera', 'descripcion'].map((campo) => (
+                <div key={campo} className="sm-grupo">
+                  <span className="sm-etq">{ETIQUETA_SUG[campo]}</span>
+                  <div className="sm-chips">
+                    {SUGERENCIAS[campo].map((t, i) => (
+                      <button type="button" key={i} className="sm-chip" title="Agregar a la nueva fila"
+                        onClick={() => setNuevo((n) => { const act = (n[campo] || '').trim(); return { ...n, [campo]: act ? `${act}\n${t}` : t }; })}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
         )}
       </div>

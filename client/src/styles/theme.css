@@ -245,6 +245,17 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
   background: var(--gris-100); padding: 4px; border-radius: 12px; border: 1px solid var(--gris-200);
   position: sticky; top: 0; z-index: 30; box-shadow: 0 2px 8px rgba(0,0,0,.06);
 }
+/* Sugerencias MEN por columna (nueva fila del Anexo 2) */
+.sugerencias-men { margin-top: 10px; border: 1px solid var(--gris-200); border-radius: 10px; padding: 10px 12px; background: var(--gris-100); }
+.sm-titulo { font-size: 12.5px; color: var(--gris-700); margin-bottom: 8px; }
+.sm-grupo { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-top: 1px dashed var(--gris-300); }
+.sm-grupo:first-of-type { border-top: none; }
+.sm-etq { flex: 0 0 120px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--gris-600); padding-top: 4px; }
+.sm-chips { display: flex; flex-wrap: wrap; gap: 5px; flex: 1 1 auto; }
+.sm-chip { background: #fff; border: 1px solid var(--gris-300); color: var(--gris-800); border-radius: 999px; padding: 4px 11px; font-size: 12px; cursor: pointer; text-align: left; transition: background .12s, border-color .12s; }
+.sm-chip:hover { background: var(--gris-700); color: #fff; border-color: var(--gris-700); }
+.th-add-area { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.4); color: #fff; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.th-add-area:hover { background: rgba(255,255,255,0.32); }
 .chip-nivel { background: var(--gris-100); border: 1px solid var(--gris-300); color: var(--gris-700); border-radius: 999px; padding: 4px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background .15s, border-color .15s; }
 .chip-nivel:hover { background: var(--gris-700); color: #fff; border-color: var(--gris-700); }
 
