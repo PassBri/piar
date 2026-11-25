@@ -34,3 +34,18 @@ ALTER TABLE ajuste_razonable ADD COLUMN IF NOT EXISTS desempeno TEXT;
 ALTER TABLE acta_acuerdo ADD COLUMN IF NOT EXISTS nombres_directivos TEXT;              -- equipo directivo y docentes
 ALTER TABLE acta_acuerdo ADD COLUMN IF NOT EXISTS familia JSONB NOT NULL DEFAULT '[]'::jsonb;        -- [{nombre, parentesco}]
 ALTER TABLE acta_acuerdo ADD COLUMN IF NOT EXISTS actividades JSONB NOT NULL DEFAULT '[]'::jsonb;    -- [{actividad, estrategia, frecuencia}]
+
+-- PMI institucional: el plan de mejoramiento diligenciado por la institución
+-- (general cuando sede/jornada están vacíos, o específico por sede y jornada).
+CREATE TABLE IF NOT EXISTS pmi_institucional (
+  id SERIAL PRIMARY KEY,
+  institucion_id INT NOT NULL REFERENCES institucion(id) ON DELETE CASCADE,
+  anio VARCHAR(9) NOT NULL,
+  sede VARCHAR(160) NOT NULL DEFAULT '',      -- '' = toda la institución
+  jornada VARCHAR(80) NOT NULL DEFAULT '',    -- '' = todas las jornadas
+  actor VARCHAR(40) NOT NULL,
+  acciones TEXT NOT NULL DEFAULT '',
+  estrategias TEXT NOT NULL DEFAULT '',
+  actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (institucion_id, anio, sede, jornada, actor)
+);

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client.js';
+import PmiInstitucional from '../components/PmiInstitucional.jsx';
 
 // Formato oficial (punto 7 del Anexo 2): cómo participa y aporta cada actor
 const GUIA_ACTORES = [
@@ -81,6 +82,9 @@ export default function PMI() {
           </table>
         </div>
       </div>
+
+      {/* PMI institucional diligenciable (general o por sede/jornada) */}
+      <PmiInstitucional />
 
       {/* Resumen por actor (insumo para el plan) */}
       <div className="card">

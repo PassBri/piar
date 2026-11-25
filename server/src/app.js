@@ -27,6 +27,7 @@ import apoyosRoutes from './routes/apoyos.js';
 import autorizacionRoutes from './routes/autorizacion.js';
 import evidenciasRoutes from './routes/evidencias.js';
 import respaldoRoutes from './routes/respaldo.js';
+import pmiInstitucionalRoutes from './routes/pmiInstitucional.js';
 
 export function createApp() {
   const app = express();
@@ -58,6 +59,7 @@ export function createApp() {
   app.use('/api/autorizacion', autorizacionRoutes);
   app.use('/api/evidencias', evidenciasRoutes);
   app.use('/api/respaldo', respaldoRoutes);
+  app.use('/api/pmi-institucional', pmiInstitucionalRoutes);
 
   // En producción, el mismo servicio entrega el frontend compilado (SPA).
   if (process.env.NODE_ENV === 'production') {
