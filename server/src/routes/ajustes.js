@@ -10,13 +10,24 @@ const PERIODO_NOMBRE = (p) => (Number(p) === 5 ? 'Promoción' : `Periodo ${p}`);
 
 // Roles que supervisan y pueden gestionar lo de cualquier docente.
 const SUPERVISA = ['coordinador', 'psicoorientador', 'rector', 'administrador', 'superadmin'];
-// Un docente solo modifica sus propias filas (o filas sin autor previas).
+// Reglas para un docente:
+//  - Si el área de la fila tiene responsable asignado (por coordinación/orientación),
+//    solo ese docente la modifica.
+//  - Si el área no tiene responsable, aplica la autoría (su propia fila o filas sin autor).
 async function puedeModificar(req, ajusteId) {
   if (SUPERVISA.includes(req.usuario.rol)) return true;
-  const r = await query('SELECT creado_por FROM ajuste_razonable WHERE id=$1', [ajusteId]);
+  const r = await query(
+    `SELECT a.creado_por, a.area_id, p.estudiante_id
+       FROM ajuste_razonable a JOIN piar p ON p.id = a.piar_id WHERE a.id=$1`,
+    [ajusteId]
+  );
   if (!r.rows[0]) return true; // no existe: el 404 se maneja después
-  const dueno = r.rows[0].creado_por;
-  return dueno == null || dueno === req.usuario.id;
+  const { creado_por, area_id, estudiante_id } = r.rows[0];
+  if (area_id) {
+    const resp = await query('SELECT docente_id FROM responsable_area WHERE estudiante_id=$1 AND area_id=$2', [estudiante_id, area_id]);
+    if (resp.rows[0] && resp.rows[0].docente_id) return resp.rows[0].docente_id === req.usuario.id;
+  }
+  return creado_por == null || creado_por === req.usuario.id;
 }
 const ERROR_AUTORIA = 'Esta fila la diligenció otro docente. Solo el coordinador o el psicoorientador pueden modificarla.';
 

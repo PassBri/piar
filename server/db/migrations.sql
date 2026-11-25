@@ -85,3 +85,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS area_inst_nombre_uniq ON area (institucion_id,
 -- Un docente solo puede editar/eliminar las filas que él creó; coordinador,
 -- psicoorientador, rector y administrador pueden gestionar todas.
 ALTER TABLE ajuste_razonable ADD COLUMN IF NOT EXISTS creado_por INTEGER REFERENCES usuario(id) ON DELETE SET NULL;
+
+-- Responsable por área y estudiante (lo asigna coordinación/orientación).
+-- Define qué docente diligencia cada área del Anexo 2 de ese estudiante.
+CREATE TABLE IF NOT EXISTS responsable_area (
+  id SERIAL PRIMARY KEY,
+  estudiante_id INT NOT NULL REFERENCES estudiante(id) ON DELETE CASCADE,
+  area_id INT NOT NULL REFERENCES area(id) ON DELETE CASCADE,
+  docente_id INT REFERENCES usuario(id) ON DELETE SET NULL,
+  asignado_por INT REFERENCES usuario(id) ON DELETE SET NULL,
+  actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (estudiante_id, area_id)
+);

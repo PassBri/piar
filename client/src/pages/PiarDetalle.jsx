@@ -87,6 +87,8 @@ export default function PiarDetalle() {
   const [catalogo, setCatalogo] = useState([]);
   const [valoraciones, setValoraciones] = useState([]);
   const [acta, setActa] = useState({ compromisos_familia: '', compromisos_institucion: '', firmada_familia: false, firmada_institucion: false });
+  const [responsables, setResponsables] = useState({}); // { area_id: { docente_id, docente_nombre } }
+  const [docentes, setDocentes] = useState([]);
   const [error, setError] = useState('');
   const ajusteVacio = { area_id: '', periodo: 1, objetivo: '', barrera: '', tipo: 'actividades', descripcion: '', apoyo: '', intensidad: 'intermitente', evaluacion: '' };
   const [nuevo, setNuevo] = useState(ajusteVacio);
@@ -132,7 +134,24 @@ export default function PiarDetalle() {
       const p = await api.get(`/piar/${id}`);
       setPiar(p);
       setActa(p.acta || { compromisos_familia: '', compromisos_institucion: '', firmada_familia: false, firmada_institucion: false });
-      if (p.estudiante_id) api.get(`/piar?estudiante_id=${p.estudiante_id}`).then(setAniosPiar).catch(() => {});
+      if (p.estudiante_id) {
+        api.get(`/piar?estudiante_id=${p.estudiante_id}`).then(setAniosPiar).catch(() => {});
+        api.get(`/responsables?estudiante_id=${p.estudiante_id}`).then((list) => {
+          const m = {}; list.forEach((r) => { m[r.area_id] = { docente_id: r.docente_id, docente_nombre: r.docente_nombre }; });
+          setResponsables(m);
+        }).catch(() => {});
+      }
+    } catch (e) { setError(e.message); }
+  }
+  async function asignarResponsable(areaId, docenteId) {
+    try {
+      await api.put('/responsables', { estudiante_id: piar.estudiante_id, area_id: areaId, docente_id: docenteId || null });
+      setResponsables((m) => {
+        const n = { ...m };
+        if (docenteId) { const d = docentes.find((x) => x.id === Number(docenteId)); n[areaId] = { docente_id: Number(docenteId), docente_nombre: d ? d.nombres : '' }; }
+        else delete n[areaId];
+        return n;
+      });
     } catch (e) { setError(e.message); }
   }
   function cargarValoraciones() {
@@ -165,6 +184,7 @@ export default function PiarDetalle() {
   useEffect(() => {
     cargar(); cargarValoraciones(); cargarBitacora(); cargarAnexo4();
     api.get('/areas').then(setAreas).catch(() => {});
+    if (supervisa) api.get('/usuarios/docentes').then(setDocentes).catch(() => {});
   }, [id]);
   // Ficha del estudiante en la barra lateral mientras se trabaja su expediente
   const { fijarExpediente, limpiarExpediente } = useExpediente();
@@ -329,6 +349,10 @@ export default function PiarDetalle() {
     for (const ar of areas) { const k = (ar.nombre || '').trim().toLowerCase(); if (!k || vistos.has(k)) continue; vistos.add(k); out.push(ar); }
     return out;
   })();
+  // Un docente solo ve en el selector sus áreas asignadas y las que no tienen responsable.
+  const areasParaMi = supervisa
+    ? areasUnicas
+    : areasUnicas.filter((ar) => { const r = responsables[ar.id]; return !r || r.docente_id == null || r.docente_id === usuario.id; });
   const opcionesDesempeno = OPCIONES_EVAL[piar.sistema_evaluacion] || OPCIONES_EVAL.cualitativo;
   const sufijoPdf = periodoActivo === 0 ? 'all' : periodoActivo;
   const nombrePdf = periodoActivo === 0 ? 'Anexo2_todos' : (periodoActivo === 5 ? 'Anexo2_promocion' : `Anexo2_P${periodoActivo}`);
@@ -517,9 +541,13 @@ export default function PiarDetalle() {
           </thead>
           <tbody>
             {ajustesVisibles.map((a) => {
-              const puedoFila = supervisa || !a.creado_por || a.creado_por === usuario.id;
+              const resp = responsables[a.area_id];
+              const puedoFila = supervisa || (resp && resp.docente_id != null
+                ? resp.docente_id === usuario.id
+                : (!a.creado_por || a.creado_por === usuario.id));
               const edF = editable && puedoFila;
-              const otroDocente = !!a.creado_por && !puedoFila;
+              const otroDocente = !supervisa && !puedoFila;
+              const bloqueadaPor = (resp && resp.docente_nombre) || a.creador_nombre || 'Otro docente';
               return (
               <tr key={a.id} style={a.retirado ? { opacity: 0.5 } : null}>
                 {periodoActivo === 0 && <td className="lbl" style={{ textAlign: 'center' }}>{nombrePeriodo(a.periodo)}</td>}
@@ -528,11 +556,11 @@ export default function PiarDetalle() {
                     <>
                       <select value={a.area_id || ''} onChange={(e) => actualizarAjuste(a, { area_id: e.target.value || null })} style={{ marginBottom: 4 }}>
                         <option value="">— Área —</option>
-                        {areasUnicas.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
+                        {areasParaMi.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
                       </select>
                     </>
                   ) : (a.area_nombre || '—')}
-                  {otroDocente && <div className="fila-autor" title="Solo el coordinador o el psicoorientador pueden modificarla">🔒 {a.creador_nombre || 'Otro docente'}</div>}
+                  {otroDocente && <div className="fila-autor" title="Área asignada a otro docente. Solo el coordinador o el psicoorientador pueden cambiarla.">🔒 {bloqueadaPor}</div>}
                 </td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
                   {edF ? (<><SugMenu campo="objetivo" onPick={(t) => ponerSugerencia(a, 'objetivo', t)} /><textarea key={`o${a.id}`} ref={(el) => { if (el) celdasRef.current[`${a.id}-objetivo`] = el; }} rows={2} defaultValue={a.objetivo || ''} onBlur={(e) => { if ((a.objetivo || '') !== e.target.value) actualizarAjuste(a, { objetivo: e.target.value }); }} /></>) : (a.objetivo || '—')}
@@ -570,7 +598,7 @@ export default function PiarDetalle() {
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
                   <select value={nuevo.area_id} onChange={(e) => setNuevo({ ...nuevo, area_id: e.target.value })} style={{ marginBottom: 4 }}>
                     <option value="">— Área —</option>
-                    {areasUnicas.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
+                    {areasParaMi.map((ar) => <option key={ar.id} value={ar.id}>{ar.nombre}</option>)}
                   </select>
                 </td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><SugMenu campo="objetivo" onPick={(t) => appendNuevo('objetivo', t)} /><textarea rows={2} value={nuevo.objetivo} onChange={(e) => setNuevo({ ...nuevo, objetivo: e.target.value })} placeholder="Objetivo…" /></td>
@@ -644,8 +672,29 @@ export default function PiarDetalle() {
             )}
             <p style={{ fontSize: 12, color: 'var(--gris-500)', margin: '6px 0 0' }}>
               💡 En cada casilla de <strong>Objetivos</strong>, <strong>Barreras</strong> y <strong>Ajustes razonables</strong>{' '}
-              puedes abrir <em>Sugerencias</em> (orientaciones MEN) y escoger la que necesites; se agrega al texto y luego puedes editarla.
+              puedes abrir <em>Sugerencias</em> (orientaciones MEN) y escoge la que necesites; se agrega al texto y luego puedes editarla.
             </p>
+            {supervisa && (
+              <div className="resp-panel">
+                <div className="resp-titulo">Responsables por área <span>· quién diligencia cada área de este estudiante (lo asigna coordinación u orientación)</span></div>
+                {areasUnicas.length === 0
+                  ? <div className="resp-vacio">Primero carga las áreas para poder asignar responsables.</div>
+                  : (
+                    <div className="resp-grid">
+                      {areasUnicas.map((ar) => (
+                        <div key={ar.id} className="resp-fila">
+                          <span className="resp-area" title={ar.nombre}>{ar.nombre}</span>
+                          <select value={(responsables[ar.id]?.docente_id) || ''} onChange={(e) => asignarResponsable(ar.id, e.target.value)}>
+                            <option value="">— Sin asignar —</option>
+                            {docentes.map((d) => <option key={d.id} value={d.id}>{d.nombres}</option>)}
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                {!docentes.length && <div className="resp-vacio">Aún no hay docentes registrados en la institución.</div>}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -16,6 +16,18 @@ function claveDebil(clave) {
 }
 
 // GET /api/usuarios  (superadmin: todos; rector/admin: su institución)
+// Lista de docentes de la institución (para asignar responsables de área).
+router.get('/docentes', autorizar('coordinador', 'psicoorientador', 'rector', 'administrador', 'superadmin'), async (req, res, next) => {
+  try {
+    const inst = req.usuario.rol === 'superadmin' ? null : req.usuario.institucion_id;
+    const { rows } = await query(
+      "SELECT id, nombres FROM usuario WHERE rol='docente' AND activo=true AND ($1::int IS NULL OR institucion_id=$1) ORDER BY nombres",
+      [inst]
+    );
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
 router.get('/', autorizar('superadmin', 'administrador', 'rector'), async (req, res, next) => {
   try {
     let sql = `SELECT u.id, u.nombres, u.correo, u.rol, u.activo, u.institucion_id,
