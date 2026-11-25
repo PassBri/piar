@@ -49,3 +49,34 @@ CREATE TABLE IF NOT EXISTS pmi_institucional (
   actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (institucion_id, anio, sede, jornada, actor)
 );
+
+-- Limpieza de áreas duplicadas por institución (ignorando mayúsculas y espacios).
+-- Reapunta los ajustes y las valoraciones al área original y elimina las repetidas.
+DO $$
+DECLARE d RECORD;
+BEGIN
+  FOR d IN
+    SELECT institucion_id, lower(btrim(nombre)) AS clave, min(id) AS conservar
+    FROM area
+    GROUP BY institucion_id, lower(btrim(nombre))
+    HAVING count(*) > 1
+  LOOP
+    UPDATE ajuste_razonable SET area_id = d.conservar
+      WHERE area_id IN (SELECT id FROM area WHERE institucion_id = d.institucion_id
+                          AND lower(btrim(nombre)) = d.clave AND id <> d.conservar);
+    -- valoracion_area tiene UNIQUE(piar_id, area_id, periodo): quita las que chocarían al reapuntar
+    DELETE FROM valoracion_area v
+      WHERE area_id IN (SELECT id FROM area WHERE institucion_id = d.institucion_id
+                          AND lower(btrim(nombre)) = d.clave AND id <> d.conservar)
+        AND EXISTS (SELECT 1 FROM valoracion_area v2
+                      WHERE v2.piar_id = v.piar_id AND v2.periodo = v.periodo AND v2.area_id = d.conservar);
+    UPDATE valoracion_area SET area_id = d.conservar
+      WHERE area_id IN (SELECT id FROM area WHERE institucion_id = d.institucion_id
+                          AND lower(btrim(nombre)) = d.clave AND id <> d.conservar);
+    DELETE FROM area
+      WHERE institucion_id = d.institucion_id AND lower(btrim(nombre)) = d.clave AND id <> d.conservar;
+  END LOOP;
+END $$;
+
+-- Evita nuevas áreas duplicadas por institución (ignorando mayúsculas y espacios).
+CREATE UNIQUE INDEX IF NOT EXISTS area_inst_nombre_uniq ON area (institucion_id, lower(btrim(nombre)));

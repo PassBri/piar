@@ -23,6 +23,12 @@ router.post('/', autorizar('administrador', 'rector', 'coordinador', 'psicoorien
     const { nombre, institucion_id } = req.body;
     const inst = req.usuario.rol === 'superadmin' ? (institucion_id || null) : req.usuario.institucion_id;
     if (!nombre || !inst) return res.status(400).json({ error: 'Nombre de la asignatura e institución son obligatorios.' });
+    // Si ya existe esa área (ignorando mayúsculas y espacios), la devuelve en vez de duplicarla.
+    const { rows: existe } = await query(
+      'SELECT * FROM area WHERE institucion_id = $1 AND lower(btrim(nombre)) = lower(btrim($2)) LIMIT 1',
+      [inst, nombre]
+    );
+    if (existe[0]) return res.json(existe[0]);
     const { rows } = await query(
       'INSERT INTO area (institucion_id, nombre) VALUES ($1,$2) RETURNING *',
       [inst, nombre]

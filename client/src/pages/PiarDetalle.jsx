@@ -11,6 +11,20 @@ import { NIVELES_AREAS } from '../data/areas.js';
 import { SUGERENCIAS, ETIQUETA_SUG } from '../data/sugerencias.js';
 import EstudianteForm from './EstudianteForm.jsx';
 
+// Menú compacto de sugerencias que se despliega dentro de cada casilla.
+// Al escoger una, se agrega al texto de esa casilla (no agranda el formato).
+function SugMenu({ campo, onPick }) {
+  const items = SUGERENCIAS[campo] || [];
+  if (!items.length) return null;
+  return (
+    <select className="sug-menu" value="" title={`Sugerencias para ${ETIQUETA_SUG[campo] || campo}`}
+      onChange={(e) => { if (e.target.value) { onPick(e.target.value); e.target.value = ''; } }}>
+      <option value="">💡 Sugerencias…</option>
+      {items.map((t, i) => <option key={i} value={t}>{t}</option>)}
+    </select>
+  );
+}
+
 const TIPOS = [
   ['actividades', 'Actividades'], ['materiales', 'Materiales'], ['espacios', 'Espacios'],
   ['comunicacion', 'Comunicación'], ['apoyos_humanos', 'Apoyos humanos'], ['tecnologias', 'Tecnologías'],
@@ -57,6 +71,19 @@ export default function PiarDetalle() {
   const [error, setError] = useState('');
   const ajusteVacio = { area_id: '', periodo: 1, objetivo: '', barrera: '', tipo: 'actividades', descripcion: '', apoyo: '', intensidad: 'intermitente', evaluacion: '' };
   const [nuevo, setNuevo] = useState(ajusteVacio);
+  const celdasRef = useRef({});
+  const ponerSugerencia = (a, campo, texto) => {
+    const el = celdasRef.current[`${a.id}-${campo}`];
+    if (!el) return;
+    const act = (el.value || '').trim();
+    const val = act ? `${act}\n${texto}` : texto;
+    el.value = val;
+    actualizarAjuste(a, { [campo]: val });
+  };
+  const appendNuevo = (campo, texto) => setNuevo((n) => {
+    const act = (n[campo] || '').trim();
+    return { ...n, [campo]: act ? `${act}\n${texto}` : texto };
+  });
   const [nuevaArea, setNuevaArea] = useState('');
   const [periodoActivo, setPeriodoActivo] = useState(1); // 1..5, o 0 = todos
   const [bitacora, setBitacora] = useState([]);
@@ -477,13 +504,13 @@ export default function PiarDetalle() {
                   ) : (a.area_nombre || '—')}
                 </td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
-                  {editable ? <textarea key={`o${a.id}`} rows={2} defaultValue={a.objetivo || ''} onBlur={(e) => { if ((a.objetivo || '') !== e.target.value) actualizarAjuste(a, { objetivo: e.target.value }); }} /> : (a.objetivo || '—')}
+                  {editable ? (<><SugMenu campo="objetivo" onPick={(t) => ponerSugerencia(a, 'objetivo', t)} /><textarea key={`o${a.id}`} ref={(el) => { if (el) celdasRef.current[`${a.id}-objetivo`] = el; }} rows={2} defaultValue={a.objetivo || ''} onBlur={(e) => { if ((a.objetivo || '') !== e.target.value) actualizarAjuste(a, { objetivo: e.target.value }); }} /></>) : (a.objetivo || '—')}
                 </td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
-                  {editable ? <textarea key={`b${a.id}`} rows={2} defaultValue={a.barrera || ''} onBlur={(e) => { if ((a.barrera || '') !== e.target.value && e.target.value.trim()) actualizarAjuste(a, { barrera: e.target.value }); }} /> : a.barrera}
+                  {editable ? (<><SugMenu campo="barrera" onPick={(t) => ponerSugerencia(a, 'barrera', t)} /><textarea key={`b${a.id}`} ref={(el) => { if (el) celdasRef.current[`${a.id}-barrera`] = el; }} rows={2} defaultValue={a.barrera || ''} onBlur={(e) => { if ((a.barrera || '') !== e.target.value && e.target.value.trim()) actualizarAjuste(a, { barrera: e.target.value }); }} /></>) : a.barrera}
                 </td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
-                  {editable ? <textarea key={`d${a.id}`} rows={2} defaultValue={a.descripcion || ''} onBlur={(e) => { if ((a.descripcion || '') !== e.target.value && e.target.value.trim()) actualizarAjuste(a, { descripcion: e.target.value }); }} /> : a.descripcion}
+                  {editable ? (<><SugMenu campo="descripcion" onPick={(t) => ponerSugerencia(a, 'descripcion', t)} /><textarea key={`d${a.id}`} ref={(el) => { if (el) celdasRef.current[`${a.id}-descripcion`] = el; }} rows={2} defaultValue={a.descripcion || ''} onBlur={(e) => { if ((a.descripcion || '') !== e.target.value && e.target.value.trim()) actualizarAjuste(a, { descripcion: e.target.value }); }} /></>) : a.descripcion}
                 </td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
                   {editable ? <textarea key={`e${a.id}`} rows={2} defaultValue={a.evaluacion || ''} onBlur={(e) => { if ((a.evaluacion || '') !== e.target.value) actualizarAjuste(a, { evaluacion: e.target.value }); }} /> : (a.evaluacion || '—')}
@@ -522,9 +549,9 @@ export default function PiarDetalle() {
                     </select>
                   </div>
                 </td>
-                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.objetivo} onChange={(e) => setNuevo({ ...nuevo, objetivo: e.target.value })} placeholder="Objetivo…" /></td>
-                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.barrera} onChange={(e) => setNuevo({ ...nuevo, barrera: e.target.value })} placeholder="Barrera…" /></td>
-                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} placeholder="Ajuste razonable…" /></td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><SugMenu campo="objetivo" onPick={(t) => appendNuevo('objetivo', t)} /><textarea rows={2} value={nuevo.objetivo} onChange={(e) => setNuevo({ ...nuevo, objetivo: e.target.value })} placeholder="Objetivo…" /></td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><SugMenu campo="barrera" onPick={(t) => appendNuevo('barrera', t)} /><textarea rows={2} value={nuevo.barrera} onChange={(e) => setNuevo({ ...nuevo, barrera: e.target.value })} placeholder="Barrera…" /></td>
+                <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><SugMenu campo="descripcion" onPick={(t) => appendNuevo('descripcion', t)} /><textarea rows={2} value={nuevo.descripcion} onChange={(e) => setNuevo({ ...nuevo, descripcion: e.target.value })} placeholder="Ajuste razonable…" /></td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}><textarea rows={2} value={nuevo.evaluacion} onChange={(e) => setNuevo({ ...nuevo, evaluacion: e.target.value })} placeholder="Evaluación…" /></td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top', textAlign: 'center' }}>
                   <select value={nuevo.desempeno || ''} onChange={(e) => setNuevo({ ...nuevo, desempeno: e.target.value })} style={{ fontSize: 11 }}>
@@ -563,22 +590,10 @@ export default function PiarDetalle() {
                 Escoge el área de la lista en la última fila. Si falta una asignatura, el coordinador o el psicoorientador debe agregarla.
               </p>
             )}
-            <div className="sugerencias-men">
-              <div className="sm-titulo">Sugerencias (orientaciones MEN) — clic para agregarlas a la <strong>nueva fila</strong>; luego puedes editarlas</div>
-              {['objetivo', 'barrera', 'descripcion'].map((campo) => (
-                <div key={campo} className="sm-grupo">
-                  <span className="sm-etq">{ETIQUETA_SUG[campo]}</span>
-                  <div className="sm-chips">
-                    {SUGERENCIAS[campo].map((t, i) => (
-                      <button type="button" key={i} className="sm-chip" title="Agregar a la nueva fila"
-                        onClick={() => setNuevo((n) => { const act = (n[campo] || '').trim(); return { ...n, [campo]: act ? `${act}\n${t}` : t }; })}>
-                        {t}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p style={{ fontSize: 12, color: 'var(--gris-500)', margin: '6px 0 0' }}>
+              💡 En cada casilla de <strong>Objetivos</strong>, <strong>Barreras</strong> y <strong>Ajustes razonables</strong>{' '}
+              puedes abrir <em>Sugerencias</em> (orientaciones MEN) y escoger la que necesites; se agrega al texto y luego puedes editarla.
+            </p>
           </div>
         )}
       </div>
