@@ -139,16 +139,22 @@ export default function EstudianteForm({ estudianteId: propId, embebido = false 
     }
   }, [id]);
 
-  // Ficha del estudiante en la barra lateral mientras se edita su expediente
+  // Ficha del estudiante en la barra lateral. Cuando el Anexo 1 va embebido
+  // dentro del PIAR, la ficha la gestiona PiarDetalle (así se mantiene en los 4
+  // anexos); aquí solo se gestiona en la ruta propia del Anexo 1.
   const { fijarExpediente, limpiarExpediente } = useExpediente();
   useEffect(() => {
+    if (embebido) return;
     if (id && form.nombres) fijarExpediente({
       id, nombres: form.nombres, foto: form.foto, grado: form.grado,
       curso_sede: form.curso_sede, documento: form.documento_numero,
       discapacidad: form.entorno_salud?.discapacidad, reservado: form.reservado,
     });
-  }, [id, form.nombres, form.foto, form.grado, form.documento_numero, form.reservado, fijarExpediente]);
-  useEffect(() => () => limpiarExpediente(), [limpiarExpediente]);
+  }, [embebido, id, form.nombres, form.foto, form.grado, form.documento_numero, form.reservado, fijarExpediente]);
+  useEffect(() => {
+    if (embebido) return undefined;
+    return () => limpiarExpediente();
+  }, [embebido, limpiarExpediente]);
 
   function subirEvidencia(file) {
     if (!file) return;
