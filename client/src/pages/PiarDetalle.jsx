@@ -407,7 +407,10 @@ export default function PiarDetalle() {
               <tr><td className="lbl">Fecha de elaboración</td>
                 <td className="val"><input type="date" value={piar.fecha_elaboracion ? piar.fecha_elaboracion.slice(0, 10) : ''} onChange={(e) => setPiar({ ...piar, fecha_elaboracion: e.target.value })} disabled={!editable} /></td>
                 <td className="lbl">Jornada</td>
-                <td className="val"><input value={(piar.caracteristicas || {}).jornada || ''} onChange={(e) => setCarac('jornada', e.target.value)} disabled={!editable} placeholder="Mañana / Tarde / Única" /></td></tr>
+                <td className="val"><select value={(piar.caracteristicas || {}).jornada || ''} onChange={(e) => setCarac('jornada', e.target.value)} disabled={!editable}>
+                  <option value="">— Jornada —</option>
+                  {['Mañana', 'Tarde', 'Nocturna', 'Sabatino', 'Única'].map((j) => <option key={j} value={j}>{j}</option>)}
+                </select></td></tr>
               <tr><td className="lbl">Institución educativa</td><td className="val"><input value={piar.inst_nombre || ''} disabled /></td>
                 <td className="lbl">Sede</td><td className="val"><input value={piar.inst_sede || ''} disabled /></td></tr>
               <tr><td className="lbl">Docentes que elaboran y cargo</td>
