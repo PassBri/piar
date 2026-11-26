@@ -60,4 +60,27 @@ router.delete('/:id', autorizar(...GESTION), async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/cursos/:id/areas  → áreas (plan de estudios) del curso
+router.get('/:id/areas', async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT ca.area_id, a.nombre AS area_nombre
+         FROM curso_area ca JOIN area a ON a.id = ca.area_id
+        WHERE ca.curso_id = $1 ORDER BY a.nombre`, [req.params.id]);
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
+// PUT /api/cursos/:id/areas  { area_ids: [] }  → reemplaza el plan de estudios del curso
+router.put('/:id/areas', autorizar(...GESTION), async (req, res, next) => {
+  try {
+    const ids = Array.isArray(req.body.area_ids) ? [...new Set(req.body.area_ids.map(Number).filter(Boolean))] : [];
+    await query('DELETE FROM curso_area WHERE curso_id=$1', [req.params.id]);
+    for (const aid of ids) {
+      await query('INSERT INTO curso_area (curso_id, area_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [req.params.id, aid]);
+    }
+    res.json({ ok: true, areas: ids.length });
+  } catch (err) { next(err); }
+});
+
 export default router;

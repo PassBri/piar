@@ -69,6 +69,7 @@ router.get('/:id', async (req, res, next) => {
     const { rows } = await query(
       `SELECT p.*, e.nombres AS estudiante_nombre, e.grado, e.documento_numero, e.fecha_nacimiento,
               e.foto AS estudiante_foto, e.entorno_salud->>'discapacidad' AS discapacidad,
+              e.curso_id,
               e.institucion_id, e.reservado, i.nombre AS inst_nombre, i.sede AS inst_sede,
               COALESCE(i.num_periodos, 4) AS num_periodos,
               COALESCE(i.usa_promocion, true) AS usa_promocion,

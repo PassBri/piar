@@ -133,6 +133,15 @@ export default function PiarDetalle() {
       const p = await api.get(`/piar/${id}`);
       setPiar(p);
       setActa(p.acta || { compromisos_familia: '', compromisos_institucion: '', firmada_familia: false, firmada_institucion: false });
+      // Áreas del selector: las del plan de estudios del curso del estudiante; si el
+      // curso no tiene áreas definidas, se usa el catálogo general como respaldo.
+      if (p.curso_id) {
+        const delCurso = await api.get(`/cursos/${p.curso_id}/areas`).catch(() => []);
+        if (delCurso.length) setAreas(delCurso.map((x) => ({ id: x.area_id, nombre: x.area_nombre })));
+        else api.get('/areas').then(setAreas).catch(() => {});
+      } else {
+        api.get('/areas').then(setAreas).catch(() => {});
+      }
       if (p.estudiante_id) {
         api.get(`/piar?estudiante_id=${p.estudiante_id}`).then(setAniosPiar).catch(() => {});
         api.get(`/responsables?estudiante_id=${p.estudiante_id}`).then((list) => {
@@ -171,7 +180,6 @@ export default function PiarDetalle() {
   }
   useEffect(() => {
     cargar(); cargarValoraciones(); cargarBitacora(); cargarAnexo4();
-    api.get('/areas').then(setAreas).catch(() => {});
   }, [id]);
   // Ficha del estudiante en la barra lateral mientras se trabaja su expediente
   const { fijarExpediente, limpiarExpediente } = useExpediente();

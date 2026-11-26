@@ -59,6 +59,28 @@ export default function Admin() {
     } catch (err) { setError(err.message); }
   }
 
+  // Plan de estudios del curso (áreas / asignaturas que tiene cada curso).
+  const [areasCursoOpen, setAreasCursoOpen] = useState(null);
+  const [areasCursoSel, setAreasCursoSel] = useState([]);
+  const [cargaAreasCurso, setCargaAreasCurso] = useState([]); // áreas del curso elegido en la carga
+  const AREAS_BASICAS_NOMBRES = ['Matemáticas', 'Humanidades, Lengua Castellana e Idiomas Extranjeros', 'Ciencias Naturales y Educación Ambiental', 'Ciencias Sociales, Historia, Geografía y Democracia', 'Educación Artística y Cultural', 'Educación Física, Recreación y Deportes', 'Educación Religiosa', 'Educación Ética y en Valores Humanos', 'Tecnología e Informática', 'Ciencias Económicas y Políticas', 'Filosofía'];
+  async function abrirAreasCurso(c) {
+    if (areasCursoOpen === c.id) { setAreasCursoOpen(null); return; }
+    try { const list = await api.get(`/cursos/${c.id}/areas`); setAreasCursoSel(list.map((x) => x.area_id)); setAreasCursoOpen(c.id); }
+    catch (err) { setError(err.message); }
+  }
+  const toggleAreaCurso = (aid) => setAreasCursoSel((s) => (s.includes(aid) ? s.filter((x) => x !== aid) : [...s, aid]));
+  const marcarBasicas = () => setAreasCursoSel(areasAdmin.filter((a) => AREAS_BASICAS_NOMBRES.includes(a.nombre)).map((a) => a.id));
+  async function guardarAreasCurso(c) {
+    try { await api.put(`/cursos/${c.id}/areas`, { area_ids: areasCursoSel }); setOk('Áreas del curso guardadas.'); setAreasCursoOpen(null); }
+    catch (err) { setError(err.message); }
+  }
+  async function elegirCursoCarga(cid) {
+    setCargaNuevo((n) => ({ ...n, curso_id: cid, area_id: '' }));
+    if (!cid) { setCargaAreasCurso([]); return; }
+    try { setCargaAreasCurso(await api.get(`/cursos/${cid}/areas`)); } catch { setCargaAreasCurso([]); }
+  }
+
   function cargarCursos() {
     const q = esSuper ? (cursoInst ? `?institucion_id=${cursoInst}` : null) : '';
     if (q === null) { setCursos([]); return; }
@@ -190,10 +212,40 @@ export default function Admin() {
           <thead><tr><th>Sede</th><th>Jornada</th><th>Grado</th><th>Grupo</th><th></th></tr></thead>
           <tbody>
             {cursos.map((c) => (
-              <tr key={c.id}>
+              <Fragment key={c.id}>
+              <tr>
                 <td>{c.sede}</td><td>{c.jornada}</td><td>{c.grado}</td><td>{c.grupo}</td>
-                <td><button className="btn sec sm" onClick={() => eliminarCurso(c.id)}>Eliminar</button></td>
+                <td style={{ whiteSpace: 'nowrap' }}>
+                  <button className="btn sec sm" style={{ marginRight: 6 }} onClick={() => abrirAreasCurso(c)}>{areasCursoOpen === c.id ? 'Cerrar' : 'Áreas del curso'}</button>
+                  <button className="btn sec sm" onClick={() => eliminarCurso(c.id)}>Eliminar</button>
+                </td>
               </tr>
+              {areasCursoOpen === c.id && (
+                <tr>
+                  <td colSpan="5" style={{ background: '#f3f8ff' }}>
+                    <div style={{ padding: '6px 2px' }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>
+                        Áreas / asignaturas de {c.sede} · {c.jornada} · {c.grado} · {c.grupo}
+                        <button type="button" className="btn sec sm" style={{ marginLeft: 10 }} onClick={marcarBasicas}>Marcar áreas básicas</button>
+                      </div>
+                      {areasAdmin.length === 0
+                        ? <div style={{ fontSize: 12, color: 'var(--gris-500)' }}>No hay áreas en el catálogo todavía. Créalas en un PIAR (botón “Cargar áreas de …”) o pídemelo y las precargo.</div>
+                        : (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 4, marginBottom: 8 }}>
+                            {areasAdmin.map((a) => (
+                              <label key={a.id} style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12.5 }}>
+                                <input type="checkbox" checked={areasCursoSel.includes(a.id)} onChange={() => toggleAreaCurso(a.id)} />
+                                {a.nombre}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      <button type="button" className="btn sm" onClick={() => guardarAreasCurso(c)}>Guardar áreas del curso</button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             ))}
             {cursos.length === 0 && <tr><td colSpan="5" style={{ color: 'var(--gris-500)' }}>
               {esSuper && !cursoInst ? 'Elige una institución para ver sus cursos.' : 'Aún no hay cursos. Agrega el primero abajo.'}
@@ -256,13 +308,13 @@ export default function Admin() {
                           </div>
                         )}
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <select value={cargaNuevo.curso_id} onChange={(e) => setCargaNuevo((n) => ({ ...n, curso_id: e.target.value }))}>
+                        <select value={cargaNuevo.curso_id} onChange={(e) => elegirCursoCarga(e.target.value)}>
                           <option value="">— Curso —</option>
                           {cursos.map((c) => <option key={c.id} value={c.id}>{c.sede} · {c.jornada} · {c.grado} · {c.grupo}</option>)}
                         </select>
-                        <select value={cargaNuevo.area_id} onChange={(e) => setCargaNuevo((n) => ({ ...n, area_id: e.target.value }))}>
-                          <option value="">— Área —</option>
-                          {areasAdmin.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                        <select value={cargaNuevo.area_id} onChange={(e) => setCargaNuevo((n) => ({ ...n, area_id: e.target.value }))} disabled={!cargaNuevo.curso_id}>
+                          <option value="">{!cargaNuevo.curso_id ? '— Elige un curso —' : (cargaAreasCurso.length ? '— Área —' : '— El curso no tiene áreas —')}</option>
+                          {cargaAreasCurso.map((a) => <option key={a.area_id} value={a.area_id}>{a.area_nombre}</option>)}
                         </select>
                         <button type="button" className="btn sec sm" onClick={agregarCargaItem}>+ Agregar</button>
                         <button type="button" className="btn sm" onClick={() => guardarCarga(u)}>Guardar carga</button>

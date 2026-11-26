@@ -108,3 +108,12 @@ CREATE TABLE IF NOT EXISTS carga_academica (
   area_id INT NOT NULL REFERENCES area(id) ON DELETE CASCADE,
   UNIQUE (curso_id, area_id)
 );
+
+-- Plan de estudios del curso: áreas/asignaturas que tiene cada curso.
+-- La carga académica y el Anexo 2 del estudiante se basan en estas áreas.
+CREATE TABLE IF NOT EXISTS curso_area (
+  id SERIAL PRIMARY KEY,
+  curso_id INT NOT NULL REFERENCES curso(id) ON DELETE CASCADE,
+  area_id INT NOT NULL REFERENCES area(id) ON DELETE CASCADE,
+  UNIQUE (curso_id, area_id)
+);
