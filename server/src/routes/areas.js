@@ -38,4 +38,48 @@ router.post('/', autorizar('administrador', 'rector', 'coordinador', 'psicoorien
   } catch (err) { next(err); }
 });
 
+const GESTIONA_AREA = ['administrador', 'rector', 'coordinador', 'superadmin'];
+
+// PUT /api/areas/:id  (renombrar área)
+router.put('/:id', autorizar(...GESTIONA_AREA), async (req, res, next) => {
+  try {
+    const nombre = (req.body.nombre || '').trim();
+    if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio.' });
+    const esSuper = req.usuario.rol === 'superadmin';
+    const actual = await query('SELECT * FROM area WHERE id=$1', [req.params.id]);
+    if (!actual.rows[0]) return res.status(404).json({ error: 'Área no encontrada.' });
+    if (!esSuper && actual.rows[0].institucion_id !== req.usuario.institucion_id) {
+      return res.status(403).json({ error: 'No puedes editar áreas de otra institución.' });
+    }
+    // Evita chocar con otra área de la misma institución (ignorando mayúsculas/espacios).
+    const dup = await query(
+      'SELECT 1 FROM area WHERE institucion_id=$1 AND lower(btrim(nombre))=lower(btrim($2)) AND id<>$3',
+      [actual.rows[0].institucion_id, nombre, req.params.id]
+    );
+    if (dup.rows[0]) return res.status(409).json({ error: 'Ya existe un área con ese nombre.' });
+    const { rows } = await query('UPDATE area SET nombre=$1 WHERE id=$2 RETURNING *', [nombre, req.params.id]);
+    await auditar(req, { entidad: 'area', entidad_id: Number(req.params.id), accion: 'editar', descripcion: `Renombró el área a "${nombre}"` });
+    res.json(rows[0]);
+  } catch (err) { next(err); }
+});
+
+// DELETE /api/areas/:id  (eliminar área; bloquea si está en uso en ajustes)
+router.delete('/:id', autorizar(...GESTIONA_AREA), async (req, res, next) => {
+  try {
+    const esSuper = req.usuario.rol === 'superadmin';
+    const actual = await query('SELECT * FROM area WHERE id=$1', [req.params.id]);
+    if (!actual.rows[0]) return res.status(404).json({ error: 'Área no encontrada.' });
+    if (!esSuper && actual.rows[0].institucion_id !== req.usuario.institucion_id) {
+      return res.status(403).json({ error: 'No puedes eliminar áreas de otra institución.' });
+    }
+    const uso = await query('SELECT count(*)::int n FROM ajuste_razonable WHERE area_id=$1', [req.params.id]);
+    if (uso.rows[0].n > 0) {
+      return res.status(409).json({ error: `El área está en uso en ${uso.rows[0].n} ajuste(s) del PIAR. Quítala de esos registros antes de eliminarla.` });
+    }
+    await query('DELETE FROM area WHERE id=$1', [req.params.id]);
+    await auditar(req, { entidad: 'area', entidad_id: Number(req.params.id), accion: 'eliminar', descripcion: `Eliminó el área "${actual.rows[0].nombre}"` });
+    res.status(204).end();
+  } catch (err) { next(err); }
+});
+
 export default router;

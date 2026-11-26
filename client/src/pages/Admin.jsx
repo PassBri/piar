@@ -75,6 +75,26 @@ export default function Admin() {
     try { await api.put(`/cursos/${c.id}/areas`, { area_ids: areasCursoSel }); setOk('Áreas del curso guardadas.'); setAreasCursoOpen(null); }
     catch (err) { setError(err.message); }
   }
+  // Catálogo de áreas del colegio: crear, renombrar, eliminar.
+  const [nuevaAreaCat, setNuevaAreaCat] = useState('');
+  const [editAreaId, setEditAreaId] = useState(null);
+  const [editAreaNombre, setEditAreaNombre] = useState('');
+  async function crearAreaCatalogo() {
+    const nombre = nuevaAreaCat.trim(); if (!nombre) return;
+    try { await api.post('/areas', { nombre, ...(esSuper ? { institucion_id: cursoInst || undefined } : {}) }); setAreasAdmin(await api.get('/areas')); setNuevaAreaCat(''); setOk('Área creada.'); }
+    catch (err) { setError(err.message); }
+  }
+  async function guardarEditArea() {
+    const nombre = editAreaNombre.trim(); if (!nombre) return;
+    try { await api.put(`/areas/${editAreaId}`, { nombre }); setAreasAdmin(await api.get('/areas')); setEditAreaId(null); setOk('Área actualizada.'); }
+    catch (err) { setError(err.message); }
+  }
+  async function eliminarArea(a) {
+    if (!window.confirm(`¿Eliminar el área "${a.nombre}"? Esta acción no se puede deshacer.`)) return;
+    try { await api.del(`/areas/${a.id}`); setAreasAdmin(await api.get('/areas')); setOk('Área eliminada.'); }
+    catch (err) { setError(err.message); }
+  }
+
   const [nuevaAreaTexto, setNuevaAreaTexto] = useState('');
   async function agregarAreaNueva() {
     const nombre = nuevaAreaTexto.trim();
@@ -289,6 +309,40 @@ export default function Admin() {
           </form>
         )}
       </div>
+
+      {puedeUsuarios && <div className="card">
+        <h2>Áreas / asignaturas del colegio</h2>
+        <p style={{ color: 'var(--gris-600)', marginTop: -4 }}>Crea, renombra o elimina las áreas del catálogo. Luego las asignas a cada curso (plan de estudios) y a cada docente (carga académica).</p>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '6px 0 12px' }}>
+          <input value={nuevaAreaCat} onChange={(e) => setNuevaAreaCat(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); crearAreaCatalogo(); } }}
+            placeholder="Nueva área o asignatura (ej. Técnico en Sistemas - SENA)" style={{ flex: '1 1 340px', minWidth: 240 }} />
+          <button type="button" className="btn" onClick={crearAreaCatalogo}>+ Crear área</button>
+        </div>
+        {areasAdmin.length === 0
+          ? <p style={{ color: 'var(--gris-500)' }}>Aún no hay áreas. Crea la primera arriba.</p>
+          : (
+            <table>
+              <thead><tr><th>Área / asignatura</th><th style={{ width: 190 }}></th></tr></thead>
+              <tbody>
+                {areasAdmin.map((a) => (
+                  <tr key={a.id}>
+                    <td>
+                      {editAreaId === a.id
+                        ? <input value={editAreaNombre} onChange={(e) => setEditAreaNombre(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); guardarEditArea(); } }} style={{ width: '100%' }} autoFocus />
+                        : a.nombre}
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
+                      {editAreaId === a.id
+                        ? (<><button className="btn sm" style={{ marginRight: 6 }} onClick={guardarEditArea}>Guardar</button><button className="btn sec sm" onClick={() => setEditAreaId(null)}>Cancelar</button></>)
+                        : (<><button className="btn sec sm" style={{ marginRight: 6 }} onClick={() => { setEditAreaId(a.id); setEditAreaNombre(a.nombre); }}>Renombrar</button><button className="btn sec sm" onClick={() => eliminarArea(a)}>Eliminar</button></>)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+      </div>}
 
       {puedeUsuarios && <div className="card">
         <h2>Usuarios {esSuper ? 'de toda la plataforma' : 'de la institución'}</h2>
