@@ -394,7 +394,7 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
     radial-gradient(ellipse 58% 68% at 50% 47%, rgba(0,0,0,0.26) 0%, rgba(0,0,0,0.07) 60%, rgba(0,0,0,0) 100%),
     url('/login-tile.svg');
   background-repeat: no-repeat, repeat;
-  background-size: auto, 250px 250px;
+  background-size: auto, 230px 230px;
   background-position: center, center;
 }
 .login-panel-centro {
