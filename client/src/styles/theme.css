@@ -378,6 +378,21 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
   background-repeat: no-repeat, repeat;
   background-position: center, center;
 }
+.login-wrap-img {
+  justify-content: flex-end; padding: 32px clamp(24px, 7vw, 120px);
+  background-color: #2b2d30;
+  background-image:
+    linear-gradient(90deg, rgba(20,21,23,0) 40%, rgba(20,21,23,0.35) 72%, rgba(20,21,23,0.55) 100%),
+    url('/login-bg.jpg');
+  background-size: cover, cover;
+  background-repeat: no-repeat, no-repeat;
+  background-position: center, center;
+}
+.login-panel-centro { width: 100%; max-width: 380px; margin: 0; }
+@media (max-width: 760px) {
+  .login-wrap-img { justify-content: center; padding: 24px; }
+  .login-panel-centro { margin: 0 auto; }
+}
 .login-grid {
   width: 100%; max-width: 980px; display: grid; grid-template-columns: 1.1fr 0.9fr;
   gap: 48px; align-items: center;

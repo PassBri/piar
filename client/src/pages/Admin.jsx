@@ -11,6 +11,16 @@ const SECCIONES = [
 ];
 const SEC_LABEL = Object.fromEntries(SECCIONES);
 
+// Nivel educativo de un curso según su grado (para mostrar solo sus áreas).
+function nivelDeCursoGrado(grado) {
+  const g = (grado || '').toString().toLowerCase();
+  if (/pre|jard|transic|p[aá]rvul|inicial/.test(g)) return 'preescolar';
+  const m = g.match(/\d+/);
+  const n = m ? parseInt(m[0], 10) : null;
+  if (n !== null) { if (n === 0) return 'preescolar'; if (n <= 5) return 'primaria'; if (n <= 9) return 'secundaria'; return 'media'; }
+  return null;
+}
+
 const ROLES = [
   ['docente', 'Docente'], ['psicoorientador', 'Psicoorientador'], ['coordinador', 'Coordinador'],
   ['rector', 'Rector'], ['padre', 'Padre de familia'], ['administrador', 'Administrador de institución'],
@@ -112,14 +122,16 @@ export default function Admin() {
   const [nuevaAreaTexto, setNuevaAreaTexto] = useState('');
   const [nuevaAreaSecs, setNuevaAreaSecs] = useState([]);
   const toggleSecNueva = (s) => setNuevaAreaSecs((xs) => (xs.includes(s) ? xs.filter((x) => x !== s) : [...xs, s]));
-  async function agregarAreaNueva() {
+  async function agregarAreaNueva(secDefault) {
     const nombre = nuevaAreaTexto.trim();
     if (!nombre) return;
+    const secs = nuevaAreaSecs.length ? nuevaAreaSecs : (secDefault ? [secDefault] : []);
     try {
-      const area = await api.post('/areas', { nombre, secciones: nuevaAreaSecs, ...(esSuper ? { institucion_id: cursoInst || undefined } : {}) });
+      const area = await api.post('/areas', { nombre, secciones: secs, ...(esSuper ? { institucion_id: cursoInst || undefined } : {}) });
       const lista = await api.get('/areas'); setAreasAdmin(lista);
       if (area && area.id && !areasCursoSel.includes(area.id)) setAreasCursoSel((s) => [...s, area.id]);
       setNuevaAreaTexto(''); setNuevaAreaSecs([]);
+      setOk(`Área "${nombre}" creada y marcada. No olvides "Guardar áreas del curso".`);
     } catch (err) { setError(err.message); }
   }
   async function elegirCursoCarga(cid) {
@@ -279,7 +291,11 @@ export default function Admin() {
                         ? <div style={{ fontSize: 12, color: 'var(--gris-500)' }}>No hay áreas en el catálogo todavía. Créalas abajo o en la tarjeta “Áreas / asignaturas del colegio”.</div>
                         : (
                           <div className="secc-grid">
-                            {[...SECCIONES, ['otras', 'Otras / propias del colegio']].map(([sec, label]) => {
+                            {(() => {
+                              const nivelC = nivelDeCursoGrado(c.grado);
+                              const base = nivelC ? SECCIONES.filter(([k]) => k === nivelC) : SECCIONES;
+                              return [...base, ['otras', 'Otras / propias del colegio']];
+                            })().map(([sec, label]) => {
                               const lista = sec === 'otras'
                                 ? areasAdmin.filter((a) => !(a.secciones || []).length)
                                 : areasAdmin.filter((a) => (a.secciones || []).includes(sec));
@@ -308,19 +324,19 @@ export default function Admin() {
                         )}
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '4px 0 4px', flexWrap: 'wrap' }}>
                         <input value={nuevaAreaTexto} onChange={(e) => setNuevaAreaTexto(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregarAreaNueva(); } }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregarAreaNueva(nivelDeCursoGrado(c.grado)); } }}
                           placeholder="Agregar otra área o asignatura (ej. Técnico en Sistemas - SENA)" style={{ flex: '1 1 320px', minWidth: 240 }} />
-                        <button type="button" className="btn sec sm" onClick={agregarAreaNueva}>+ Crear área</button>
+                        <button type="button" className="btn sec sm" onClick={() => agregarAreaNueva(nivelDeCursoGrado(c.grado))}>+ Crear área</button>
                       </div>
-                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', margin: '0 0 10px', fontSize: 12 }}>
-                        <span style={{ color: 'var(--gris-600)' }}>Sección:</span>
+                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', margin: '0 0 10px', fontSize: 11.5, color: 'var(--gris-500)' }}>
+                        <span>Se agrega a <strong>{SEC_LABEL[nivelDeCursoGrado(c.grado)]?.split(' (')[0] || 'Otras'}</strong>. ¿En otras secciones? Márcalas:</span>
                         {SECCIONES.map(([s, l]) => (
                           <label key={s} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                            <input type="checkbox" checked={nuevaAreaSecs.includes(s)} onChange={() => toggleSecNueva(s)} /> {l}
+                            <input type="checkbox" checked={nuevaAreaSecs.includes(s)} onChange={() => toggleSecNueva(s)} /> {l.split(' (')[0]}
                           </label>
                         ))}
                       </div>
-                      <button type="button" className="btn sm" onClick={() => guardarAreasCurso(c)}>Guardar áreas del curso</button>
+                      <button type="button" className="btn" onClick={() => guardarAreasCurso(c)}>Guardar áreas del curso</button>
                     </div>
                   </td>
                 </tr>

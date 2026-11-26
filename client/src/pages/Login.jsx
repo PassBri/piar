@@ -54,17 +54,8 @@ export default function Login() {
   }
 
   return (
-    <div className="login-wrap">
-      <div className="login-grid">
-        {/* Panel izquierdo: identidad institucional */}
-        <section className="login-hero" aria-hidden="false">
-          <img src={icono} alt="PIAR" className="login-hero-icono" />
-          <h1 className="login-hero-titulo">La inclusión comienza<br />al reconocer las diferencias.</h1>
-          <p className="login-hero-sub">Una educación para todos.<br />Una oportunidad para cada estudiante.</p>
-        </section>
-
-        {/* Tarjeta de acceso */}
-        <section className="login-panel">
+    <div className="login-wrap login-wrap-img">
+      <div className="login-panel login-panel-centro">
           <form className="login-card" onSubmit={enviar}>
             <div className="login-card-marca">
               <img src={icono} alt="" className="login-card-icono" />
@@ -114,7 +105,6 @@ export default function Login() {
               <button type="button" onClick={(e) => e.preventDefault()}>Términos</button>
             </nav>
           </footer>
-        </section>
       </div>
 
       <Accesibilidad anclaje="fab" />
