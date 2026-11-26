@@ -339,7 +339,7 @@ export default function PiarDetalle() {
   // Un docente solo ve en el selector sus áreas asignadas y las que no tienen responsable.
   const areasParaMi = supervisa
     ? areasUnicas
-    : areasUnicas.filter((ar) => { const r = responsables[ar.id]; return !r || r.docente_id == null || r.docente_id === usuario.id; });
+    : areasUnicas.filter((ar) => { const r = responsables[ar.id]; return r && r.docente_id === usuario.id; });
   const opcionesDesempeno = OPCIONES_EVAL[piar.sistema_evaluacion] || OPCIONES_EVAL.cualitativo;
   const sufijoPdf = periodoActivo === 0 ? 'all' : periodoActivo;
   const nombrePdf = periodoActivo === 0 ? 'Anexo2_todos' : (periodoActivo === 5 ? 'Anexo2_promocion' : `Anexo2_P${periodoActivo}`);
@@ -529,12 +529,14 @@ export default function PiarDetalle() {
           <tbody>
             {ajustesVisibles.map((a) => {
               const resp = responsables[a.area_id];
-              const puedoFila = supervisa || (resp && resp.docente_id != null
-                ? resp.docente_id === usuario.id
+              // Estricto: el docente solo edita las áreas de su carga académica.
+              // Una fila sin área la puede completar quien la creó (para elegir su área).
+              const puedoFila = supervisa || (a.area_id
+                ? !!(resp && resp.docente_id === usuario.id)
                 : (!a.creado_por || a.creado_por === usuario.id));
               const edF = editable && puedoFila;
               const otroDocente = !supervisa && !puedoFila;
-              const bloqueadaPor = (resp && resp.docente_nombre) || a.creador_nombre || 'Otro docente';
+              const bloqueadaPor = resp && resp.docente_nombre ? resp.docente_nombre : 'No asignada a ti';
               return (
               <tr key={a.id} style={a.retirado ? { opacity: 0.5 } : null}>
                 {periodoActivo === 0 && <td className="lbl" style={{ textAlign: 'center' }}>{nombrePeriodo(a.periodo)}</td>}
@@ -547,7 +549,7 @@ export default function PiarDetalle() {
                       </select>
                     </>
                   ) : (a.area_nombre || '—')}
-                  {otroDocente && <div className="fila-autor" title="Área asignada a otro docente. Solo el coordinador o el psicoorientador pueden cambiarla.">🔒 {bloqueadaPor}</div>}
+                  {otroDocente && <div className="fila-autor" title="Esta área no está en tu carga académica. Solo su docente responsable o la coordinación pueden diligenciarla.">🔒 {bloqueadaPor}</div>}
                 </td>
                 <td className="val" style={{ padding: 4, verticalAlign: 'top' }}>
                   {edF ? (<><SugMenu campo="objetivo" onPick={(t) => ponerSugerencia(a, 'objetivo', t)} /><textarea key={`o${a.id}`} ref={(el) => { if (el) celdasRef.current[`${a.id}-objetivo`] = el; }} rows={2} defaultValue={a.objetivo || ''} onBlur={(e) => { if ((a.objetivo || '') !== e.target.value) actualizarAjuste(a, { objetivo: e.target.value }); }} /></>) : (a.objetivo || '—')}

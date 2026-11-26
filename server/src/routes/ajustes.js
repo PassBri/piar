@@ -14,6 +14,19 @@ const SUPERVISA = ['coordinador', 'psicoorientador', 'rector', 'administrador', 
 //  - Si el área de la fila tiene responsable asignado (por coordinación/orientación),
 //    solo ese docente la modifica.
 //  - Si el área no tiene responsable, aplica la autoría (su propia fila o filas sin autor).
+// Docente responsable de un área para un estudiante: excepción explícita o, si no,
+// el docente que tiene esa área en el curso del estudiante (carga académica).
+async function responsableDe(estudianteId, areaId) {
+  if (!areaId) return null;
+  const ex = await query('SELECT docente_id FROM responsable_area WHERE estudiante_id=$1 AND area_id=$2', [estudianteId, areaId]);
+  if (ex.rows[0] && ex.rows[0].docente_id != null) return ex.rows[0].docente_id;
+  const d = await query(
+    `SELECT ca.docente_id FROM estudiante e
+       JOIN carga_academica ca ON ca.curso_id = e.curso_id AND ca.area_id = $2
+      WHERE e.id = $1`, [estudianteId, areaId]);
+  return d.rows[0]?.docente_id ?? null;
+}
+
 async function puedeModificar(req, ajusteId) {
   if (SUPERVISA.includes(req.usuario.rol)) return true;
   const r = await query(
@@ -23,23 +36,15 @@ async function puedeModificar(req, ajusteId) {
   );
   if (!r.rows[0]) return true; // no existe: el 404 se maneja después
   const { creado_por, area_id, estudiante_id } = r.rows[0];
+  // Estricto: con área definida, solo su docente responsable puede modificarla.
   if (area_id) {
-    // 1) Excepción explícita por estudiante.
-    const ex = await query('SELECT docente_id FROM responsable_area WHERE estudiante_id=$1 AND area_id=$2', [estudiante_id, area_id]);
-    let dueno = ex.rows[0]?.docente_id ?? null;
-    // 2) Si no hay excepción, se deduce de la carga académica según el curso del estudiante.
-    if (dueno == null) {
-      const d = await query(
-        `SELECT ca.docente_id FROM estudiante e
-           JOIN carga_academica ca ON ca.curso_id = e.curso_id AND ca.area_id = $2
-          WHERE e.id = $1`, [estudiante_id, area_id]);
-      dueno = d.rows[0]?.docente_id ?? null;
-    }
-    if (dueno != null) return dueno === req.usuario.id;
+    const dueno = await responsableDe(estudiante_id, area_id);
+    return dueno != null && dueno === req.usuario.id;
   }
+  // Sin área aún: la completa quien la creó (para elegir una de sus áreas).
   return creado_por == null || creado_por === req.usuario.id;
 }
-const ERROR_AUTORIA = 'Esta fila la diligenció otro docente. Solo el coordinador o el psicoorientador pueden modificarla.';
+const ERROR_AUTORIA = 'Esta área no está en tu carga académica. Solo su docente responsable o la coordinación pueden diligenciarla.';
 
 // POST /api/ajustes  (añadir ajuste razonable a un PIAR)
 router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coordinador', 'rector', 'superadmin'), async (req, res, next) => {
@@ -49,6 +54,12 @@ router.post('/', autorizar('docente', 'psicoorientador', 'administrador', 'coord
     // (varios docentes diligencian el mismo formato, cada uno su área).
     if (!piar_id) {
       return res.status(400).json({ error: 'Falta el PIAR.' });
+    }
+    // Estricto: un docente solo puede crear filas en áreas de su carga académica.
+    if (area_id && !SUPERVISA.includes(req.usuario.rol)) {
+      const est = await query('SELECT estudiante_id FROM piar WHERE id=$1', [piar_id]);
+      const dueno = await responsableDe(est.rows[0]?.estudiante_id, area_id);
+      if (dueno !== req.usuario.id) return res.status(403).json({ error: ERROR_AUTORIA });
     }
     const { rows } = await query(
       `INSERT INTO ajuste_razonable
@@ -66,6 +77,12 @@ router.put('/:id', autorizar('docente', 'psicoorientador', 'administrador', 'coo
   try {
     if (!(await puedeModificar(req, req.params.id))) return res.status(403).json({ error: ERROR_AUTORIA });
     const { area_id, periodo, objetivo, barrera, tipo, descripcion, apoyo, intensidad, evaluacion, retirado, justificacion_retiro, desempeno } = req.body;
+    // Estricto: un docente no puede mover una fila a un área que no es de su carga.
+    if (area_id && !SUPERVISA.includes(req.usuario.rol)) {
+      const info = await query('SELECT p.estudiante_id FROM ajuste_razonable a JOIN piar p ON p.id=a.piar_id WHERE a.id=$1', [req.params.id]);
+      const dueno = await responsableDe(info.rows[0]?.estudiante_id, area_id);
+      if (dueno !== req.usuario.id) return res.status(403).json({ error: ERROR_AUTORIA });
+    }
     const { rows } = await query(
       `UPDATE ajuste_razonable SET area_id=$1, periodo=COALESCE($2,periodo), objetivo=$3, barrera=$4, tipo=$5,
          descripcion=$6, apoyo=$7, intensidad=$8, evaluacion=$9, retirado=COALESCE($10,retirado),
