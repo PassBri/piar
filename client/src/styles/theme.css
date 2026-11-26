@@ -417,10 +417,10 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
 .login-panel { display: flex; flex-direction: column; gap: 14px; }
 .login-card {
   background: #FFFFFF;
-  padding: 44px 36px 36px; border-radius: 18px; width: 100%;
+  padding: 28px 36px 34px; border-radius: 18px; width: 100%;
   box-shadow: 0 30px 80px rgba(0,0,0,0.5); border: 1px solid #E2E8F0;
 }
-.login-card-marca { text-align: center; margin-bottom: 20px; }
+.login-card-marca { text-align: center; margin: -6px 0 6px; }
 .login-card-icono {
   width: 195px; height: auto; display: inline-block;
 }
