@@ -391,8 +391,8 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
   justify-content: center; align-items: center; padding: 24px;
   background-color: #2b2d30;
   background-image:
-    radial-gradient(ellipse 55% 65% at 50% 48%, rgba(8,9,11,0.5) 0%, rgba(8,9,11,0.12) 62%, rgba(8,9,11,0.04) 100%),
-    linear-gradient(rgba(10,11,13,0.22), rgba(10,11,13,0.3)),
+    radial-gradient(ellipse 55% 65% at 50% 48%, rgba(8,9,11,0.4) 0%, rgba(8,9,11,0.12) 70%, rgba(8,9,11,0) 100%),
+    linear-gradient(rgba(8,9,11,0.62), rgba(8,9,11,0.66)),
     url('/login-bg.jpg');
   background-size: cover, cover, cover;
   background-repeat: no-repeat, no-repeat, no-repeat;
