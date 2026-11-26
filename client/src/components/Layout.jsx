@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import FichaEstudiante from './FichaEstudiante.jsx';
+import Accesibilidad from './Accesibilidad.jsx';
 import icono from '../assets/icono-app.png';
 
 const ESCALAS = [0.9, 1, 1.15, 1.3];
@@ -118,6 +119,7 @@ export default function Layout() {
           <Outlet />
         </div>
       </div>
+      <Accesibilidad anclaje="fab" />
     </div>
   );
 }

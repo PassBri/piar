@@ -278,22 +278,28 @@ export default function Admin() {
                       {areasAdmin.length === 0
                         ? <div style={{ fontSize: 12, color: 'var(--gris-500)' }}>No hay áreas en el catálogo todavía. Créalas abajo o en la tarjeta “Áreas / asignaturas del colegio”.</div>
                         : (
-                          <div style={{ marginBottom: 8 }}>
+                          <div className="secc-grid">
                             {[...SECCIONES, ['otras', 'Otras / propias del colegio']].map(([sec, label]) => {
                               const lista = sec === 'otras'
                                 ? areasAdmin.filter((a) => !(a.secciones || []).length)
                                 : areasAdmin.filter((a) => (a.secciones || []).includes(sec));
                               if (!lista.length) return null;
+                              const marcadas = lista.filter((a) => areasCursoSel.includes(a.id)).length;
                               return (
-                                <div key={sec} style={{ marginBottom: 8 }}>
-                                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.3px', color: 'var(--gris-600)', margin: '2px 0 3px' }}>{label}</div>
-                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 4 }}>
-                                    {lista.map((a) => (
-                                      <label key={a.id} style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12.5 }}>
-                                        <input type="checkbox" checked={areasCursoSel.includes(a.id)} onChange={() => toggleAreaCurso(a.id)} />
-                                        {a.nombre}
-                                      </label>
-                                    ))}
+                                <div key={sec} className={`secc-card secc-${sec}`}>
+                                  <div className="secc-card-head">
+                                    <span className="secc-card-nom">{label}</span>
+                                    <span className="secc-card-badge">{marcadas}/{lista.length}</span>
+                                  </div>
+                                  <div className="secc-card-body">
+                                    {lista.map((a) => {
+                                      const on = areasCursoSel.includes(a.id);
+                                      return (
+                                        <button type="button" key={a.id} className={`secc-chip${on ? ' on' : ''}`} onClick={() => toggleAreaCurso(a.id)}>
+                                          <span className="secc-chip-mark" aria-hidden="true">{on ? '✓' : '+'}</span>{a.nombre}
+                                        </button>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               );
