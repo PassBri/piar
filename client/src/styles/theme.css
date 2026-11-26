@@ -389,14 +389,13 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
 }
 .login-wrap-img {
   justify-content: center; align-items: center; padding: 24px;
-  background-color: #2b2d30;
+  background-color: #24272c;
   background-image:
-    radial-gradient(ellipse 55% 65% at 50% 48%, rgba(8,9,11,0.42) 0%, rgba(8,9,11,0.14) 70%, rgba(8,9,11,0) 100%),
-    linear-gradient(rgba(6,7,9,0.74), rgba(6,7,9,0.78)),
-    url('/login-bg.jpg');
-  background-size: cover, cover, cover;
-  background-repeat: no-repeat, no-repeat, no-repeat;
-  background-position: center, center, center;
+    radial-gradient(ellipse 58% 68% at 50% 47%, rgba(0,0,0,0.26) 0%, rgba(0,0,0,0.07) 60%, rgba(0,0,0,0) 100%),
+    url('/login-tile.svg');
+  background-repeat: no-repeat, repeat;
+  background-size: auto, 250px 250px;
+  background-position: center, center;
 }
 .login-panel-centro {
   width: 408px; max-width: 94vw; margin: 0;
@@ -420,11 +419,11 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
   padding: 24px 34px 28px; border-radius: 16px; width: 100%;
   box-shadow: 0 24px 64px rgba(0,0,0,0.5); border: 1px solid #E2E8F0;
 }
-.login-card-marca { text-align: center; margin: -2px 0 4px; }
+.login-card-marca { text-align: center; margin: 4px 0 9px; }
 .login-card-icono {
-  width: 180px; height: auto; display: inline-block;
+  width: 184px; height: auto; display: inline-block;
 }
-.login-card-titulo { text-align: center; font-size: 21px; font-weight: 700; color: #1C1E20; margin: 4px 0 3px; letter-spacing: -0.2px; }
+.login-card-titulo { text-align: center; font-size: 21px; font-weight: 700; color: #1C1E20; margin: 2px 0 3px; letter-spacing: -0.2px; }
 .login-card-sub { text-align: center; font-size: 12px; color: #64748B; margin: 0 0 20px; }
 .login-label { display: block; font-size: 12.5px; font-weight: 600; color: #35454D; margin: 12px 0 6px; }
 /* Campos con icono */
