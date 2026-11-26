@@ -117,3 +117,36 @@ CREATE TABLE IF NOT EXISTS curso_area (
   area_id INT NOT NULL REFERENCES area(id) ON DELETE CASCADE,
   UNIQUE (curso_id, area_id)
 );
+
+-- Sección(es) de cada área: preescolar, primaria, secundaria, media.
+-- Un área común puede pertenecer a varias (primaria, secundaria y media).
+ALTER TABLE area ADD COLUMN IF NOT EXISTS secciones TEXT[] NOT NULL DEFAULT '{}';
+
+-- Clasificación inicial de las áreas estándar (solo las que aún no tienen sección).
+UPDATE area SET secciones = ARRAY['preescolar']
+  WHERE secciones = '{}' AND (nombre ILIKE 'Dimensi_n%'
+    OR lower(btrim(nombre)) IN ('autonomía','autonomia','convivencia','participación','participacion','socialización','socializacion','autocontrol'));
+UPDATE area SET secciones = ARRAY['primaria','secundaria','media']
+  WHERE secciones = '{}' AND lower(btrim(nombre)) IN (
+    'matemáticas','matematicas',
+    'humanidades, lengua castellana e idiomas extranjeros','lengua castellana',
+    'ciencias naturales y educación ambiental',
+    'ciencias sociales, historia, geografía y democracia','ciencias sociales, historia, geografía, constitución política y democracia',
+    'educación artística y cultural','educación física, recreación y deportes',
+    'educación religiosa','educación ética y en valores humanos',
+    'tecnología e informática','idioma extranjero (inglés)','inglés');
+UPDATE area SET secciones = ARRAY['media']
+  WHERE secciones = '{}' AND lower(btrim(nombre)) IN ('filosofía','filosofia','ciencias económicas y políticas','ciencias economicas y politicas');
+
+-- Respaldo robusto (sin depender de acentos exactos) para las áreas estándar.
+UPDATE area SET secciones = ARRAY['preescolar']
+  WHERE secciones = '{}' AND nombre ILIKE 'Dimensi%n%';
+UPDATE area SET secciones = ARRAY['primaria','secundaria','media']
+  WHERE secciones = '{}' AND (
+    nombre ILIKE 'Matem%tica%' OR nombre ILIKE 'Human%Lengua%' OR nombre ILIKE 'Ciencias Naturales%'
+    OR nombre ILIKE 'Ciencias Sociales%' OR nombre ILIKE 'Educaci%n Art%stica%'
+    OR nombre ILIKE 'Educaci%n F%sica%' OR nombre ILIKE 'Educaci%n Religiosa%'
+    OR nombre ILIKE 'Educaci%n %tica%' OR nombre ILIKE 'Tecnolog%a e Inform%'
+    OR nombre ILIKE 'Idioma extranjero%' OR nombre = 'Inglés' OR nombre = 'Lengua castellana');
+UPDATE area SET secciones = ARRAY['media']
+  WHERE secciones = '{}' AND (nombre ILIKE 'Filosof%a' OR nombre ILIKE 'Ciencias Econ%micas y Pol%ticas');

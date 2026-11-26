@@ -2,6 +2,15 @@ import { useEffect, useState, Fragment } from 'react';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
+// Secciones (niveles) para clasificar las áreas/asignaturas.
+const SECCIONES = [
+  ['preescolar', 'Preescolar (dimensiones)'],
+  ['primaria', 'Básica primaria'],
+  ['secundaria', 'Básica secundaria'],
+  ['media', 'Media y media técnica'],
+];
+const SEC_LABEL = Object.fromEntries(SECCIONES);
+
 const ROLES = [
   ['docente', 'Docente'], ['psicoorientador', 'Psicoorientador'], ['coordinador', 'Coordinador'],
   ['rector', 'Rector'], ['padre', 'Padre de familia'], ['administrador', 'Administrador de institución'],
@@ -77,16 +86,21 @@ export default function Admin() {
   }
   // Catálogo de áreas del colegio: crear, renombrar, eliminar.
   const [nuevaAreaCat, setNuevaAreaCat] = useState('');
+  const [nuevaAreaCatSecs, setNuevaAreaCatSecs] = useState([]);
   const [editAreaId, setEditAreaId] = useState(null);
   const [editAreaNombre, setEditAreaNombre] = useState('');
+  const [editAreaSecs, setEditAreaSecs] = useState([]);
+  const toggleSecCat = (s) => setNuevaAreaCatSecs((xs) => (xs.includes(s) ? xs.filter((x) => x !== s) : [...xs, s]));
+  const toggleSecEdit = (s) => setEditAreaSecs((xs) => (xs.includes(s) ? xs.filter((x) => x !== s) : [...xs, s]));
   async function crearAreaCatalogo() {
     const nombre = nuevaAreaCat.trim(); if (!nombre) return;
-    try { await api.post('/areas', { nombre, ...(esSuper ? { institucion_id: cursoInst || undefined } : {}) }); setAreasAdmin(await api.get('/areas')); setNuevaAreaCat(''); setOk('Área creada.'); }
+    try { await api.post('/areas', { nombre, secciones: nuevaAreaCatSecs, ...(esSuper ? { institucion_id: cursoInst || undefined } : {}) }); setAreasAdmin(await api.get('/areas')); setNuevaAreaCat(''); setNuevaAreaCatSecs([]); setOk('Área creada.'); }
     catch (err) { setError(err.message); }
   }
+  function abrirEditArea(a) { setEditAreaId(a.id); setEditAreaNombre(a.nombre); setEditAreaSecs(a.secciones || []); }
   async function guardarEditArea() {
     const nombre = editAreaNombre.trim(); if (!nombre) return;
-    try { await api.put(`/areas/${editAreaId}`, { nombre }); setAreasAdmin(await api.get('/areas')); setEditAreaId(null); setOk('Área actualizada.'); }
+    try { await api.put(`/areas/${editAreaId}`, { nombre, secciones: editAreaSecs }); setAreasAdmin(await api.get('/areas')); setEditAreaId(null); setOk('Área actualizada.'); }
     catch (err) { setError(err.message); }
   }
   async function eliminarArea(a) {
@@ -96,14 +110,16 @@ export default function Admin() {
   }
 
   const [nuevaAreaTexto, setNuevaAreaTexto] = useState('');
+  const [nuevaAreaSecs, setNuevaAreaSecs] = useState([]);
+  const toggleSecNueva = (s) => setNuevaAreaSecs((xs) => (xs.includes(s) ? xs.filter((x) => x !== s) : [...xs, s]));
   async function agregarAreaNueva() {
     const nombre = nuevaAreaTexto.trim();
     if (!nombre) return;
     try {
-      const area = await api.post('/areas', { nombre, ...(esSuper ? { institucion_id: cursoInst || undefined } : {}) });
+      const area = await api.post('/areas', { nombre, secciones: nuevaAreaSecs, ...(esSuper ? { institucion_id: cursoInst || undefined } : {}) });
       const lista = await api.get('/areas'); setAreasAdmin(lista);
       if (area && area.id && !areasCursoSel.includes(area.id)) setAreasCursoSel((s) => [...s, area.id]);
-      setNuevaAreaTexto('');
+      setNuevaAreaTexto(''); setNuevaAreaSecs([]);
     } catch (err) { setError(err.message); }
   }
   async function elegirCursoCarga(cid) {
@@ -260,22 +276,43 @@ export default function Admin() {
                         <button type="button" className="btn sec sm" style={{ marginLeft: 10 }} onClick={marcarBasicas}>Marcar áreas básicas</button>
                       </div>
                       {areasAdmin.length === 0
-                        ? <div style={{ fontSize: 12, color: 'var(--gris-500)' }}>No hay áreas en el catálogo todavía. Créalas en un PIAR (botón “Cargar áreas de …”) o pídemelo y las precargo.</div>
+                        ? <div style={{ fontSize: 12, color: 'var(--gris-500)' }}>No hay áreas en el catálogo todavía. Créalas abajo o en la tarjeta “Áreas / asignaturas del colegio”.</div>
                         : (
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 4, marginBottom: 8 }}>
-                            {areasAdmin.map((a) => (
-                              <label key={a.id} style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12.5 }}>
-                                <input type="checkbox" checked={areasCursoSel.includes(a.id)} onChange={() => toggleAreaCurso(a.id)} />
-                                {a.nombre}
-                              </label>
-                            ))}
+                          <div style={{ marginBottom: 8 }}>
+                            {[...SECCIONES, ['otras', 'Otras / propias del colegio']].map(([sec, label]) => {
+                              const lista = sec === 'otras'
+                                ? areasAdmin.filter((a) => !(a.secciones || []).length)
+                                : areasAdmin.filter((a) => (a.secciones || []).includes(sec));
+                              if (!lista.length) return null;
+                              return (
+                                <div key={sec} style={{ marginBottom: 8 }}>
+                                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.3px', color: 'var(--gris-600)', margin: '2px 0 3px' }}>{label}</div>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 4 }}>
+                                    {lista.map((a) => (
+                                      <label key={a.id} style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12.5 }}>
+                                        <input type="checkbox" checked={areasCursoSel.includes(a.id)} onChange={() => toggleAreaCurso(a.id)} />
+                                        {a.nombre}
+                                      </label>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '4px 0 10px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '4px 0 4px', flexWrap: 'wrap' }}>
                         <input value={nuevaAreaTexto} onChange={(e) => setNuevaAreaTexto(e.target.value)}
                           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregarAreaNueva(); } }}
                           placeholder="Agregar otra área o asignatura (ej. Técnico en Sistemas - SENA)" style={{ flex: '1 1 320px', minWidth: 240 }} />
                         <button type="button" className="btn sec sm" onClick={agregarAreaNueva}>+ Crear área</button>
+                      </div>
+                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', margin: '0 0 10px', fontSize: 12 }}>
+                        <span style={{ color: 'var(--gris-600)' }}>Sección:</span>
+                        {SECCIONES.map(([s, l]) => (
+                          <label key={s} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                            <input type="checkbox" checked={nuevaAreaSecs.includes(s)} onChange={() => toggleSecNueva(s)} /> {l}
+                          </label>
+                        ))}
                       </div>
                       <button type="button" className="btn sm" onClick={() => guardarAreasCurso(c)}>Guardar áreas del curso</button>
                     </div>
@@ -313,29 +350,46 @@ export default function Admin() {
       {puedeUsuarios && <div className="card">
         <h2>Áreas / asignaturas del colegio</h2>
         <p style={{ color: 'var(--gris-600)', marginTop: -4 }}>Crea, renombra o elimina las áreas del catálogo. Luego las asignas a cada curso (plan de estudios) y a cada docente (carga académica).</p>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '6px 0 12px' }}>
-          <input value={nuevaAreaCat} onChange={(e) => setNuevaAreaCat(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); crearAreaCatalogo(); } }}
-            placeholder="Nueva área o asignatura (ej. Técnico en Sistemas - SENA)" style={{ flex: '1 1 340px', minWidth: 240 }} />
-          <button type="button" className="btn" onClick={crearAreaCatalogo}>+ Crear área</button>
+        <div style={{ margin: '6px 0 12px' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <input value={nuevaAreaCat} onChange={(e) => setNuevaAreaCat(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); crearAreaCatalogo(); } }}
+              placeholder="Nueva área o asignatura (ej. Técnico en Sistemas - SENA)" style={{ flex: '1 1 340px', minWidth: 240 }} />
+            <button type="button" className="btn" onClick={crearAreaCatalogo}>+ Crear área</button>
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6, fontSize: 12 }}>
+            <span style={{ color: 'var(--gris-600)' }}>Sección:</span>
+            {SECCIONES.map(([s, l]) => (
+              <label key={s} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <input type="checkbox" checked={nuevaAreaCatSecs.includes(s)} onChange={() => toggleSecCat(s)} /> {l}
+              </label>
+            ))}
+          </div>
         </div>
         {areasAdmin.length === 0
           ? <p style={{ color: 'var(--gris-500)' }}>Aún no hay áreas. Crea la primera arriba.</p>
           : (
             <table>
-              <thead><tr><th>Área / asignatura</th><th style={{ width: 190 }}></th></tr></thead>
+              <thead><tr><th>Área / asignatura</th><th>Secciones</th><th style={{ width: 190 }}></th></tr></thead>
               <tbody>
                 {areasAdmin.map((a) => (
                   <tr key={a.id}>
                     <td>
                       {editAreaId === a.id
-                        ? <input value={editAreaNombre} onChange={(e) => setEditAreaNombre(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); guardarEditArea(); } }} style={{ width: '100%' }} autoFocus />
+                        ? <input value={editAreaNombre} onChange={(e) => setEditAreaNombre(e.target.value)} style={{ width: '100%' }} autoFocus />
                         : a.nombre}
+                    </td>
+                    <td style={{ fontSize: 11.5 }}>
+                      {editAreaId === a.id
+                        ? <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{SECCIONES.map(([s, l]) => (
+                            <label key={s} style={{ display: 'flex', gap: 3, alignItems: 'center' }}><input type="checkbox" checked={editAreaSecs.includes(s)} onChange={() => toggleSecEdit(s)} /> {l.split(' (')[0]}</label>
+                          ))}</div>
+                        : ((a.secciones || []).length ? (a.secciones || []).map((s) => SEC_LABEL[s]?.split(' (')[0] || s).join(', ') : <span style={{ color: 'var(--gris-500)' }}>— otras —</span>)}
                     </td>
                     <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                       {editAreaId === a.id
                         ? (<><button className="btn sm" style={{ marginRight: 6 }} onClick={guardarEditArea}>Guardar</button><button className="btn sec sm" onClick={() => setEditAreaId(null)}>Cancelar</button></>)
-                        : (<><button className="btn sec sm" style={{ marginRight: 6 }} onClick={() => { setEditAreaId(a.id); setEditAreaNombre(a.nombre); }}>Renombrar</button><button className="btn sec sm" onClick={() => eliminarArea(a)}>Eliminar</button></>)}
+                        : (<><button className="btn sec sm" style={{ marginRight: 6 }} onClick={() => abrirEditArea(a)}>Editar</button><button className="btn sec sm" onClick={() => eliminarArea(a)}>Eliminar</button></>)}
                     </td>
                   </tr>
                 ))}

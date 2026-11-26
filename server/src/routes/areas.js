@@ -28,10 +28,14 @@ router.post('/', autorizar('administrador', 'rector', 'coordinador', 'psicoorien
       'SELECT * FROM area WHERE institucion_id = $1 AND lower(btrim(nombre)) = lower(btrim($2)) LIMIT 1',
       [inst, nombre]
     );
-    if (existe[0]) return res.json(existe[0]);
+    const secciones = Array.isArray(req.body.secciones) ? req.body.secciones.filter((s) => typeof s === 'string') : [];
+    if (existe[0]) {
+      if (secciones.length) { const { rows: up } = await query('UPDATE area SET secciones=$1 WHERE id=$2 RETURNING *', [secciones, existe[0].id]); return res.json(up[0]); }
+      return res.json(existe[0]);
+    }
     const { rows } = await query(
-      'INSERT INTO area (institucion_id, nombre) VALUES ($1,$2) RETURNING *',
-      [inst, nombre]
+      'INSERT INTO area (institucion_id, nombre, secciones) VALUES ($1,$2,$3) RETURNING *',
+      [inst, nombre, secciones]
     );
     await auditar(req, { entidad: 'area', entidad_id: rows[0].id, accion: 'crear', descripcion: `Agregó la asignatura "${nombre}"` });
     res.status(201).json(rows[0]);
@@ -57,7 +61,10 @@ router.put('/:id', autorizar(...GESTIONA_AREA), async (req, res, next) => {
       [actual.rows[0].institucion_id, nombre, req.params.id]
     );
     if (dup.rows[0]) return res.status(409).json({ error: 'Ya existe un área con ese nombre.' });
-    const { rows } = await query('UPDATE area SET nombre=$1 WHERE id=$2 RETURNING *', [nombre, req.params.id]);
+    const secciones = Array.isArray(req.body.secciones) ? req.body.secciones.filter((s) => typeof s === 'string') : null;
+    const { rows } = secciones
+      ? await query('UPDATE area SET nombre=$1, secciones=$2 WHERE id=$3 RETURNING *', [nombre, secciones, req.params.id])
+      : await query('UPDATE area SET nombre=$1 WHERE id=$2 RETURNING *', [nombre, req.params.id]);
     await auditar(req, { entidad: 'area', entidad_id: Number(req.params.id), accion: 'editar', descripcion: `Renombró el área a "${nombre}"` });
     res.json(rows[0]);
   } catch (err) { next(err); }
