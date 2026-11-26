@@ -55,6 +55,7 @@ export default function Admin() {
       await api.put(`/usuarios/${u.id}/carga`, { items: cargaItems });
       setOk(`Carga académica guardada para ${u.nombres}.`);
       setCargaOpen(null);
+      api.get('/usuarios').then(setUsuarios).catch(() => {});
     } catch (err) { setError(err.message); }
   }
 
@@ -223,13 +224,14 @@ export default function Admin() {
       {puedeUsuarios && <div className="card">
         <h2>Usuarios {esSuper ? 'de toda la plataforma' : 'de la institución'}</h2>
         <table>
-          <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th>{esSuper && <th>Institución</th>}<th>Activo</th><th></th></tr></thead>
+          <thead><tr><th>Nombre</th><th>Correo</th><th>Nivel de usuario</th>{esSuper && <th>Institución</th>}<th>Áreas</th><th>Activo</th><th></th></tr></thead>
           <tbody>
             {usuarios.map((u) => (
               <Fragment key={u.id}>
               <tr>
-                <td>{u.nombres}</td><td>{u.correo}</td><td>{u.rol}</td>
+                <td>{u.nombres}</td><td>{u.correo}</td><td style={{ textTransform: 'capitalize' }}>{u.rol}</td>
                 {esSuper && <td>{u.institucion || '— (general)'}</td>}
+                <td style={{ textAlign: 'center' }}>{u.rol === 'docente' ? `${u.areas_carga || 0}` : '—'}</td>
                 <td>{u.activo ? 'Sí' : 'No'}</td>
                 <td style={{ whiteSpace: 'nowrap' }}>
                   {u.rol === 'docente' && <button className="btn sec sm" style={{ marginRight: 6 }} onClick={() => abrirCarga(u)}>{cargaOpen === u.id ? 'Cerrar' : 'Carga académica'}</button>}
@@ -238,7 +240,7 @@ export default function Admin() {
               </tr>
               {cargaOpen === u.id && (
                 <tr>
-                  <td colSpan={esSuper ? 6 : 5} style={{ background: '#f3f8ff' }}>
+                  <td colSpan={esSuper ? 7 : 6} style={{ background: '#f3f8ff' }}>
                     <div style={{ padding: '6px 2px' }}>
                       <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Carga académica de {u.nombres} <span style={{ fontWeight: 400, color: 'var(--gris-600)' }}>· áreas que dicta en cada curso</span></div>
                       {cargaItems.length === 0

@@ -87,8 +87,7 @@ export default function PiarDetalle() {
   const [catalogo, setCatalogo] = useState([]);
   const [valoraciones, setValoraciones] = useState([]);
   const [acta, setActa] = useState({ compromisos_familia: '', compromisos_institucion: '', firmada_familia: false, firmada_institucion: false });
-  const [responsables, setResponsables] = useState({}); // { area_id: { docente_id, docente_nombre } }
-  const [docentes, setDocentes] = useState([]);
+  const [responsables, setResponsables] = useState({}); // { area_id: { docente_id, docente_nombre } } (deducido de la carga académica)
   const [error, setError] = useState('');
   const ajusteVacio = { area_id: '', periodo: 1, objetivo: '', barrera: '', tipo: 'actividades', descripcion: '', apoyo: '', intensidad: 'intermitente', evaluacion: '' };
   const [nuevo, setNuevo] = useState(ajusteVacio);
@@ -143,14 +142,6 @@ export default function PiarDetalle() {
       }
     } catch (e) { setError(e.message); }
   }
-  async function asignarResponsable(areaId, docenteId) {
-    try {
-      await api.put('/responsables', { estudiante_id: piar.estudiante_id, area_id: areaId, docente_id: docenteId || null });
-      const list = await api.get(`/responsables?estudiante_id=${piar.estudiante_id}`);
-      const m = {}; list.forEach((r) => { m[r.area_id] = { docente_id: r.docente_id, docente_nombre: r.docente_nombre, origen: r.origen }; });
-      setResponsables(m);
-    } catch (e) { setError(e.message); }
-  }
   function cargarValoraciones() {
     api.get(`/valoraciones?piar_id=${id}`).then(setValoraciones).catch(() => {});
   }
@@ -181,7 +172,6 @@ export default function PiarDetalle() {
   useEffect(() => {
     cargar(); cargarValoraciones(); cargarBitacora(); cargarAnexo4();
     api.get('/areas').then(setAreas).catch(() => {});
-    if (supervisa) api.get('/usuarios/docentes').then(setDocentes).catch(() => {});
   }, [id]);
   // Ficha del estudiante en la barra lateral mientras se trabaja su expediente
   const { fijarExpediente, limpiarExpediente } = useExpediente();
@@ -671,30 +661,6 @@ export default function PiarDetalle() {
               💡 En cada casilla de <strong>Objetivos</strong>, <strong>Barreras</strong> y <strong>Ajustes razonables</strong>{' '}
               puedes abrir <em>Sugerencias</em> (orientaciones MEN) y escoge la que necesites; se agrega al texto y luego puedes editarla.
             </p>
-            {supervisa && (
-              <div className="resp-panel">
-                <div className="resp-titulo">Responsables por área <span>· se deducen de la carga académica; aquí puedes poner una excepción para este estudiante</span></div>
-                {areasUnicas.length === 0
-                  ? <div className="resp-vacio">Primero carga las áreas para poder asignar responsables.</div>
-                  : (
-                    <div className="resp-grid">
-                      {areasUnicas.map((ar) => {
-                        const r = responsables[ar.id];
-                        return (
-                          <div key={ar.id} className="resp-fila">
-                            <span className="resp-area" title={ar.nombre}>{ar.nombre}{r && r.origen === 'carga' && <small style={{ color: 'var(--gris-500)', fontWeight: 400 }}> · auto</small>}</span>
-                            <select value={(r?.docente_id) || ''} onChange={(e) => asignarResponsable(ar.id, e.target.value)}>
-                              <option value="">— Automático (según carga) —</option>
-                              {docentes.map((d) => <option key={d.id} value={d.id}>{d.nombres}</option>)}
-                            </select>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                {!docentes.length && <div className="resp-vacio">Aún no hay docentes registrados en la institución.</div>}
-              </div>
-            )}
           </div>
         )}
       </div>

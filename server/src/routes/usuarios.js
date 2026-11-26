@@ -31,7 +31,8 @@ router.get('/docentes', autorizar('coordinador', 'psicoorientador', 'rector', 'a
 router.get('/', autorizar('superadmin', 'administrador', 'rector'), async (req, res, next) => {
   try {
     let sql = `SELECT u.id, u.nombres, u.correo, u.rol, u.activo, u.institucion_id,
-                      i.nombre AS institucion
+                      i.nombre AS institucion,
+                      (SELECT count(*)::int FROM carga_academica ca WHERE ca.docente_id = u.id) AS areas_carga
                FROM usuario u LEFT JOIN institucion i ON i.id = u.institucion_id`;
     const params = [];
     if (!esSuper(req)) {
