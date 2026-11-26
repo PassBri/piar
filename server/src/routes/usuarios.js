@@ -124,6 +124,43 @@ router.put('/:id/cursos', autorizar('superadmin', 'administrador', 'rector', 'co
   } catch (err) { next(err); }
 });
 
+// GET /api/usuarios/:id/carga  (carga académica del docente: área × curso)
+router.get('/:id/carga', autorizar('superadmin', 'administrador', 'rector', 'coordinador'), async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT ca.curso_id, ca.area_id, a.nombre AS area_nombre,
+              c.sede, c.jornada, c.grado, c.grupo
+         FROM carga_academica ca
+         JOIN curso c ON c.id = ca.curso_id
+         JOIN area a ON a.id = ca.area_id
+        WHERE ca.docente_id = $1
+        ORDER BY c.sede, c.grado, c.grupo, a.nombre`, [req.params.id]);
+    res.json(rows);
+  } catch (err) { next(err); }
+});
+
+// PUT /api/usuarios/:id/carga  (reemplaza la carga del docente)  body: { items: [{curso_id, area_id}] }
+router.put('/:id/carga', autorizar('superadmin', 'administrador', 'rector', 'coordinador'), async (req, res, next) => {
+  try {
+    const objetivo = await query('SELECT institucion_id FROM usuario WHERE id=$1', [req.params.id]);
+    if (!objetivo.rows[0]) return res.status(404).json({ error: 'Usuario no encontrado.' });
+    if (!esSuper(req) && objetivo.rows[0].institucion_id !== req.usuario.institucion_id) {
+      return res.status(403).json({ error: 'No puedes asignar carga a usuarios de otra institución.' });
+    }
+    const items = Array.isArray(req.body.items) ? req.body.items.filter((x) => x && x.curso_id && x.area_id) : [];
+    // Quita de este docente las parejas (curso, área) que ya no tiene.
+    await query('DELETE FROM carga_academica WHERE docente_id=$1', [req.params.id]);
+    // Asigna cada pareja a este docente (la toma de quien la tuviera: UNIQUE por curso+área).
+    for (const it of items) {
+      await query(
+        `INSERT INTO carga_academica (docente_id, curso_id, area_id) VALUES ($1,$2,$3)
+         ON CONFLICT (curso_id, area_id) DO UPDATE SET docente_id=EXCLUDED.docente_id`,
+        [req.params.id, it.curso_id, it.area_id]);
+    }
+    res.json({ ok: true, items: items.length });
+  } catch (err) { next(err); }
+});
+
 // PUT /api/usuarios/:id  (editar rol/estado; solo superadmin)
 router.put('/:id', autorizar('superadmin'), async (req, res, next) => {
   try {

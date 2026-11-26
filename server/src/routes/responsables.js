@@ -16,15 +16,22 @@ router.get('/', async (req, res, next) => {
   try {
     const { estudiante_id } = req.query;
     if (!estudiante_id) return res.json([]);
-    const { rows } = await query(
-      `SELECT r.area_id, r.docente_id, u.nombres AS docente_nombre, a.nombre AS area_nombre
-         FROM responsable_area r
-         LEFT JOIN usuario u ON u.id = r.docente_id
-         LEFT JOIN area a ON a.id = r.area_id
-        WHERE r.estudiante_id = $1`,
-      [estudiante_id]
-    );
-    res.json(rows);
+    // Responsable efectivo por área: excepción explícita si existe; si no,
+    // el docente que tiene esa área en el curso del estudiante (carga académica).
+    const explic = await query(
+      `SELECT r.area_id, r.docente_id, u.nombres AS docente_nombre
+         FROM responsable_area r LEFT JOIN usuario u ON u.id = r.docente_id
+        WHERE r.estudiante_id = $1`, [estudiante_id]);
+    const derivados = await query(
+      `SELECT ca.area_id, ca.docente_id, u.nombres AS docente_nombre
+         FROM estudiante e
+         JOIN carga_academica ca ON ca.curso_id = e.curso_id
+         JOIN usuario u ON u.id = ca.docente_id
+        WHERE e.id = $1`, [estudiante_id]);
+    const map = {};
+    derivados.rows.forEach((d) => { map[d.area_id] = { area_id: d.area_id, docente_id: d.docente_id, docente_nombre: d.docente_nombre, origen: 'carga' }; });
+    explic.rows.forEach((e) => { if (e.docente_id != null) map[e.area_id] = { area_id: e.area_id, docente_id: e.docente_id, docente_nombre: e.docente_nombre, origen: 'manual' }; });
+    res.json(Object.values(map));
   } catch (err) { next(err); }
 });
 

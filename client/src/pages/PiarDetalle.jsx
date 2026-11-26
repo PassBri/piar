@@ -137,7 +137,7 @@ export default function PiarDetalle() {
       if (p.estudiante_id) {
         api.get(`/piar?estudiante_id=${p.estudiante_id}`).then(setAniosPiar).catch(() => {});
         api.get(`/responsables?estudiante_id=${p.estudiante_id}`).then((list) => {
-          const m = {}; list.forEach((r) => { m[r.area_id] = { docente_id: r.docente_id, docente_nombre: r.docente_nombre }; });
+          const m = {}; list.forEach((r) => { m[r.area_id] = { docente_id: r.docente_id, docente_nombre: r.docente_nombre, origen: r.origen }; });
           setResponsables(m);
         }).catch(() => {});
       }
@@ -146,12 +146,9 @@ export default function PiarDetalle() {
   async function asignarResponsable(areaId, docenteId) {
     try {
       await api.put('/responsables', { estudiante_id: piar.estudiante_id, area_id: areaId, docente_id: docenteId || null });
-      setResponsables((m) => {
-        const n = { ...m };
-        if (docenteId) { const d = docentes.find((x) => x.id === Number(docenteId)); n[areaId] = { docente_id: Number(docenteId), docente_nombre: d ? d.nombres : '' }; }
-        else delete n[areaId];
-        return n;
-      });
+      const list = await api.get(`/responsables?estudiante_id=${piar.estudiante_id}`);
+      const m = {}; list.forEach((r) => { m[r.area_id] = { docente_id: r.docente_id, docente_nombre: r.docente_nombre, origen: r.origen }; });
+      setResponsables(m);
     } catch (e) { setError(e.message); }
   }
   function cargarValoraciones() {
@@ -676,20 +673,23 @@ export default function PiarDetalle() {
             </p>
             {supervisa && (
               <div className="resp-panel">
-                <div className="resp-titulo">Responsables por área <span>· quién diligencia cada área de este estudiante (lo asigna coordinación u orientación)</span></div>
+                <div className="resp-titulo">Responsables por área <span>· se deducen de la carga académica; aquí puedes poner una excepción para este estudiante</span></div>
                 {areasUnicas.length === 0
                   ? <div className="resp-vacio">Primero carga las áreas para poder asignar responsables.</div>
                   : (
                     <div className="resp-grid">
-                      {areasUnicas.map((ar) => (
-                        <div key={ar.id} className="resp-fila">
-                          <span className="resp-area" title={ar.nombre}>{ar.nombre}</span>
-                          <select value={(responsables[ar.id]?.docente_id) || ''} onChange={(e) => asignarResponsable(ar.id, e.target.value)}>
-                            <option value="">— Sin asignar —</option>
-                            {docentes.map((d) => <option key={d.id} value={d.id}>{d.nombres}</option>)}
-                          </select>
-                        </div>
-                      ))}
+                      {areasUnicas.map((ar) => {
+                        const r = responsables[ar.id];
+                        return (
+                          <div key={ar.id} className="resp-fila">
+                            <span className="resp-area" title={ar.nombre}>{ar.nombre}{r && r.origen === 'carga' && <small style={{ color: 'var(--gris-500)', fontWeight: 400 }}> · auto</small>}</span>
+                            <select value={(r?.docente_id) || ''} onChange={(e) => asignarResponsable(ar.id, e.target.value)}>
+                              <option value="">— Automático (según carga) —</option>
+                              {docentes.map((d) => <option key={d.id} value={d.id}>{d.nombres}</option>)}
+                            </select>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 {!docentes.length && <div className="resp-vacio">Aún no hay docentes registrados en la institución.</div>}

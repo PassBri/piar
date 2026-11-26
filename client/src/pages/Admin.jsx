@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -26,6 +26,37 @@ export default function Admin() {
   const [cursos, setCursos] = useState([]);
   const [cursoInst, setCursoInst] = useState(''); // institución elegida (solo superadmin)
   const [nuevoCurso, setNuevoCurso] = useState({ sede: 'Principal', jornada: 'Mañana', grado: '1°', grupo: 'A' });
+  const [areasAdmin, setAreasAdmin] = useState([]);
+  const [cargaOpen, setCargaOpen] = useState(null); // id del docente cuya carga se edita
+  const [cargaItems, setCargaItems] = useState([]); // [{curso_id, area_id}]
+  const [cargaNuevo, setCargaNuevo] = useState({ curso_id: '', area_id: '' });
+
+  const nombreCurso = (cid) => { const c = cursos.find((x) => x.id === Number(cid)); return c ? `${c.sede} · ${c.jornada} · ${c.grado} · ${c.grupo}` : `Curso ${cid}`; };
+  const nombreArea = (aid) => { const a = areasAdmin.find((x) => x.id === Number(aid)); return a ? a.nombre : `Área ${aid}`; };
+  async function abrirCarga(u) {
+    if (cargaOpen === u.id) { setCargaOpen(null); return; }
+    try {
+      const items = await api.get(`/usuarios/${u.id}/carga`);
+      setCargaItems(items.map((r) => ({ curso_id: r.curso_id, area_id: r.area_id })));
+      setCargaNuevo({ curso_id: '', area_id: '' });
+      setCargaOpen(u.id);
+    } catch (err) { setError(err.message); }
+  }
+  function agregarCargaItem() {
+    const { curso_id, area_id } = cargaNuevo;
+    if (!curso_id || !area_id) return;
+    if (cargaItems.some((x) => String(x.curso_id) === String(curso_id) && String(x.area_id) === String(area_id))) return;
+    setCargaItems((xs) => [...xs, { curso_id: Number(curso_id), area_id: Number(area_id) }]);
+    setCargaNuevo({ curso_id: '', area_id: '' });
+  }
+  const quitarCargaItem = (i) => setCargaItems((xs) => xs.filter((_, j) => j !== i));
+  async function guardarCarga(u) {
+    try {
+      await api.put(`/usuarios/${u.id}/carga`, { items: cargaItems });
+      setOk(`Carga académica guardada para ${u.nombres}.`);
+      setCargaOpen(null);
+    } catch (err) { setError(err.message); }
+  }
 
   function cargarCursos() {
     const q = esSuper ? (cursoInst ? `?institucion_id=${cursoInst}` : null) : '';
@@ -35,6 +66,7 @@ export default function Admin() {
   function cargar() {
     api.get('/informes/indicadores').then((d) => setIndicadores(d.por_institucion)).catch(() => {});
     if (puedeUsuarios) api.get('/usuarios').then(setUsuarios).catch(() => {});
+    if (puedeUsuarios) api.get('/areas').then(setAreasAdmin).catch(() => {});
     if (esSuper) {
       api.get('/geografia/instituciones').then(setInstituciones).catch(() => {});
       api.get('/geografia/municipios').then(setMunicipios).catch(() => {});
@@ -194,12 +226,51 @@ export default function Admin() {
           <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th>{esSuper && <th>Institución</th>}<th>Activo</th><th></th></tr></thead>
           <tbody>
             {usuarios.map((u) => (
-              <tr key={u.id}>
+              <Fragment key={u.id}>
+              <tr>
                 <td>{u.nombres}</td><td>{u.correo}</td><td>{u.rol}</td>
                 {esSuper && <td>{u.institucion || '— (general)'}</td>}
                 <td>{u.activo ? 'Sí' : 'No'}</td>
-                <td><button className="btn sec sm" onClick={() => restablecerClave(u)}>Restablecer clave</button></td>
+                <td style={{ whiteSpace: 'nowrap' }}>
+                  {u.rol === 'docente' && <button className="btn sec sm" style={{ marginRight: 6 }} onClick={() => abrirCarga(u)}>{cargaOpen === u.id ? 'Cerrar' : 'Carga académica'}</button>}
+                  <button className="btn sec sm" onClick={() => restablecerClave(u)}>Restablecer clave</button>
+                </td>
               </tr>
+              {cargaOpen === u.id && (
+                <tr>
+                  <td colSpan={esSuper ? 6 : 5} style={{ background: '#f3f8ff' }}>
+                    <div style={{ padding: '6px 2px' }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Carga académica de {u.nombres} <span style={{ fontWeight: 400, color: 'var(--gris-600)' }}>· áreas que dicta en cada curso</span></div>
+                      {cargaItems.length === 0
+                        ? <div style={{ fontSize: 12, color: 'var(--gris-500)', marginBottom: 6 }}>Sin áreas asignadas todavía.</div>
+                        : (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                            {cargaItems.map((it, i) => (
+                              <span key={i} className="carga-chip">
+                                {nombreArea(it.area_id)} <small>· {nombreCurso(it.curso_id)}</small>
+                                <button type="button" onClick={() => quitarCargaItem(i)} title="Quitar">×</button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <select value={cargaNuevo.curso_id} onChange={(e) => setCargaNuevo((n) => ({ ...n, curso_id: e.target.value }))}>
+                          <option value="">— Curso —</option>
+                          {cursos.map((c) => <option key={c.id} value={c.id}>{c.sede} · {c.jornada} · {c.grado} · {c.grupo}</option>)}
+                        </select>
+                        <select value={cargaNuevo.area_id} onChange={(e) => setCargaNuevo((n) => ({ ...n, area_id: e.target.value }))}>
+                          <option value="">— Área —</option>
+                          {areasAdmin.map((a) => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                        </select>
+                        <button type="button" className="btn sec sm" onClick={agregarCargaItem}>+ Agregar</button>
+                        <button type="button" className="btn sm" onClick={() => guardarCarga(u)}>Guardar carga</button>
+                      </div>
+                      {cursos.length === 0 && <div style={{ fontSize: 12, color: 'var(--gris-500)', marginTop: 6 }}>Primero crea cursos{esSuper ? ' (elige una institución arriba)' : ''} para poder asignar la carga.</div>}
+                    </div>
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             ))}
           </tbody>
         </table>

@@ -97,3 +97,14 @@ CREATE TABLE IF NOT EXISTS responsable_area (
   actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (estudiante_id, area_id)
 );
+
+-- Carga académica: qué área dicta cada docente en cada curso.
+-- Permite deducir automáticamente el responsable de cada área en el PIAR,
+-- según el curso del estudiante (con posibilidad de excepción por estudiante).
+CREATE TABLE IF NOT EXISTS carga_academica (
+  id SERIAL PRIMARY KEY,
+  docente_id INT NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+  curso_id INT NOT NULL REFERENCES curso(id) ON DELETE CASCADE,
+  area_id INT NOT NULL REFERENCES area(id) ON DELETE CASCADE,
+  UNIQUE (curso_id, area_id)
+);

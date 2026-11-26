@@ -24,8 +24,18 @@ async function puedeModificar(req, ajusteId) {
   if (!r.rows[0]) return true; // no existe: el 404 se maneja después
   const { creado_por, area_id, estudiante_id } = r.rows[0];
   if (area_id) {
-    const resp = await query('SELECT docente_id FROM responsable_area WHERE estudiante_id=$1 AND area_id=$2', [estudiante_id, area_id]);
-    if (resp.rows[0] && resp.rows[0].docente_id) return resp.rows[0].docente_id === req.usuario.id;
+    // 1) Excepción explícita por estudiante.
+    const ex = await query('SELECT docente_id FROM responsable_area WHERE estudiante_id=$1 AND area_id=$2', [estudiante_id, area_id]);
+    let dueno = ex.rows[0]?.docente_id ?? null;
+    // 2) Si no hay excepción, se deduce de la carga académica según el curso del estudiante.
+    if (dueno == null) {
+      const d = await query(
+        `SELECT ca.docente_id FROM estudiante e
+           JOIN carga_academica ca ON ca.curso_id = e.curso_id AND ca.area_id = $2
+          WHERE e.id = $1`, [estudiante_id, area_id]);
+      dueno = d.rows[0]?.docente_id ?? null;
+    }
+    if (dueno != null) return dueno === req.usuario.id;
   }
   return creado_por == null || creado_por === req.usuario.id;
 }
