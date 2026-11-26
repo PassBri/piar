@@ -393,11 +393,16 @@ export default function EstudianteForm({ estudianteId: propId, embebido = false 
           <div className="fila">
             <div className="campo"><label>Grado</label>
               <input value={form.grado || ''} onChange={(e) => set('grado', e.target.value)} placeholder="Ej. 6" /></div>
-            <div className="campo"><label>Curso (opcional)</label>
+            <div className="campo"><label>Curso (sede · jornada · grado · grupo)</label>
               <select value={form.curso_id || ''} onChange={(e) => elegirCurso(e.target.value)}>
                 <option value="">— Sin asignar —</option>
                 {cursos.map((c) => <option key={c.id} value={c.id}>{c.sede} · {c.jornada} · {c.grado} · Grupo {c.grupo}</option>)}
-              </select></div>
+              </select>
+              <small style={{ fontSize: 11, color: 'var(--gris-500)' }}>
+                {cursos.length === 0
+                  ? 'Crea los cursos en Administración para poder asignarlos.'
+                  : 'Al elegir el curso, los responsables de cada área del Anexo 2 se asignan automáticamente según la carga académica.'}
+              </small></div>
           </div>
           <div className="campo"><label>Discapacidad</label>
             <select value={form.entorno_salud.discapacidad || ''} onChange={(e) => setG('entorno_salud', 'discapacidad', e.target.value)}>

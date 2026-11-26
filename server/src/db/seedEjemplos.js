@@ -315,13 +315,12 @@ async function areaId(instId, nombreLike) {
 export async function seedEjemplos() {
   try {
     await pool.query('CREATE TABLE IF NOT EXISTS _seed_marca (clave TEXT PRIMARY KEY, aplicado_en TIMESTAMPTZ NOT NULL DEFAULT now())');
-    const ya = await pool.query("SELECT 1 FROM _seed_marca WHERE clave = 'ejemplos_completos_v2'");
-    if (ya.rowCount) return;
-
     const inst = await pool.query('SELECT id FROM institucion ORDER BY id LIMIT 1');
     if (!inst.rowCount) return;
     const instId = inst.rows[0].id;
 
+    const yaV2 = await pool.query("SELECT 1 FROM _seed_marca WHERE clave = 'ejemplos_completos_v2'");
+    if (!yaV2.rowCount) {
     for (const e of EJEMPLOS) {
       const foto = dataUrl(e.foto);
       const identificacion = { ...e.identificacion, edad: e.edad, sexo: e.sexo };
@@ -424,6 +423,28 @@ export async function seedEjemplos() {
 
     await pool.query("INSERT INTO _seed_marca (clave) VALUES ('ejemplos_completos_v2') ON CONFLICT DO NOTHING");
     console.log('Estudiantes de ejemplo con información completa: aplicado.');
+    }
+
+    // Paso aparte: asignar un curso a cada estudiante de ejemplo (para que el
+    // responsable del Anexo 2 se deduzca de la carga académica).
+    const yaCur = await pool.query("SELECT 1 FROM _seed_marca WHERE clave = 'ejemplos_cursos_v1'");
+    if (!yaCur.rowCount) {
+      for (const e of EJEMPLOS) {
+        const cur = await pool.query(
+          `INSERT INTO curso (institucion_id, sede, jornada, grado, grupo)
+           VALUES ($1,'Sede A','Mañana',$2,'A')
+           ON CONFLICT (institucion_id, sede, jornada, grado, grupo) DO UPDATE SET grado=EXCLUDED.grado
+           RETURNING id`,
+          [instId, e.grado]
+        );
+        await pool.query(
+          'UPDATE estudiante SET curso_id=$1 WHERE institucion_id=$2 AND documento_numero=$3 AND curso_id IS NULL',
+          [cur.rows[0].id, instId, e.doc]
+        );
+      }
+      await pool.query("INSERT INTO _seed_marca (clave) VALUES ('ejemplos_cursos_v1') ON CONFLICT DO NOTHING");
+      console.log('Cursos de ejemplo asignados.');
+    }
   } catch (e) {
     console.error('No se pudo sembrar los ejemplos completos:', e.message);
   }
