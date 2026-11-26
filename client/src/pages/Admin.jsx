@@ -75,6 +75,17 @@ export default function Admin() {
     try { await api.put(`/cursos/${c.id}/areas`, { area_ids: areasCursoSel }); setOk('Áreas del curso guardadas.'); setAreasCursoOpen(null); }
     catch (err) { setError(err.message); }
   }
+  const [nuevaAreaTexto, setNuevaAreaTexto] = useState('');
+  async function agregarAreaNueva() {
+    const nombre = nuevaAreaTexto.trim();
+    if (!nombre) return;
+    try {
+      const area = await api.post('/areas', { nombre, ...(esSuper ? { institucion_id: cursoInst || undefined } : {}) });
+      const lista = await api.get('/areas'); setAreasAdmin(lista);
+      if (area && area.id && !areasCursoSel.includes(area.id)) setAreasCursoSel((s) => [...s, area.id]);
+      setNuevaAreaTexto('');
+    } catch (err) { setError(err.message); }
+  }
   async function elegirCursoCarga(cid) {
     setCargaNuevo((n) => ({ ...n, curso_id: cid, area_id: '' }));
     if (!cid) { setCargaAreasCurso([]); return; }
@@ -240,6 +251,12 @@ export default function Admin() {
                             ))}
                           </div>
                         )}
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '4px 0 10px', flexWrap: 'wrap' }}>
+                        <input value={nuevaAreaTexto} onChange={(e) => setNuevaAreaTexto(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregarAreaNueva(); } }}
+                          placeholder="Agregar otra área o asignatura (ej. Técnico en Sistemas - SENA)" style={{ flex: '1 1 320px', minWidth: 240 }} />
+                        <button type="button" className="btn sec sm" onClick={agregarAreaNueva}>+ Crear área</button>
+                      </div>
                       <button type="button" className="btn sm" onClick={() => guardarAreasCurso(c)}>Guardar áreas del curso</button>
                     </div>
                   </td>
