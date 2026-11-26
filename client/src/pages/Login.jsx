@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Accesibilidad from '../components/Accesibilidad.jsx';
 import icono from '../assets/icono-app.png';
@@ -98,11 +98,11 @@ export default function Login() {
           <footer className="login-footer">
             <span>PIAR © 2026 · Educación inclusiva</span>
             <nav className="login-footer-nav">
-              <button type="button" onClick={(e) => e.preventDefault()}>Privacidad</button>
+              <Link to="/privacidad">Privacidad</Link>
               <span>·</span>
-              <button type="button" onClick={(e) => e.preventDefault()}>Soporte</button>
+              <Link to="/soporte">Soporte</Link>
               <span>·</span>
-              <button type="button" onClick={(e) => e.preventDefault()}>Términos</button>
+              <Link to="/terminos">Términos</Link>
             </nav>
           </footer>
       </div>

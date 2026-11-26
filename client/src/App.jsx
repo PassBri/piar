@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
+import PaginaLegal from './pages/PaginaLegal.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Estudiantes from './pages/Estudiantes.jsx';
 import EstudianteForm from './pages/EstudianteForm.jsx';
@@ -28,6 +29,9 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/privacidad" element={<PaginaLegal tipo="privacidad" />} />
+      <Route path="/soporte" element={<PaginaLegal tipo="soporte" />} />
+      <Route path="/terminos" element={<PaginaLegal tipo="terminos" />} />
       <Route path="/" element={<Privada><Layout /></Privada>}>
         <Route index element={<Dashboard />} />
         <Route path="estudiantes" element={<Estudiantes />} />

@@ -459,8 +459,25 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
 .btn-login:disabled { opacity: .7; cursor: default; }
 .login-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: #8A959C; font-size: 11.5px; padding: 0 4px; }
 .login-footer-nav { display: flex; align-items: center; gap: 8px; }
-.login-footer-nav button { background: none; border: none; color: #9AA6AD; font-size: 11.5px; cursor: pointer; padding: 0; }
-.login-footer-nav button:hover { color: #fff; text-decoration: underline; }
+.login-footer-nav button, .login-footer-nav a { background: none; border: none; color: #9AA6AD; font-size: 11.5px; cursor: pointer; padding: 0; text-decoration: none; }
+.login-footer-nav button:hover, .login-footer-nav a:hover { color: #fff; text-decoration: underline; }
+
+/* Páginas legales (públicas) */
+.legal-wrap { min-height: 100vh; background: #16181B; display: flex; justify-content: center; padding: 48px 20px; }
+.legal-card { width: 100%; max-width: 760px; color: #D7DEE3; }
+.legal-volver { display: inline-block; color: #9AA6AD; font-size: 13px; text-decoration: none; margin-bottom: 22px; }
+.legal-volver:hover { color: #fff; text-decoration: underline; }
+.legal-marca { display: flex; align-items: center; gap: 10px; color: #93A1AC; font-size: 13px; margin-bottom: 14px; }
+.legal-icono { width: 34px; height: 34px; border-radius: 9px; box-shadow: 0 0 0 1px rgba(255,255,255,0.14); }
+.legal-titulo { font-size: 26px; font-weight: 700; color: #F8FAFC; margin: 0 0 14px; letter-spacing: -0.3px; }
+.legal-intro { font-size: 15px; line-height: 1.65; color: #B6C0C8; margin: 0 0 26px; }
+.legal-seccion { margin-bottom: 20px; }
+.legal-seccion h2 { font-size: 15px; font-weight: 700; color: #E8EDF1; margin: 0 0 6px; }
+.legal-seccion p { font-size: 14px; line-height: 1.65; color: #AEB9C1; margin: 0; }
+.legal-nota { font-size: 12.5px; line-height: 1.6; color: #8A95A1; font-style: italic; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px; margin-top: 26px; }
+.legal-footer { display: flex; gap: 10px; align-items: center; margin-top: 30px; color: #64748B; font-size: 12.5px; }
+.legal-footer a { color: #9AA6AD; text-decoration: none; }
+.legal-footer a:hover { color: #fff; text-decoration: underline; }
 @media (max-width: 820px) {
   .login-grid { grid-template-columns: 1fr; gap: 26px; max-width: 420px; }
   .login-hero { text-align: center; }
