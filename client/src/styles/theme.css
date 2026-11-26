@@ -391,11 +391,12 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
   justify-content: center; align-items: center; padding: 24px;
   background-color: #2b2d30;
   background-image:
-    linear-gradient(rgba(9,10,12,0.5), rgba(9,10,12,0.5)),
+    radial-gradient(ellipse 60% 70% at 50% 48%, rgba(8,9,11,0.66) 0%, rgba(8,9,11,0.3) 60%, rgba(8,9,11,0.2) 100%),
+    linear-gradient(rgba(10,11,13,0.42), rgba(10,11,13,0.5)),
     url('/login-bg.jpg');
-  background-size: cover, cover;
-  background-repeat: no-repeat, no-repeat;
-  background-position: center, center;
+  background-size: cover, cover, cover;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-position: center, center, center;
 }
 .login-panel-centro {
   width: 408px; max-width: 94vw; margin: 0;
@@ -415,7 +416,7 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
 .login-hero-sub { font-size: 15px; line-height: 1.6; color: #9AA6AD; margin: 0; }
 .login-panel { display: flex; flex-direction: column; gap: 14px; }
 .login-card {
-  background: rgba(17,18,21,0.64); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  background: rgba(15,16,19,0.74); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   padding: 44px 36px 36px; border-radius: 18px; width: 100%;
   box-shadow: 0 30px 80px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.12);
 }
