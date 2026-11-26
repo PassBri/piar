@@ -27,41 +27,47 @@ function disposicion(req, filename) {
 
 // ---- Maquetación estilo formato oficial del MEN ----
 // Dibuja el membrete y el pie en coordenadas absolutas, sin provocar paginación.
+// Recuadro de encabezado como el formato oficial del Decreto 1421:
+// tres celdas — MinEducación · Gobierno de Colombia · PIAR Decreto 1421/2017.
+function cajaOficial(doc, y) {
+  const h = 30;
+  const w1 = Math.round(ANCHO * 0.40);
+  const w2 = Math.round(ANCHO * 0.34);
+  const w3 = ANCHO - w1 - w2;
+  doc.lineWidth(0.8).rect(X0, y, ANCHO, h).stroke('#555');
+  doc.moveTo(X0 + w1, y).lineTo(X0 + w1, y + h).stroke('#555');
+  doc.moveTo(X0 + w1 + w2, y).lineTo(X0 + w1 + w2, y + h).stroke('#555');
+  doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#1a1a1a')
+    .text('MinEducación', X0, y + 11, { width: w1, align: 'center', lineBreak: false });
+  doc.text('Gobierno de Colombia', X0 + w1, y + 11, { width: w2, align: 'center', lineBreak: false });
+  doc.font('Helvetica-Bold').fontSize(9.5).fillColor(GRIS).text('PIAR', X0 + w1 + w2, y + 6, { width: w3, align: 'center', lineBreak: false });
+  doc.font('Helvetica').fontSize(6.5).fillColor(GRIS_MEDIO).text('Decreto 1421/2017', X0 + w1 + w2, y + 18, { width: w3, align: 'center', lineBreak: false });
+}
+
 function decorar(doc, indicePagina) {
   // Las portadas no llevan encabezado ni pie
   if (doc._portadas && doc._portadas.has(indicePagina)) return;
   const cab = doc._cab;
+  // Encabezado oficial (recuadro de 3 celdas) en todas las hojas de contenido.
+  cajaOficial(doc, 14);
   if (cab) {
-    // Encabezado elegante en cada hoja: logo y datos del colegio a la izquierda, sello PIAR a la derecha
-    let tx = X0;
-    if (cab.inst && cab.inst.logo && String(cab.inst.logo).startsWith('data:image')) {
-      try { doc.image(Buffer.from(cab.inst.logo.split(',')[1], 'base64'), X0, 20, { fit: [26, 26] }); tx = X0 + 32; } catch { /* */ }
-    }
-    doc.font('Helvetica-Bold').fontSize(8.5).fillColor(GRIS).text(cab.inst?.nombre || '', tx, 21, { width: 320, lineBreak: false });
-    if (cab.inst?.nit) doc.font('Helvetica').fontSize(7).fillColor(GRIS_MEDIO).text(`NIT ${cab.inst.nit}`, tx, 32, { width: 320, lineBreak: false });
-    // Sello PIAR a la derecha
-    doc.lineWidth(0.8).rect(470, 18, 88, 26).stroke('#B0BEC5');
-    doc.font('Helvetica-Bold').fontSize(9.5).fillColor(GRIS).text('PIAR', 470, 22, { width: 88, align: 'center', lineBreak: false });
-    doc.font('Helvetica').fontSize(6.5).fillColor(GRIS_MEDIO).text('Decreto 1421/2017', 470, 34, { width: 88, align: 'center', lineBreak: false });
-    // Línea inferior del encabezado: estudiante (anexos) o texto propio (informes institucionales)
-    const lineaInf = cab.linea || `Estudiante: ${cab.estudiante || '—'}${cab.documento ? `   ·   Documento: ${cab.documento}` : ''}`;
+    // Segunda línea: colegio y estudiante (o texto propio de informes institucionales)
+    const partes = [];
+    if (cab.inst?.nombre) partes.push(cab.inst.nombre);
+    const lineaInf = cab.linea || `${partes.length ? partes.join('') + '   ·   ' : ''}Estudiante: ${cab.estudiante || '—'}${cab.documento ? `   ·   Documento: ${cab.documento}` : ''}`;
     doc.font('Helvetica').fontSize(7.5).fillColor('#000').text(lineaInf, X0, 49, { width: ANCHO, lineBreak: false });
-    doc.moveTo(X0, 62).lineTo(X0 + ANCHO, 62).lineWidth(0.6).stroke('#CFD8DC');
-  } else {
-    // Encabezado simple (documentos sin estudiante)
-    doc.lineWidth(1).rect(444, 28, 114, 32).stroke('#999');
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(GRIS).text('PIAR', 444, 33, { width: 114, align: 'center', lineBreak: false });
-    doc.font('Helvetica').fontSize(7.5).fillColor(GRIS_MEDIO).text('Decreto 1421/2017', 444, 47, { width: 114, align: 'center', lineBreak: false });
+    doc.moveTo(X0, 61).lineTo(X0 + ANCHO, 61).lineWidth(0.6).stroke('#CFD8DC');
   }
-  // Pie: fecha de impresión (izq), número de página (der) y nota ministerial (centro)
+  // Pie como el formato oficial: versión, nota ministerial, fecha y número de página.
   const hoy = new Date().toLocaleDateString('es-CO');
   const total = doc.bufferedPageRange().count;
   doc.font('Helvetica').fontSize(6.5).fillColor(GRIS_MEDIO)
-     .text(`Impreso el ${hoy}`, X0, 736, { width: 200, lineBreak: false });
-  doc.text(`Página ${indicePagina + 1} de ${total}`, X0 + ANCHO - 140, 736, { width: 140, align: 'right', lineBreak: false });
+     .text(`Impreso el ${hoy}`, X0, 734, { width: 200, lineBreak: false });
+  doc.text(`Página ${indicePagina + 1} de ${total}`, X0 + ANCHO - 140, 734, { width: 140, align: 'right', lineBreak: false });
   doc.font('Helvetica').fontSize(6.5).fillColor(GRIS_MEDIO)
-     .text('Ministerio de Educación Nacional – Viceministerio de Educación Preescolar, Básica y Media – Decreto 1421 de 2017',
-       X0, 748, { width: ANCHO, align: 'center', lineBreak: false });
+     .text('V14. 16/02/2018. - Ver documento de instrucciones.', X0, 744, { width: ANCHO, align: 'center', lineBreak: false });
+  doc.text('Ministerio de Educación Nacional – Viceministerio de Educación Preescolar, Básica y Media – Decreto 1421 de 2017',
+       X0, 753, { width: ANCHO, align: 'center', lineBreak: false });
   doc.fillColor('#000');
 }
 
