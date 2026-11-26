@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Accesibilidad from '../components/Accesibilidad.jsx';
-import icono from '../assets/icono-app.png';
+import icono from '../assets/logo-piar.png';
 
 function IconoUsuario() {
   return (
