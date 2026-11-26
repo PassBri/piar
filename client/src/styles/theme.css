@@ -273,14 +273,23 @@ table.ftabla th { background: var(--gris-700); color: #fff; font-size: 11px; fon
 .secc-card-badge { font-size: 11px; font-weight: 700; color: var(--secc-tx, #475569); background: #fff; border: 1px solid var(--secc, #CBD5E1); border-radius: 999px; padding: 1px 8px; }
 .secc-card-body { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; }
 .secc-chip {
-  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+  display: inline-flex; align-items: stretch; max-width: 100%; overflow: hidden;
   border: 1px solid #CBD5E1; background: #fff; color: #334155; border-radius: 999px;
-  padding: 5px 12px 5px 9px; font-size: 12.5px; cursor: pointer; text-align: left; line-height: 1.25;
   transition: background .12s, border-color .12s, color .12s;
 }
-.secc-chip:hover { border-color: var(--secc, #94A3B8); background: var(--secc-bg, #F1F5F9); }
+.secc-chip:hover { border-color: var(--secc, #94A3B8); }
 .secc-chip.on { background: var(--secc, #475569); border-color: var(--secc, #475569); color: #fff; }
+.secc-chip-main {
+  background: none; border: none; color: inherit; cursor: pointer; font: inherit; font-size: 12.5px;
+  padding: 5px 6px 5px 11px; display: inline-flex; align-items: center; gap: 6px; text-align: left; line-height: 1.25;
+}
 .secc-chip-mark { font-weight: 800; font-size: 12px; opacity: .9; }
+.secc-chip-ic {
+  background: none; border: none; color: inherit; cursor: pointer; opacity: .5;
+  padding: 0 7px; font-size: 13px; display: inline-flex; align-items: center;
+}
+.secc-chip-ic:last-child { padding-right: 10px; }
+.secc-chip-ic:hover { opacity: 1; background: rgba(0,0,0,.12); }
 .secc-preescolar { --secc: #D97706; --secc-bg: #FFF7ED; --secc-tx: #B45309; }
 .secc-primaria   { --secc: #059669; --secc-bg: #ECFDF5; --secc-tx: #047857; }
 .secc-secundaria { --secc: #2563EB; --secc-bg: #EFF6FF; --secc-tx: #1D4ED8; }

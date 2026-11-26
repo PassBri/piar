@@ -88,7 +88,18 @@ export default function Admin() {
     try { const list = await api.get(`/cursos/${c.id}/areas`); setAreasCursoSel(list.map((x) => x.area_id)); setAreasCursoOpen(c.id); }
     catch (err) { setError(err.message); }
   }
-  const toggleAreaCurso = (aid) => setAreasCursoSel((s) => (s.includes(aid) ? s.filter((x) => x !== aid) : [...s, aid]));
+  async function toggleAreaCurso(aid) {
+    const nueva = areasCursoSel.includes(aid) ? areasCursoSel.filter((x) => x !== aid) : [...areasCursoSel, aid];
+    setAreasCursoSel(nueva);
+    if (areasCursoOpen) { try { await api.put(`/cursos/${areasCursoOpen}/areas`, { area_ids: nueva }); } catch (err) { setError(err.message); } }
+  }
+  async function renombrarAreaRapido(a) {
+    const n = window.prompt('Nuevo nombre del área o asignatura:', a.nombre);
+    if (n == null) return; const nombre = n.trim();
+    if (!nombre || nombre === a.nombre) return;
+    try { await api.put(`/areas/${a.id}`, { nombre }); setAreasAdmin(await api.get('/areas')); setOk('Área renombrada.'); }
+    catch (err) { setError(err.message); }
+  }
   const marcarBasicas = () => setAreasCursoSel(areasAdmin.filter((a) => AREAS_BASICAS_NOMBRES.includes(a.nombre)).map((a) => a.id));
   async function guardarAreasCurso(c) {
     try { await api.put(`/cursos/${c.id}/areas`, { area_ids: areasCursoSel }); setOk('Áreas del curso guardadas.'); setAreasCursoOpen(null); }
@@ -115,7 +126,7 @@ export default function Admin() {
   }
   async function eliminarArea(a) {
     if (!window.confirm(`¿Eliminar el área "${a.nombre}"? Esta acción no se puede deshacer.`)) return;
-    try { await api.del(`/areas/${a.id}`); setAreasAdmin(await api.get('/areas')); setOk('Área eliminada.'); }
+    try { await api.del(`/areas/${a.id}`); setAreasAdmin(await api.get('/areas')); setAreasCursoSel((s) => s.filter((x) => x !== a.id)); setOk('Área eliminada.'); }
     catch (err) { setError(err.message); }
   }
 
@@ -129,9 +140,13 @@ export default function Admin() {
     try {
       const area = await api.post('/areas', { nombre, secciones: secs, ...(esSuper ? { institucion_id: cursoInst || undefined } : {}) });
       const lista = await api.get('/areas'); setAreasAdmin(lista);
-      if (area && area.id && !areasCursoSel.includes(area.id)) setAreasCursoSel((s) => [...s, area.id]);
+      if (area && area.id) {
+        const nueva = areasCursoSel.includes(area.id) ? areasCursoSel : [...areasCursoSel, area.id];
+        setAreasCursoSel(nueva);
+        if (areasCursoOpen) await api.put(`/cursos/${areasCursoOpen}/areas`, { area_ids: nueva });
+      }
       setNuevaAreaTexto(''); setNuevaAreaSecs([]);
-      setOk(`Área "${nombre}" creada y marcada. No olvides "Guardar áreas del curso".`);
+      setOk(`Área "${nombre}" creada y agregada al curso.`);
     } catch (err) { setError(err.message); }
   }
   async function elegirCursoCarga(cid) {
@@ -311,9 +326,13 @@ export default function Admin() {
                                     {lista.map((a) => {
                                       const on = areasCursoSel.includes(a.id);
                                       return (
-                                        <button type="button" key={a.id} className={`secc-chip${on ? ' on' : ''}`} onClick={() => toggleAreaCurso(a.id)}>
-                                          <span className="secc-chip-mark" aria-hidden="true">{on ? '✓' : '+'}</span>{a.nombre}
-                                        </button>
+                                        <span key={a.id} className={`secc-chip${on ? ' on' : ''}`}>
+                                          <button type="button" className="secc-chip-main" onClick={() => toggleAreaCurso(a.id)}>
+                                            <span className="secc-chip-mark" aria-hidden="true">{on ? '✓' : '+'}</span>{a.nombre}
+                                          </button>
+                                          <button type="button" className="secc-chip-ic" title="Renombrar" onClick={() => renombrarAreaRapido(a)}>✎</button>
+                                          <button type="button" className="secc-chip-ic" title="Eliminar" onClick={() => eliminarArea(a)}>×</button>
+                                        </span>
                                       );
                                     })}
                                   </div>
@@ -336,7 +355,10 @@ export default function Admin() {
                           </label>
                         ))}
                       </div>
-                      <button type="button" className="btn" onClick={() => guardarAreasCurso(c)}>Guardar áreas del curso</button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                        <button type="button" className="btn sec sm" onClick={() => setAreasCursoOpen(null)}>Listo</button>
+                        <span style={{ fontSize: 11.5, color: 'var(--gris-500)' }}>✓ Los cambios se guardan automáticamente.</span>
+                      </div>
                     </div>
                   </td>
                 </tr>
